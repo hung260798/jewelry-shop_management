@@ -1,0 +1,15 @@
+.root {
+  overflow: hidden;
+  border-radius: 0.35rem;
+}
+
+.root .mask {
+  opacity: 0;
+  background-color: transparent;
+  transition: all cubic-bezier(0.075, 0.82, 0.165, 1) 0.75s;
+}
+
+.root:hover .mask {
+  opacity: 0.65;
+  background-color: #4a5565;
+}

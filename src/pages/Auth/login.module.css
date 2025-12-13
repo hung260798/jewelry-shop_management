@@ -1,0 +1,20 @@
+.form_box{
+    position: relative;
+    width: 450px;
+    height: 450px;
+    background: transparent;
+    border: 2px solid rgba(23,104,227,0.5);
+    border-radius: 20px;
+    backdrop-filter: blur(15px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.title{
+    font-size: 2em;
+    color: rgba(23,104,227);
+    text-align: center;
+    padding-bottom: 50px;
+}

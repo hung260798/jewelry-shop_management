@@ -1,0 +1,429 @@
+import CRUD from "@/templates/CRUD";
+import { FormControl } from "@/utils/types/Form";
+import { Active, Customer, WithId } from "@repo/utils/types/index";
+import { DatePicker, Input, Select, Space, Switch, Tag } from "antd";
+import locale from "antd/es/date-picker/locale/en_US";
+import Search from "antd/es/input/Search";
+import { ColumnsType } from "antd/es/table";
+import LazyFadeImage from "components/images/Lazy/SmartImage";
+import dayjs from "dayjs";
+import customParseFormat from "dayjs/plugin/customParseFormat";
+import { useGetList } from "hooks/useMyQuery";
+import { API_URL } from "utils/constants/URLS";
+
+const formItems: FormControl[] = [
+  {
+    label: "Id",
+    name: "_id",
+    className: "hidden",
+    component: <Input disabled readOnly />,
+  },
+  {
+    label: "Email",
+    name: "email",
+    rules: [{ required: true, message: "Please input Email!" }],
+    component: <Input />,
+  },
+  {
+    label: "Tên",
+    name: "firstName",
+    rules: [{ required: true, message: "Please input First name!" }],
+    component: <Input />,
+  },
+  {
+    label: "Họ",
+    name: "lastName",
+    rules: [{ required: true, message: "Please input Last name!" }],
+    component: <Input />,
+  },
+  {
+    label: "Số điện thoại",
+    name: "phoneNumber",
+    rules: [{ required: true, message: "Please input Phone number!" }],
+    component: <Input />,
+  },
+  {
+    label: "Mật khẩu",
+    name: "password",
+    rules: {
+      add: [
+        {
+          required: true,
+          message: "Please input password!",
+        },
+      ],
+      update: [],
+    },
+    component: <Input />,
+  },
+  {
+    label: "Địa chỉ",
+    name: "address",
+    rules: [{ required: true, message: "Please input Address!" }],
+    component: <Input />,
+  },
+  {
+    label: "Bị khóa",
+    name: "Locked",
+    component: <Switch />,
+    valuePropName: "checked",
+  },
+  {
+    label: "Ghi chú",
+    name: "note",
+    component: <Input />,
+  },
+  {
+    label: "Ngày sinh",
+    name: "birthday",
+    rules: [{ required: true, message: "Please input Birthday!" }],
+    component: (
+      <DatePicker
+        size="middle"
+        placement="bottomLeft"
+        format="DD/MM/YYYY"
+        locale={locale}
+      />
+    ),
+    getValueProps: (value) => {
+      // console.log("getValueProps");
+      return {
+        value: value ? dayjs(value, { format: "YYYY-MM-DD" }) : undefined,
+      };
+    },
+    // getValueFromEvent: (date) => {
+    //   console.log("get from event")
+    //   return date ? date.format("YYYY-MM-DD") : null;
+    // },
+    onSubmit: (date) => {
+      return date ? dayjs(date).format("YYYY-MM-DD") : null;
+    },
+  },
+];
+
+const { RangePicker } = DatePicker;
+dayjs.extend(customParseFormat);
+const dateFormat = "DD/MM/YYYY";
+
+type CustomerWithId = WithId<Customer> & Active & { Locked: boolean };
+
+export default function CustomerCRUD() {
+  const queryProps = {
+    url: "/customers",
+    queryKey: ["get_customers"],
+    // initData: { results: [], amountResults: 0 },
+  };
+  // const queryHook = useMyQuery<GetManyData<CustomerWithId>>;
+  const queryHook = useGetList<CustomerWithId>;
+  const {
+    searchItems,
+    searchParams,
+    setSearchParams,
+    query: { data: customersData, isLoading, refetch, error },
+  } = queryHook(queryProps);
+
+  const renderTitle = (paramKey: string, label: string) => (
+    <div className={searchParams.get(paramKey) ? "text-danger" : "secondary"}>
+      {label}
+    </div>
+  );
+
+  //Setting column
+  const columns: ColumnsType<CustomerWithId> = [
+    //NO
+    {
+      title: () => {
+        return (
+          <div>
+            {searchParams.get("Locked") ? (
+              <div className="text-danger">No</div>
+            ) : (
+              <div className="secondary">No</div>
+            )}
+          </div>
+        );
+      },
+      dataIndex: "id",
+      key: "id",
+      render: (text: string, record, index: number) => {
+        return (
+          <div>
+            <Space>
+              {index + 1}
+              {!record.Locked && (
+                <span style={{ fontSize: "16px", color: "#08c" }}>
+                  {/* <CheckCircleOutlined /> Active */}
+                  <Tag color="green">ACTIVE</Tag>
+                </span>
+              )}
+              {record.Locked === true && (
+                <span style={{ fontSize: "16px", color: "#dc3545" }}>
+                  {/* <CheckCircleOutlined /> Locked */}
+                  <Tag color="gold">LOCKED</Tag>
+                </span>
+              )}
+            </Space>
+          </div>
+        );
+      },
+      filterDropdown: () => {
+        return (
+          <>
+            <div>
+              <Select
+                allowClear
+                style={{ width: "125px" }}
+                placeholder="Select a supplier"
+                optionFilterProp="children"
+                showSearch
+                onChange={(e) => {
+                  const searchValue = { type: "Locked", value: e };
+                  searchItems(searchValue, { resetSkip: true });
+                }}
+                filterOption={(input, option) =>
+                  (option?.label ?? "")
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+                options={[
+                  {
+                    value: "false",
+                    label: "Active",
+                  },
+
+                  {
+                    value: "true",
+                    label: "Locked",
+                  },
+                ]}
+              />
+            </div>
+          </>
+        );
+      },
+      width: 60,
+      responsive: ["xl", "xxl"],
+    },
+    //IMAGE
+    {
+      width: 90,
+      title: "Picture",
+      key: "imageUrl",
+      dataIndex: "imageUrl",
+      render: (text, record) => {
+        return (
+          <div className="flex justify-center items-center h-[180px] w-[110px]">
+            {record.imageUrl && (
+              <LazyFadeImage
+                src={`${API_URL}${record.imageUrl}`}
+                smallSizes={[[100, 150]]}
+                alt="record.imageUrl"
+              />
+            )}
+          </div>
+        );
+      },
+      responsive: ["md"],
+    },
+    //First Name
+    {
+      title: () => renderTitle("firstName", "Tên khách hàng"),
+      dataIndex: "firstName",
+      key: "firstName",
+      sorter: true,
+      filterDropdown: () => {
+        return (
+          <div style={{ padding: 8 }}>
+            <Search
+              allowClear
+              placeholder="Enter first name"
+              onSearch={(e) => {
+                const searchValue = { type: "firstName", value: e };
+                searchItems(searchValue, { resetSkip: true });
+              }}
+              style={{ width: 200 }}
+            />
+          </div>
+        );
+      },
+      width: 160,
+    },
+    //Last Name
+    {
+      title: () => renderTitle("lastName", "Họ đệm"),
+      dataIndex: "lastName",
+      key: "lastName",
+      sorter: true,
+      filterDropdown: () => {
+        return (
+          <div style={{ padding: 8 }}>
+            <Search
+              allowClear
+              onSearch={(e) => {
+                const searchValue = { type: "lastName", value: e };
+                searchItems(searchValue, { resetSkip: true });
+              }}
+              placeholder="Enter last name"
+              style={{ width: 200 }}
+            />
+          </div>
+        );
+      },
+      width: 160,
+    },
+    //Email
+    {
+      title: () => renderTitle("email", "Email"),
+      dataIndex: "email",
+      key: "email",
+      sorter: true,
+      filterDropdown: () => {
+        return (
+          <div style={{ padding: 8 }}>
+            <Search
+              allowClear
+              onSearch={(e) => {
+                const searchValue = { type: "email", value: e };
+                searchItems(searchValue, { resetSkip: true });
+              }}
+              placeholder="Enter email"
+              style={{ width: 200 }}
+            />
+          </div>
+        );
+      },
+      width: 160,
+      responsive: ["xs"],
+    },
+    //Phone number
+    {
+      title: () => renderTitle("phoneNumber", "Số điện thoại"),
+      dataIndex: "phoneNumber",
+      key: "phoneNumber",
+      filterDropdown: () => {
+        return (
+          <div style={{ padding: 8 }}>
+            <Search
+              onSearch={(e) => {
+                const searchValue = { type: "phoneNumber", value: e };
+                searchItems(searchValue, { resetSkip: true });
+              }}
+              allowClear
+              placeholder="Enter phone number"
+              style={{ width: 200 }}
+            />
+          </div>
+        );
+      },
+      responsive: ["lg"],
+      width: 120,
+    },
+    //Address
+    {
+      title: () => renderTitle("address", "Địa chỉ"),
+      dataIndex: "address",
+      key: "address",
+      filterDropdown: () => {
+        return (
+          <div style={{ padding: 8 }}>
+            <Search
+              allowClear
+              onSearch={(e) => {
+                const searchValue = { type: "address", value: e };
+                searchItems(searchValue, { resetSkip: true });
+              }}
+              placeholder="Enter address"
+              style={{ width: 200 }}
+            />
+          </div>
+        );
+      },
+      responsive: ["xl"],
+      width: 180,
+    },
+    //Birthday
+    {
+      title: () => {
+        return (
+          <div>
+            {searchParams.get("birthdayFrom") ||
+            searchParams.get("birthdayTo") ? (
+              <div className="text-danger">Birthday</div>
+            ) : (
+              <div className="secondary">Birthday</div>
+            )}
+          </div>
+        );
+      },
+      dataIndex: "birthday",
+      key: "birthday",
+      render: (birthday) => {
+        const formattedBirthday = dayjs(birthday).format("DD/MM/YYYY");
+        return <span>{formattedBirthday}</span>;
+      },
+      sorter: true,
+      filterDropdown: () => {
+        return (
+          <div style={{ padding: 8 }}>
+            <RangePicker
+              allowClear
+              defaultValue={[
+                dayjs("01/01/1900", dateFormat),
+                dayjs("01/01/2023", dateFormat),
+              ]}
+              format={dateFormat}
+              onChange={async (e) => {
+                const searchValues: { type: string; value?: string }[] = [
+                  { type: "birthdayFrom", value: undefined },
+                  { type: "birthdayTo", value: undefined },
+                ];
+                const data = e?.map((date) => dayjs(date).format("YYYY/MM/DD"));
+                if (data) {
+                  searchValues[0] = { type: "birthdayFrom", value: data[0] };
+                  searchValues[1] = { type: "birthdayTo", value: data[1] };
+                }
+                searchItems(searchValues, { resetSkip: true });
+              }}
+            />
+          </div>
+        );
+      },
+      responsive: ["lg"],
+      width: 80,
+    },
+    //Note
+    {
+      title: "Ghi chú",
+      dataIndex: "note",
+      key: "note",
+      width: 100,
+      responsive: ["xl"],
+    },
+  ];
+
+  const dataSource = customersData?.results;
+
+  return (
+    <CRUD
+      dataSource={dataSource}
+      columns={columns}
+      searchParams={searchParams}
+      setSearchParams={setSearchParams}
+      refetch={refetch}
+      collectionName="customers"
+      loading={isLoading}
+      form={{ controls: formItems, title: "Khách hàng" }}
+      fileFields={[
+        {
+          name: "imageUrl",
+          fileType: "image",
+          label: "Image",
+          maxCount: 1,
+          sizes: [[100, 150]],
+        },
+      ]}
+      fetchError={error}
+      totalAmount={customersData?.amountResults || 0}
+    />
+  );
+}

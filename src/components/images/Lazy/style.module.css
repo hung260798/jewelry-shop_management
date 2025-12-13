@@ -1,0 +1,19 @@
+.fadeIn {
+  opacity: 1;
+  transition: opacity 0.6s ease-in-out;
+}
+
+.hidden {
+  opacity: 0;
+}
+
+/* Thêm vào file CSS của bạn nếu dùng Tailwind kết hợp với CSS thường */
+.fallbackTransition {
+  transition: all 0.3s ease-in-out;
+  -webkit-transition: all 0.3s ease-in-out;
+  /* Safari cũ */
+  -moz-transition: all 0.3s ease-in-out;
+  /* Firefox cũ */
+  -o-transition: all 0.3s ease-in-out;
+  /* Opera cũ */
+}

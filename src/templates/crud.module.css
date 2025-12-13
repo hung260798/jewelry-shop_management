@@ -1,0 +1,4 @@
+.custom-header-table .ant-table-thead > tr > th {
+  background-color: #52c41a; /* green header */
+  color: white;
+}

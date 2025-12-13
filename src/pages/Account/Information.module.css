@@ -1,0 +1,15 @@
+/* Make Select dropdown and items bigger */
+.root :global(.ant-select-dropdown) {
+  font-size: 18px;
+  min-height: 55px;
+}
+
+/* Increase item padding */
+.root :global(.ant-select-item) {
+  padding: 16px 20px;
+  font-size: 18px;
+}
+
+.root :global(.ant-image-mask) {
+  border-radius: 8px;
+}
