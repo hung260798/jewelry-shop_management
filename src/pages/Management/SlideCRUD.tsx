@@ -1,13 +1,16 @@
 import useMyQuery from "@/hooks/useMyQuery";
 import CRUD from "@/templates/CRUD";
 import { Slide } from "@/utils/types/Entities";
-import { LazyFadeImage } from "@repo/components/src/images";
+// import { LazyFadeImage } from "@repo/components/src/images";
+import LazyFadeImage from "@/components/images/Lazy/SmartImage";
 import { Active, GetMany, WithId } from "@repo/utils/types";
 import { Select, Space, Tag } from "antd";
 import Search from "antd/es/input/Search";
 import { ColumnsType } from "antd/es/table";
 import { API_URL } from "utils/constants/URLS";
 import { Input, InputNumber, Switch } from "antd";
+
+type Slide2 = WithId<Slide> & Active;
 
 export const formFields = [
   {
@@ -64,14 +67,14 @@ function SlidesCRUD() {
     searchParams,
     setSearchParams,
     searchItems,
-  } = useMyQuery<GetMany<WithId<Slide> & Active>>({
+  } = useMyQuery<GetMany<Slide2>>({
     queryKey: ["get_slides"],
     url: "/slides",
     placeholderData: { results: [], amountResults: 0 },
   });
 
   //Setting column
-  const columns: ColumnsType<Slide> = [
+  const columns: ColumnsType<Slide2> = [
     //NO
     {
       title: () => {
@@ -175,7 +178,6 @@ function SlidesCRUD() {
             {record.imageUrl && (
               <LazyFadeImage
                 src={`${API_URL}${newImgUrl}`}
-                fallbackSources={[`${API_URL}${record.imageUrl}`]}
                 style={{ height: 100 }}
                 alt="record.imageUrl"
                 preview={{

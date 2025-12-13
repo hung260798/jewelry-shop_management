@@ -38,8 +38,8 @@ import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import { useMemo } from "react";
 // import { devLog } from "@/utils/logger";
-import { AxiosResponse } from "axios";
-import React, { useState } from "react";
+import { DataSelect, DataSelectProps } from "@/components/Inputs/Select";
+import React from "react";
 
 export function createFormInputs(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -235,12 +235,12 @@ export function createFormInputs(
   ];
 }
 
-interface CategorySelectProps {
+interface CustomSelectProps {
   value?: string;
   onChange?: (value: string) => void;
 }
 
-const CategorySelect: React.FC<CategorySelectProps> = (props) => {
+const CategorySelect: React.FC<CustomSelectProps> = (props) => {
   return (
     <>
       <DataSelect
@@ -263,7 +263,7 @@ const CategorySelect: React.FC<CategorySelectProps> = (props) => {
   );
 };
 
-const SupplierSelect: React.FC<CategorySelectProps> = (props) => {
+const SupplierSelect: React.FC<CustomSelectProps> = (props) => {
   return (
     <>
       <DataSelect
@@ -286,52 +286,190 @@ const SupplierSelect: React.FC<CategorySelectProps> = (props) => {
   );
 };
 
-interface DataSelectProps<T = unknown> {
-  options?: T[];
-  value?: string;
-  onChange?: (value: string) => void;
-  queryOpts: {
-    queryFn: () => Promise<AxiosResponse>;
-    queryKey: unknown[];
-  };
-}
-
-const DataSelect = (props: DataSelectProps) => {
-  const { data: response, isLoading, error } = useQuery(props.queryOpts);
-  const options = response?.data.results;
-  const [value, setValue] = useState<string | null>(null);
-  // devLog("categories input controls", categories);
-  if (isLoading) {
-    return <>Loading...</>;
-  }
-  if (error) {
-    return <>Load error</>;
-  }
-  if (!Array.isArray(options)) {
-    return <>Null</>;
-  }
-  return (
-    <Select<string, { label: string; value: string }>
-      showSearch
-      placeholder="Select a category"
-      optionFilterProp="children"
-      filterOption={(input, option) =>
-        (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-      }
-      options={options.map((item) => {
-        return {
-          label: item.name,
-          value: item._id,
-        };
-      })}
-      value={props.value ?? value}
-      onChange={(value) => {
-        setValue(value);
-        props.onChange?.(value);
-      }}
-    />
-  );
-};
+const inputs: FormControl[] = [
+  {
+    label: "Id",
+    name: "_id",
+    className: "hidden",
+    component: <Input />,
+  },
+  {
+    label: "Danh mục",
+    name: "categoryId",
+    rules: [
+      {
+        required: true,
+        message: "Please enter Category Name",
+      },
+    ],
+    // component: (
+    //   <Select<string, { label: string; value: string }>
+    //     showSearch
+    //     placeholder="Select a category"
+    //     optionFilterProp="children"
+    //     filterOption={(input, option) =>
+    //       (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+    //     }
+    //     options={categories.map((item) => {
+    //       return {
+    //         label: item.name,
+    //         value: item._id,
+    //       };
+    //     })}
+    //   />
+    // ),
+    flex: "basis-[364px] grow-0",
+    component: <CategorySelect />,
+  },
+  {
+    label: "Nhà cung cấp",
+    name: "supplierId",
+    rules: [
+      {
+        required: true,
+        message: "Please enter Supplier Name",
+      },
+    ],
+    // component: (
+    //   <Select
+    //     showSearch
+    //     placeholder="Select a supplier"
+    //     optionFilterProp="children"
+    //     filterOption={(input, option) =>
+    //       (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+    //     }
+    //     options={suppliers.map((item) => {
+    //       return {
+    //         label: `${item.name}`,
+    //         value: item._id,
+    //       };
+    //     })}
+    //   />
+    // ),
+    flex: `grow-0`,
+    component: <SupplierSelect />,
+  },
+  {
+    label: "Tên sản phẩm",
+    name: "name",
+    rules: [
+      {
+        required: true,
+        message: "Please en100%ter Product Name",
+      },
+    ],
+    component: <Input />,
+    flex: "grow-0 basis-[100%]",
+  },
+  {
+    label: "Giá",
+    name: "price",
+    rules: [
+      {
+        required: true,
+        message: "Please enter Price",
+      },
+    ],
+    component: (
+      <InputNumber<number>
+        style={{ width: "100%" }}
+        min={1}
+        formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
+        parser={(value) =>
+          +(value?.replace(/\s?d|(\.*)/g, "").replace(/\./g, "") || 0)
+        }
+      />
+    ),
+    flex: `basis-[33%] grow-0`,
+  },
+  {
+    label: "Giảm giá",
+    name: "discount",
+    rules: [
+      {
+        required: true,
+        message: "Nhập mức giảm giá (%)",
+      },
+      {
+        type: "integer",
+        min: 0,
+        message: "Phần trăm giảm giá phải là số nguyên không âm",
+      },
+    ],
+    component: <InputNumber min={1} max={75} />,
+    flex: `basis-[30%] grow-0`,
+  },
+  {
+    label: "Số lượng",
+    name: "stock",
+    rules: [
+      {
+        required: true,
+        message: "Nhập số lượng hàng",
+      },
+      {
+        type: "integer",
+        min: 0,
+        message: "Số lượng hàng phải là số nguyên không âm",
+      },
+    ],
+    component: <InputNumber min={1} />,
+    flex: `basis-[30%] grow-0`,
+  },
+  {
+    label: "Đang hoạt động",
+    name: "active",
+    component: <Switch />,
+    valuePropName: "checked",
+    flex: "basis-[30%] grow-0",
+  },
+  {
+    label: "Đã xóa",
+    name: "isDeleted",
+    component: <Switch />,
+    valuePropName: "checked",
+    flex: "basis-[30%] grow-0",
+  },
+  {
+    label: "Vị trí quảng bá",
+    name: "promotionPosition",
+    component: (
+      <Select
+        mode="multiple"
+        allowClear
+        showSearch
+        placeholder="Select promotion"
+        optionFilterProp="children"
+        filterOption={(input, option) =>
+          (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+        }
+        options={[
+          {
+            value: "TOP-MONTH",
+            label: "TOP-MONTH",
+          },
+          {
+            value: "DEAL",
+            label: "DEAL",
+          },
+        ]}
+      />
+    ),
+    flex: "basis-[364px] grow-0",
+  },
+  {
+    label: "Ghi chú",
+    name: "note",
+    component: <Input />,
+    flex: "basis-[364px] grow-0",
+  },
+  {
+    label: "Mô tả",
+    name: "description",
+    component: <MyCkeditorFormInput />,
+    flex: "basis-[364px] grow-0",
+  },
+];
 
 dayjs.extend(customParseFormat);
 type Product = WithId<Partial<Base & Active>>;
@@ -986,10 +1124,7 @@ export default function ProductCRUD() {
     dataChangeButtons: extraButtons,
     refetch: () => refetch(),
     form: {
-      controls: createFormInputs(
-        categoriesData?.data.results,
-        suppliersData?.data.results
-      ),
+      controls: inputs,
       title: "Product",
     },
     layout: (

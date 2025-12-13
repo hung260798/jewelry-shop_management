@@ -23,7 +23,7 @@ const Conversation = ({ conver }: { conver: ConverAttemp[] }) => {
   const [data, setData] = useState<DataAttemp[]>([]);
 
   useEffect(() => {
-    const friendId = conver.flatMap((object: { members: any[] }): any =>
+    const friendId = conver.flatMap((object): any =>
       object.members.filter((memberId: any) => memberId !== auth.payload._id)
     );
     const query = friendId
