@@ -7,8 +7,6 @@
     "@ant-design/plots": "^1.2.5",
     "@ckeditor/ckeditor5-react": "^11.0.0",
     "@mui/icons-material": "^5.11.16",
-    "@repo/components": "workspace:*",
-    "@repo/utils": "workspace:*",
     "@tailwindcss/vite": "^4.1.11",
     "@tanstack/query-async-storage-persister": "^4.41.0",
     "@tanstack/react-query": "^5.90.6",

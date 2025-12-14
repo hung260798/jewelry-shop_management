@@ -2,7 +2,7 @@ import CRUD from "@/templates/CRUD";
 // import { LazyFadeImage } from "@repo/components/src/images";
 import { UploadInput } from "@/components/Inputs/FileUpload";
 import { UploadOutlined } from "@ant-design/icons";
-import { Active, User, WithId } from "@repo/utils/types";
+import { Active, User, WithId } from "utils/types/Entities";
 import { Button, DatePicker, Input, Select, Switch, Tag } from "antd";
 import locale from "antd/es/date-picker/locale/vi_VN";
 import Search from "antd/es/input/Search";

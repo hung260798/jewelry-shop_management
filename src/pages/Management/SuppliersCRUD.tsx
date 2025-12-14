@@ -1,6 +1,6 @@
 import { useGetList } from "@/hooks/useMyQuery";
 import CRUD from "@/templates/CRUD";
-import * as Types from "@repo/utils/types";
+import * as Types from "utils/types/Entities";
 import { Checkbox, Input, Select, Tag } from "antd";
 import Search from "antd/es/input/Search";
 import { ColumnsType } from "antd/es/table";

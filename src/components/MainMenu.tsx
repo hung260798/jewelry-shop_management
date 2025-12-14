@@ -12,7 +12,7 @@ import { Menu } from "antd";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "../hooks/useAuthStore";
 import { useBreadcrumb } from "../hooks/useBreadcrumb";
-import { User } from "@repo/utils/types";
+import { User } from "utils/types/Entities";
 import { axiosClientJson } from "@/libraries/axiosClient";
 import { ItemType, MenuItemType } from "antd/es/menu/interface";
 

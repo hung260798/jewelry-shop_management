@@ -1,5 +1,5 @@
 import { axiosClientJson } from "@/libraries/axiosClient";
-import { GetMany, GetOne } from "@repo/utils/types";
+import { GetMany, GetOne } from "utils/types/Entities";
 import {
   useQuery,
   useQueryClient,

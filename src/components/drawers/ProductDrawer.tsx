@@ -1,10 +1,9 @@
 import useMyQuery from "@/hooks/useMyQuery";
 import { axiosClientJson } from "@/libraries/axiosClient";
 // import { Order, Product, WithId } from "@/utils/types/Entities";
-import { Order, Product, WithId } from "@repo/utils/types";
-
-import { GetMany } from "@repo/utils/types";
+import { Order, Product, WithId } from "utils/types/Entities";
 import { Button, Card, Drawer, message, Pagination, Spin } from "antd";
+import { GetMany } from "utils/types/Entities";
 
 interface PropTypes {
   addProducts: boolean;

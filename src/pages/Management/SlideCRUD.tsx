@@ -3,7 +3,7 @@ import CRUD from "@/templates/CRUD";
 import { Slide } from "@/utils/types/Entities";
 // import { LazyFadeImage } from "@repo/components/src/images";
 import LazyFadeImage from "@/components/images/Lazy/SmartImage";
-import { Active, GetMany, WithId } from "@repo/utils/types";
+import { Active, GetMany, WithId } from "utils/types/Entities";
 import { Select, Space, Tag } from "antd";
 import Search from "antd/es/input/Search";
 import { ColumnsType } from "antd/es/table";

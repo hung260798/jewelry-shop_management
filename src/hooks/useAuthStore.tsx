@@ -1,5 +1,5 @@
 import { API_URL } from "@/utils/constants/URLS";
-import { User, WithId } from "@repo/utils/types";
+import { User, WithId } from "utils/types/Entities";
 import { message } from "antd";
 import axios from "axios";
 import { useEffect } from "react";

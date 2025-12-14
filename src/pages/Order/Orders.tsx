@@ -4,7 +4,7 @@ import { axiosClientJson } from "@/libraries/axiosClient";
 import CRUD from "@/templates/CRUD";
 import { GetManyData } from "@/utils/mutationFn";
 import { EditOutlined, SendOutlined } from "@ant-design/icons";
-import { Order, OrderLine, WithId } from "@repo/utils/types";
+import { Order, OrderLine, WithId } from "utils/types/Entities";
 import {
   Button,
   Card,

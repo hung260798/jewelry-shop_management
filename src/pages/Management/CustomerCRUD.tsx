@@ -1,6 +1,6 @@
 import CRUD from "@/templates/CRUD";
 import { FormControl } from "@/utils/types/Form";
-import { Active, Customer, WithId } from "@repo/utils/types/index";
+import { Active, Customer, WithId } from "utils/types/Entities";
 import { DatePicker, Input, Select, Space, Switch, Tag } from "antd";
 import locale from "antd/es/date-picker/locale/en_US";
 import Search from "antd/es/input/Search";

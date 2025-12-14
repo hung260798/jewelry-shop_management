@@ -118,6 +118,17 @@ interface Message {
   createdAt: string;
 }
 
+type GetMany<T> = {
+  results: T[];
+  amountResults: number;
+}
+
+type GetOne<T> = {
+  result: T;
+}
+
+type GetOneOrMany<T> = GetMany<T> | GetOne<T>
+
 export type {
   Id,
   WithId,
@@ -136,4 +147,7 @@ export type {
   Collection,
   Slide,
   Message,
+  GetMany,
+  GetOne,
+  GetOneOrMany
 };

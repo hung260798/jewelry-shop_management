@@ -10,7 +10,7 @@ import {
   QuestionCircleOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
-import { WithId } from "@repo/utils/types";
+import { WithId } from "utils/types/Entities";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button, Flex, Grid, message, Popconfirm, Table } from "antd";
 import { ColumnsType, ColumnType, TableProps } from "antd/es/table";

@@ -1,5 +1,5 @@
 import { axiosClientJson as client } from "@/libraries/axiosClient";
-import { GetList, Product as Product0, WithId } from "@repo/utils/types";
+import { GetList, Product as Product0, WithId } from "utils/types/Entities";
 import { useQuery } from "@tanstack/react-query";
 import { Button, Input, List } from "antd";
 import { AxiosResponse } from "axios";

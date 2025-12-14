@@ -1,6 +1,6 @@
 import { API_URL } from "@/utils/constants/URLS";
 import { User } from "@/utils/types/Entities";
-import { WithId } from "@repo/utils/types";
+import { WithId } from "utils/types/Entities";
 import { useQuery } from "@tanstack/react-query";
 import type { GetProp, UploadProps } from "antd";
 import {

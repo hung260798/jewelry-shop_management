@@ -4,20 +4,20 @@ import { useGetList } from "@/hooks/useMyQuery";
 import { axiosClientJson } from "@/libraries/axiosClient";
 import CRUD from "@/templates/CRUD";
 import { API_URL } from "@/utils/constants/URLS";
+import { devLog } from "@/utils/logger";
 import { appendDomain } from "@/utils/stringUtils";
 import {
   DeleteOutlined,
   PlusOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
-import { logError } from "@repo/utils/log";
 import {
   Active,
   Collection as Collection0,
   GetOne,
   Product as Product0,
   WithId,
-} from "@repo/utils/types";
+} from "utils/types/Entities";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Flex, Input, List, Modal, Space, Switch, Tag } from "antd";
 import { ColumnsType } from "antd/es/table";
@@ -318,7 +318,8 @@ function AddProductBox({
           );
         }
       } catch (error) {
-        logError(error);
+        // logError(error);
+        devLog(error);
       } finally {
         close();
       }

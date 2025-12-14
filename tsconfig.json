@@ -42,13 +42,5 @@
     },
     "include": [
         "src"
-    ],
-    "references": [
-        {
-            "path": "../../shared/components"
-        },
-        {
-            "path": "../../shared/utils"
-        },
     ]
 }

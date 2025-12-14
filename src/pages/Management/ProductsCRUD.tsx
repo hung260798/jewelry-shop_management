@@ -15,7 +15,7 @@ import {
 } from "@/utils/types/Entities";
 import { FormControl } from "@/utils/types/Form";
 import { ClearOutlined, SearchOutlined } from "@ant-design/icons";
-import { GetMany, GetOne } from "@repo/utils/types";
+import { GetMany, GetOne } from "utils/types/Entities";
 import { useQuery } from "@tanstack/react-query";
 import {
   Button,
