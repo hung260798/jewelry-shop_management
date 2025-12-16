@@ -1,6 +1,10 @@
 import { axiosClientForm, axiosClientJson } from "@/libraries/axiosClient";
 import { devLog } from "@/utils/logger";
-import { appendDomain } from "@/utils/stringUtils";
+import {
+  appendDomain,
+  createFormData,
+  extractPathname,
+} from "@/utils/stringUtils";
 import { SetState } from "@/utils/types/Others";
 import { DeleteOutlined, UploadOutlined } from "@ant-design/icons";
 import { useQueryClient } from "@tanstack/react-query";
@@ -20,8 +24,6 @@ import { DeletableImage } from "components/images/WithButton";
 import { produce } from "immer";
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { API_URL } from "utils/constants/URLS";
-import { createFormData, excludeDomain } from "utils/stringUtils";
 import { FileField } from "utils/types/Form";
 import { create } from "zustand";
 
@@ -157,12 +159,12 @@ export default function FileUploadBox({
             // const { data } = uploadResponse;
             let fieldValue: string | string[] = "";
             if ("publicUrl" in uploadResponse.data) {
-              fieldValue = excludeDomain(uploadResponse.data.publicUrl);
+              fieldValue = extractPathname(uploadResponse.data.publicUrl);
             } else if ("publicUrls" in uploadResponse.data) {
               const oldArray = Array.isArray(item[name]) ? item[name] : [];
               fieldValue = [
                 ...uploadResponse.data.publicUrls.map((url: string) =>
-                  excludeDomain(url, API_URL)
+                  extractPathname(url)
                 ),
                 ...oldArray,
               ];

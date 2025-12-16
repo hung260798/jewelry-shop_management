@@ -27,13 +27,15 @@ export function appendDomain(src: string, domain: string = API_URL): string {
   if (typeof src !== "string" || typeof domain !== "string") {
     return src;
   }
-  if (
-    !(src.startsWith("http") || src.startsWith("https")) &&
-    src.startsWith("/")
-  ) {
+  if (!src.startsWith("http") && src.startsWith("/")) {
     return domain + src;
   }
   return src;
+}
+
+export function extractPathname(src: string): string {
+  const urlObj = new URL(src);
+  return urlObj.pathname;
 }
 
 /**
