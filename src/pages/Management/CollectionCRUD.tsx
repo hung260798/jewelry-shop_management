@@ -3,7 +3,7 @@ import SmartImage from "@/components/images/Lazy/SmartImage";
 import { useGetList } from "@/hooks/useMyQuery";
 import { axiosClientJson } from "@/libraries/axiosClient";
 import CRUD from "@/templates/CRUD";
-import { API_URL } from "@/utils/constants/URLS";
+import { API_URL, ASSET_URL } from "@/utils/constants/URLS";
 import { devLog } from "@/utils/logger";
 import { appendDomain } from "@/utils/stringUtils";
 import {
@@ -120,7 +120,7 @@ export default function CollectionCRUD() {
       render(src: string) {
         return (
           <SmartImage
-            src={appendDomain(src, API_URL)}
+            src={appendDomain(src, ASSET_URL)}
             width={200}
             height={200}
             smallSizes={imageSmallSizes}
@@ -136,7 +136,7 @@ export default function CollectionCRUD() {
       render(src: string) {
         return (
           <SmartImage
-            src={appendDomain(src, API_URL)}
+            src={appendDomain(src, ASSET_URL)}
             width={200}
             height={200}
             // preview={true}
@@ -365,7 +365,7 @@ function AddProductBox({
               >
                 <Flex align="center">
                   <SmartImage
-                    src={appendDomain(product.imageUrl, API_URL)}
+                    src={appendDomain(product.imageUrl, ASSET_URL)}
                     width={"2rem"}
                     height={"2rem"}
                   />
@@ -406,7 +406,7 @@ function AddProductBox({
                   >
                     <Flex align="center">
                       <SmartImage
-                        src={appendDomain(item.imageUrl, API_URL)}
+                        src={appendDomain(item.imageUrl, ASSET_URL)}
                         width={"2rem"}
                         height={"2rem"}
                       />

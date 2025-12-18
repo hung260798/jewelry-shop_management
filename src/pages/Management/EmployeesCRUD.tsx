@@ -11,7 +11,8 @@ import LazyFadeImage from "components/images/Lazy/SmartImage";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import { useGetList } from "hooks/useMyQuery";
-import { API_URL } from "utils/constants/URLS";
+import { API_URL, ASSET_URL } from "utils/constants/URLS";
+import { appendDomain } from "@/utils/stringUtils";
 
 const { RangePicker } = DatePicker;
 const dateFormat = "DD/MM/YYYY";
@@ -115,7 +116,7 @@ export default function EmployeeCRUD() {
           <div className="flex flex-1 justify-center items-center h-[160px] w-[110px]">
             {record.imageUrl && (
               <LazyFadeImage
-                src={`${API_URL}${record.imageUrl}`}
+                src={appendDomain(record.imageUrl, ASSET_URL)}
                 // fallbackSources={[`${API_URL}${record.imageUrl}`]}
                 smallSizes={[[80, 120]]}
                 // style={{ height: 60 }}

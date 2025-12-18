@@ -3,6 +3,7 @@ import { appendDomain } from "@/utils/stringUtils";
 import { CloseOutlined } from "@ant-design/icons";
 import React from "react";
 import styles from "./styles.module.css";
+import { ASSET_URL } from "@/utils/constants/URLS";
 
 interface CustomDivProps extends React.HTMLAttributes<HTMLDivElement> {
   customProp?: string;
@@ -41,7 +42,7 @@ export function PreviewLayer() {
         onClick={() => setCurrentSrc()}
       >
         <img
-          src={appendDomain(currentSrc)}
+          src={appendDomain(currentSrc, ASSET_URL)}
           alt="image"
           className="max-h-[500px] transition-all "
           onClick={(e) => {

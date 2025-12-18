@@ -12,6 +12,7 @@ import { useMemo } from "react";
 import { UploadInput } from "@/components/Inputs/FileUpload";
 import { UploadOutlined } from "@ant-design/icons";
 import { Button, Checkbox, Input, InputNumber } from "antd";
+import { ASSET_URL } from "@/utils/constants/URLS";
 
 const formItems = [
   {
@@ -283,7 +284,7 @@ function CategoryCRUD() {
         key: "imageUrl",
         dataIndex: "imageUrl",
         render: (text, record) => {
-          const imageSrc = appendDomain(record.imageUrl);
+          const imageSrc = appendDomain(record.imageUrl, ASSET_URL);
           return (
             <div className="flex justify-center items-center gap-2 h-[120px]">
               {imageSrc && (
@@ -310,7 +311,7 @@ function CategoryCRUD() {
             <div className="flex justify-center items-center gap-2">
               {coverImageUrl && (
                 <LazyFadeImage
-                  src={`${appendDomain(coverImageUrl)}`}
+                  src={appendDomain(coverImageUrl, ASSET_URL)}
                   // style={{ width: "100px" }}
                   smallSizes={coverImageSizes as [number, number][]}
                   alt="coverImage"

@@ -9,7 +9,8 @@ import LazyFadeImage from "components/images/Lazy/SmartImage";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import { useGetList } from "hooks/useMyQuery";
-import { API_URL } from "utils/constants/URLS";
+import { API_URL, ASSET_URL } from "utils/constants/URLS";
+import { appendDomain } from "@/utils/stringUtils";
 
 const formItems: FormControl[] = [
   {
@@ -215,7 +216,7 @@ export default function CustomerCRUD() {
           <div className="flex justify-center items-center h-[180px] w-[110px]">
             {record.imageUrl && (
               <LazyFadeImage
-                src={`${API_URL}${record.imageUrl}`}
+                src={appendDomain(record.imageUrl, ASSET_URL)}
                 smallSizes={[[100, 150]]}
                 alt="record.imageUrl"
               />

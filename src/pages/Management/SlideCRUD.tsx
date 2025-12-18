@@ -3,12 +3,12 @@ import CRUD from "@/templates/CRUD";
 import { Slide } from "@/utils/types/Entities";
 // import { LazyFadeImage } from "@repo/components/src/images";
 import LazyFadeImage from "@/components/images/Lazy/SmartImage";
-import { Active, GetMany, WithId } from "utils/types/Entities";
-import { Select, Space, Tag } from "antd";
+import { appendDomain } from "@/utils/stringUtils";
+import { Input, InputNumber, Select, Space, Switch, Tag } from "antd";
 import Search from "antd/es/input/Search";
 import { ColumnsType } from "antd/es/table";
-import { API_URL } from "utils/constants/URLS";
-import { Input, InputNumber, Switch } from "antd";
+import { ASSET_URL } from "utils/constants/URLS";
+import { Active, GetMany, WithId } from "utils/types/Entities";
 
 type Slide2 = WithId<Slide> & Active;
 
@@ -165,7 +165,7 @@ function SlidesCRUD() {
       key: "imageUrl",
       dataIndex: "imageUrl",
       render: (text, record) => {
-        const url = new URL(`${API_URL}${record.imageUrl}`);
+        const url = new URL(appendDomain(record.imageUrl, ASSET_URL));
         const filename = url.pathname.split("/").pop() ?? "";
         const imgNameNoExt = filename.split(".")[0];
         const newImgNameNoExt = imgNameNoExt ? `${imgNameNoExt}_300x100` : "";
@@ -177,12 +177,12 @@ function SlidesCRUD() {
           <div>
             {record.imageUrl && (
               <LazyFadeImage
-                src={`${API_URL}${newImgUrl}`}
+                src={appendDomain(newImgUrl, ASSET_URL)}
                 style={{ height: 100 }}
                 alt="record.imageUrl"
                 preview={{
                   destroyOnHidden: true,
-                  src: `${API_URL}${record.imageUrl}`,
+                  src: appendDomain(record.imageUrl, ASSET_URL),
                 }}
               />
             )}

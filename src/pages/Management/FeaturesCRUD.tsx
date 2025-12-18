@@ -2,12 +2,13 @@ import SmartImage from "@/components/images/Lazy/SmartImage";
 import useMyQuery from "@/hooks/useMyQuery";
 import CRUD from "@/templates/CRUD";
 import { GetManyData } from "@/utils/mutationFn";
+import { appendDomain } from "@/utils/stringUtils";
 import { UploadOutlined } from "@ant-design/icons";
 import { Button, Input, InputNumber, Select, Space, Switch, Tag } from "antd";
 import Search from "antd/es/input/Search";
 import { ColumnsType } from "antd/es/table";
 import { UploadInput } from "components/Inputs/FileUpload";
-import { API_URL } from "utils/constants/URLS";
+import { API_URL, ASSET_URL } from "utils/constants/URLS";
 
 const formFields = [
   {
@@ -182,7 +183,7 @@ function FeaturesCRUD() {
           <div className="w-[100px] h-[100px]">
             {record.imageUrl && (
               <SmartImage
-                src={`${API_URL}${record.imageUrl}`}
+                src={appendDomain(record.imageUrl, ASSET_URL)}
                 smallSizes={imageUrlSizes}
                 // style={{ height: 60 }}
                 alt="record.imageUrl"

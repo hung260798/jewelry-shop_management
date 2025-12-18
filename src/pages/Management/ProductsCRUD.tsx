@@ -4,7 +4,7 @@ import useMyQuery, { GetOneOrMany } from "@/hooks/useMyQuery";
 import useWindowWidth from "@/hooks/useWidth";
 import { axiosClientJson } from "@/libraries/axiosClient";
 import CRUD, { CRUDProps } from "@/templates/CRUD";
-import { API_URL } from "@/utils/constants/URLS";
+import { API_URL, ASSET_URL } from "@/utils/constants/URLS";
 import { GetManyData } from "@/utils/mutationFn";
 import {
   Active,
@@ -40,6 +40,7 @@ import { useMemo } from "react";
 // import { devLog } from "@/utils/logger";
 import { DataSelect, DataSelectProps } from "@/components/Inputs/Select";
 import React from "react";
+import { appendDomain } from "@/utils/stringUtils";
 
 export function createFormInputs(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -648,11 +649,11 @@ export default function ProductCRUD() {
         title: <div className="max-w-[90px] truncate">Ảnh sản phẩm</div>,
         key: "imageUrl",
         dataIndex: "imageUrl",
-        render: (value: string) => {
+        render: (url: string) => {
           return (
             <div className=" flex flex-row justify-between items-center">
               <SmartImage
-                src={`${API_URL}${value}`}
+                src={appendDomain(url, ASSET_URL)}
                 style={{ height: 70, width: 70 }}
                 smallSizes={IMG_SIZES}
               />

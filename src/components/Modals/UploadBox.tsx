@@ -1,9 +1,10 @@
 import { axiosClientForm, axiosClientJson } from "@/libraries/axiosClient";
+import { ASSET_URL } from "@/utils/constants/URLS";
 import { devLog } from "@/utils/logger";
 import {
   appendDomain,
   createFormData,
-  extractPathname,
+  // extractPathname,
 } from "@/utils/stringUtils";
 import { SetState } from "@/utils/types/Others";
 import { DeleteOutlined, UploadOutlined } from "@ant-design/icons";
@@ -139,13 +140,13 @@ export default function FileUploadBox({
         .map((elem) => {
           return async function () {
             const { maxCount = 1, currentFileList, name, sizes } = elem;
-            const multiple = maxCount > 1;
-            const queryStr = multiple ? "array=true" : "";
+            const isArray = maxCount > 1;
+            const queryStr = isArray ? "array=true" : "";
             const multiFiles = currentFileList
               .map((item) => item.originFileObj)
               .slice(0, maxCount);
             const singleFile = currentFileList[0].originFileObj;
-            const value = multiple ? multiFiles : singleFile;
+            const value = isArray ? multiFiles : singleFile;
             const formData = createFormData(value);
             if (!formData) {
               return null;
@@ -157,15 +158,16 @@ export default function FileUploadBox({
               { publicUrl: string } | { publicUrls: string[] }
             >(`${uploadTo}?${queryStr}`, formData);
             // const { data } = uploadResponse;
+            // Chuẩn bị cho cập nhật dữ liệu, chỉnh sửa trường file với các file vừa upload
             let fieldValue: string | string[] = "";
             if ("publicUrl" in uploadResponse.data) {
-              fieldValue = extractPathname(uploadResponse.data.publicUrl);
+              // Thay thế file
+              fieldValue = uploadResponse.data.publicUrl;
             } else if ("publicUrls" in uploadResponse.data) {
+              // Thêm file vào array
               const oldArray = Array.isArray(item[name]) ? item[name] : [];
               fieldValue = [
-                ...uploadResponse.data.publicUrls.map((url: string) =>
-                  extractPathname(url)
-                ),
+                ...uploadResponse.data.publicUrls.map((url: string) => url),
                 ...oldArray,
               ];
             }
@@ -174,6 +176,7 @@ export default function FileUploadBox({
           };
         });
       const settled = await Promise.allSettled(namedPromises.map((p) => p()));
+      // Cập nhật dữ liệu
       await axiosClientJson.patch(`/${collection}/${id}`, updateBody);
       const succeedPromises = settled.filter((p) => p.status === "fulfilled");
       if (succeedPromises.length === namedPromises.length) {
@@ -445,7 +448,7 @@ function DeletableFileItem({
       <DeletableImage
         width={100}
         height={100}
-        src={appendDomain(url)}
+        src={appendDomain(url, ASSET_URL)}
         onDelete={onDelete}
       />
     );
@@ -476,8 +479,8 @@ function UploaderWithList({
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [clientFileSources, setClientFileSources] = useState<string[]>([]);
   const payload = useFileUploadBox((s) => s.payload);
-  const setPayload = useFileUploadBox((s) => s.setPayload);
-  const queryClient = useQueryClient();
+  // const setPayload = useFileUploadBox((s) => s.setPayload);
+  // const queryClient = useQueryClient();
 
   useEffect(() => {
     (async () => {
@@ -517,66 +520,66 @@ function UploaderWithList({
     />
   );
 
-  const serverList2 =
-    item &&
-    collection &&
-    field.name &&
-    ((Array.isArray(item[field.name]) &&
-      (item[field.name] as string[]).map((src, i, arr) => {
-        const fieldName = field.name;
-        const onDeleteFileInArray = async function () {
-          if (maxCount <= 1) {
-            message.info("Không thể  xóa file duy nhất", 1);
-            return;
-          }
-          try {
-            const newArray = arr.slice();
-            newArray.splice(i, 1);
-            const response = await axiosClientJson.patch<{
-              oke: string;
-              result: unknown;
-            }>(`/${collection}/${item._id}`, {
-              [fieldName]: newArray,
-            });
-            message.success(response.data.oke, 1);
-            queryClient.invalidateQueries(
-              {
-                queryKey: [`get_${collection}`],
-              },
-              { cancelRefetch: true }
-            );
-            // use immer
-            setPayload(
-              produce((old) => {
-                if (!old?.item || typeof old.item !== "object") return old;
-                old.item[fieldName] = newArray;
-              })
-            );
-          } catch (error) {
-            const msg =
-              error instanceof Error ? error.message : "Lỗi không xác định";
-            message.error(msg);
-          }
-        };
-        return (
-          <li key={`server-${i}`}>
-            <DeletableFileItem
-              key={i}
-              url={src}
-              fileType={fileType}
-              onDelete={onDeleteFileInArray}
-            />
-          </li>
-        );
-      })) ||
-      (typeof item[field.name] === "string" && (
-        <DeletableFileItem
-          // key={i}
-          url={item[field.name] as string}
-          fileType={fileType}
-          onDelete={undefined}
-        />
-      )));
+  // const serverList2 =
+  //   item &&
+  //   collection &&
+  //   field.name &&
+  //   ((Array.isArray(item[field.name]) &&
+  //     (item[field.name] as string[]).map((src, i, arr) => {
+  //       const fieldName = field.name;
+  //       const onDeleteFileInArray = async function () {
+  //         if (maxCount <= 1) {
+  //           message.info("Không thể  xóa file duy nhất", 1);
+  //           return;
+  //         }
+  //         try {
+  //           const newArray = arr.slice();
+  //           newArray.splice(i, 1);
+  //           const response = await axiosClientJson.patch<{
+  //             oke: string;
+  //             result: unknown;
+  //           }>(`/${collection}/${item._id}`, {
+  //             [fieldName]: newArray,
+  //           });
+  //           message.success(response.data.oke, 1);
+  //           queryClient.invalidateQueries(
+  //             {
+  //               queryKey: [`get_${collection}`],
+  //             },
+  //             { cancelRefetch: true }
+  //           );
+  //           // use immer
+  //           setPayload(
+  //             produce((old) => {
+  //               if (!old?.item || typeof old.item !== "object") return old;
+  //               old.item[fieldName] = newArray;
+  //             })
+  //           );
+  //         } catch (error) {
+  //           const msg =
+  //             error instanceof Error ? error.message : "Lỗi không xác định";
+  //           message.error(msg);
+  //         }
+  //       };
+  //       return (
+  //         <li key={`server-${i}`}>
+  //           <DeletableFileItem
+  //             key={i}
+  //             url={src}
+  //             fileType={fileType}
+  //             onDelete={onDeleteFileInArray}
+  //           />
+  //         </li>
+  //       );
+  //     })) ||
+  //     (typeof item[field.name] === "string" && (
+  //       <DeletableFileItem
+  //         // key={i}
+  //         url={item[field.name] as string}
+  //         fileType={fileType}
+  //         onDelete={undefined}
+  //       />
+  //     )));
 
   const serverListLength =
     item && collection
