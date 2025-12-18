@@ -4,7 +4,7 @@ import useMyQuery, { GetOneOrMany } from "@/hooks/useMyQuery";
 import useWindowWidth from "@/hooks/useWidth";
 import { axiosClientJson } from "@/libraries/axiosClient";
 import CRUD, { CRUDProps } from "@/templates/CRUD";
-import { API_URL, ASSET_URL } from "@/utils/constants/URLS";
+import { ASSET_URL } from "@/utils/constants/URLS";
 import { GetManyData } from "@/utils/mutationFn";
 import {
   Active,
@@ -15,7 +15,6 @@ import {
 } from "@/utils/types/Entities";
 import { FormControl } from "@/utils/types/Form";
 import { ClearOutlined, SearchOutlined } from "@ant-design/icons";
-import { GetMany, GetOne } from "utils/types/Entities";
 import { useQuery } from "@tanstack/react-query";
 import {
   Button,
@@ -37,10 +36,11 @@ import SmartImage from "components/images/Lazy/SmartImage";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import { useMemo } from "react";
+import { GetMany, GetOne } from "utils/types/Entities";
 // import { devLog } from "@/utils/logger";
 import { DataSelect, DataSelectProps } from "@/components/Inputs/Select";
-import React from "react";
 import { appendDomain } from "@/utils/stringUtils";
+import React from "react";
 
 export function createFormInputs(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

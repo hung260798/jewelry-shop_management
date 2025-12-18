@@ -1,6 +1,6 @@
 import CRUD from "@/templates/CRUD";
+import { appendDomain } from "@/utils/stringUtils";
 import { FormControl } from "@/utils/types/Form";
-import { Active, Customer, WithId } from "utils/types/Entities";
 import { DatePicker, Input, Select, Space, Switch, Tag } from "antd";
 import locale from "antd/es/date-picker/locale/en_US";
 import Search from "antd/es/input/Search";
@@ -9,8 +9,8 @@ import LazyFadeImage from "components/images/Lazy/SmartImage";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import { useGetList } from "hooks/useMyQuery";
-import { API_URL, ASSET_URL } from "utils/constants/URLS";
-import { appendDomain } from "@/utils/stringUtils";
+import { ASSET_URL } from "utils/constants/URLS";
+import { Active, Customer, WithId } from "utils/types/Entities";
 
 const formItems: FormControl[] = [
   {

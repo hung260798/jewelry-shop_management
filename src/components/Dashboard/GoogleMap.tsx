@@ -3,21 +3,19 @@ import "leaflet/dist/leaflet.css";
 import { useEffect, useState } from "react";
 import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import { axiosClientJson } from "../../libraries/axiosClient";
-import { API_URL } from "../../utils/constants/URLS";
+import { Order } from "@/utils/types/Entities";
 
 const Address = () => {
-  const [positions, setPositions] = useState<any[]>([]);
+  const [positions, setPositions] = useState<Order[]>([]);
   useEffect(() => {
     const fetchLocation = async () => {
       try {
         const response = await axiosClientJson.get(`/orders`);
         const fetchedPositions = response?.data?.results?.map(
-          (item: any, index: any) => ({
+          (item: Order) => ({
             name: item.position.name,
-            position: {
-              lat: parseFloat(item.position.lat),
-              lng: parseFloat(item.position.lng),
-            },
+            lat: parseFloat(item.position.lat),
+            lng: parseFloat(item.position.lng),
           })
         );
         setPositions(fetchedPositions);
@@ -28,20 +26,20 @@ const Address = () => {
     fetchLocation();
   }, []);
 
-  const renderMarkers = (map: any, maps: any) => {
-    positions.forEach((marker: any) => {
-      new maps.Marker({
-        position: marker.position,
-        map,
-        title: marker.name,
-      });
-    });
-  };
-  const vietnamCenter = {
-    lat: 14.0583,
-    lng: 108.2772,
-  };
-  const vietnamZoom = 5;
+  // const renderMarkers = (map: any, maps: any) => {
+  //   positions.forEach((marker: any) => {
+  //     new maps.Marker({
+  //       position: marker.position,
+  //       map,
+  //       title: marker.name,
+  //     });
+  //   });
+  // };
+  // const vietnamCenter = {
+  //   lat: 14.0583,
+  //   lng: 108.2772,
+  // };
+  // const vietnamZoom = 5;
   return (
     <div className="Address">
       <div className="delivery active">

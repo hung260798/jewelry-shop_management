@@ -3,9 +3,10 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import removeConsole from "vite-plugin-remove-console";
+import envCompatible from "vite-plugin-env-compatible";
 
 export default defineConfig({
-  plugins: [react(), tailwindcss(), removeConsole()],
+  plugins: [react(), tailwindcss(), removeConsole(), envCompatible()],
   build: {
     sourcemap: true,
   },
@@ -24,4 +25,5 @@ export default defineConfig({
       hooks: path.resolve(import.meta.dirname, "./src/hooks"),
     },
   },
+  envPrefix: "VITE_",
 });

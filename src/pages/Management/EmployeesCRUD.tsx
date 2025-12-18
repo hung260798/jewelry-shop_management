@@ -1,8 +1,8 @@
 import CRUD from "@/templates/CRUD";
 // import { LazyFadeImage } from "@repo/components/src/images";
 import { UploadInput } from "@/components/Inputs/FileUpload";
+import { appendDomain } from "@/utils/stringUtils";
 import { UploadOutlined } from "@ant-design/icons";
-import { Active, User, WithId } from "utils/types/Entities";
 import { Button, DatePicker, Input, Select, Switch, Tag } from "antd";
 import locale from "antd/es/date-picker/locale/vi_VN";
 import Search from "antd/es/input/Search";
@@ -11,8 +11,8 @@ import LazyFadeImage from "components/images/Lazy/SmartImage";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import { useGetList } from "hooks/useMyQuery";
-import { API_URL, ASSET_URL } from "utils/constants/URLS";
-import { appendDomain } from "@/utils/stringUtils";
+import { ASSET_URL } from "utils/constants/URLS";
+import { Active, User, WithId } from "utils/types/Entities";
 
 const { RangePicker } = DatePicker;
 const dateFormat = "DD/MM/YYYY";

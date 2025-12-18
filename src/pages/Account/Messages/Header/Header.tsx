@@ -1,10 +1,11 @@
 "use client";
 
+import { useChat } from "@/hooks/useChat";
+import { appendDomain } from "@/utils/stringUtils";
 import { Avatar } from "antd";
 import { HiEllipsisHorizontal } from "react-icons/hi2";
 import { Link } from "react-router-dom";
-import { useChat } from "../../../../hooks/useChat";
-import { API_URL } from "../../../../utils/constants/URLS";
+import { ASSET_URL } from "utils/constants/URLS";
 
 const Header: React.FC<any> = () => {
   const { conversationData } = useChat((state) => state);
@@ -39,7 +40,10 @@ const Header: React.FC<any> = () => {
         ></Link>
         <Avatar
           size={40}
-          src={`${API_URL}${conversationData?.employeeInfo?.imageUrl}`}
+          src={appendDomain(
+            conversationData?.employeeInfo?.imageUrl || "",
+            ASSET_URL
+          )}
         />
 
         <div className="flex flex-col">

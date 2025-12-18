@@ -17,6 +17,31 @@ export function excludeDomain(url: string, domain: string = API_URL) {
   return url;
 }
 
+function safeJoinUrl(domain: string, path: string) {
+  if (!domain) throw new Error("Missing domain");
+  if (!path) path = "";
+
+  // 1. Domain phải là absolute URL
+  let base;
+  try {
+    base = new URL(domain);
+  } catch {
+    throw new Error("Invalid domain");
+  }
+
+  // 2. Path KHÔNG được là absolute URL
+  if (/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(path)) {
+    throw new Error("Path must be relative, not absolute URL");
+  }
+
+  // 3. Không cho protocol-relative (//evil.com)
+  if (path.startsWith("//")) {
+    throw new Error("Invalid path");
+  }
+
+  return new URL(path, base).href;
+}
+
 /**
  * Append domain to the start of an url if it's not start with http(s)
  * @param src File's url (start with "/")
@@ -24,13 +49,14 @@ export function excludeDomain(url: string, domain: string = API_URL) {
  * @returns Full url of resource
  */
 export function appendDomain(src: string, domain: string = API_URL): string {
-  if (typeof src !== "string" || typeof domain !== "string") {
+  if (typeof src !== "string" || typeof domain !== "string" || !src) {
     return src;
   }
-  if (!src.startsWith("http") && src.startsWith("/")) {
-    return domain + src;
+  try {
+    return safeJoinUrl(domain, src);
+  } catch {
+    return src;
   }
-  return src;
 }
 
 export function extractPathname(src: string): string {

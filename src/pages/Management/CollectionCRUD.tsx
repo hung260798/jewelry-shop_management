@@ -3,7 +3,7 @@ import SmartImage from "@/components/images/Lazy/SmartImage";
 import { useGetList } from "@/hooks/useMyQuery";
 import { axiosClientJson } from "@/libraries/axiosClient";
 import CRUD from "@/templates/CRUD";
-import { API_URL, ASSET_URL } from "@/utils/constants/URLS";
+import { ASSET_URL } from "@/utils/constants/URLS";
 import { devLog } from "@/utils/logger";
 import { appendDomain } from "@/utils/stringUtils";
 import {
@@ -11,13 +11,6 @@ import {
   PlusOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
-import {
-  Active,
-  Collection as Collection0,
-  GetOne,
-  Product as Product0,
-  WithId,
-} from "utils/types/Entities";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Flex, Input, List, Modal, Space, Switch, Tag } from "antd";
 import { ColumnsType } from "antd/es/table";
@@ -26,6 +19,13 @@ import SearchBox, {
   useSearchProducts,
 } from "components/Inputs/Searchbox/index";
 import { memo, useEffect, useState } from "react";
+import {
+  Active,
+  Collection as Collection0,
+  GetOne,
+  Product as Product0,
+  WithId,
+} from "utils/types/Entities";
 import { FormProps } from "utils/types/Form";
 
 type DataRecord = WithId<Collection0 & Active>;

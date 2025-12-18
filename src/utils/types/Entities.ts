@@ -90,6 +90,11 @@ interface Order {
   orderDetails: OrderLine[];
   active: boolean;
   isDeleted: boolean;
+  position: {
+    name: string;
+    lat: string;
+    lng: string;
+  };
 }
 
 interface Collection {
@@ -121,13 +126,13 @@ interface Message {
 type GetMany<T> = {
   results: T[];
   amountResults: number;
-}
+};
 
 type GetOne<T> = {
   result: T;
-}
+};
 
-type GetOneOrMany<T> = GetMany<T> | GetOne<T>
+type GetOneOrMany<T> = GetMany<T> | GetOne<T>;
 
 export type {
   Id,
@@ -149,5 +154,5 @@ export type {
   Message,
   GetMany,
   GetOne,
-  GetOneOrMany
+  GetOneOrMany,
 };

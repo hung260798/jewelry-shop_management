@@ -1,6 +1,8 @@
-import { API_URL } from "@/utils/constants/URLS";
+import useWindowWidth from "@/hooks/useWidth";
+import { ASSET_URL } from "@/utils/constants/URLS";
+import { devLog } from "@/utils/logger";
+import { appendDomain } from "@/utils/stringUtils";
 import { User } from "@/utils/types/Entities";
-import { WithId } from "utils/types/Entities";
 import { useQuery } from "@tanstack/react-query";
 import type { GetProp, UploadProps } from "antd";
 import {
@@ -16,12 +18,11 @@ import {
   Upload,
   message,
 } from "antd";
+import { RcFile } from "antd/es/upload";
 import dayjs, { Dayjs } from "dayjs";
 import { useEffect, useState } from "react";
+import { WithId } from "utils/types/Entities";
 import { axiosClientForm, axiosClientJson } from "../../libraries/axiosClient";
-import { RcFile } from "antd/es/upload";
-import useWindowWidth from "@/hooks/useWidth";
-import { devLog } from "@/utils/logger";
 
 const useUserProfile = () => {
   const [user, setUser] = useState<WithId<User>>();
@@ -132,7 +133,7 @@ function InformationForm() {
       <Flex gap={20} vertical={!isLargeScreen}>
         <Space direction="vertical" className={`flex flex-col items-center`}>
           <Image
-            src={avatarSrc ?? `${API_URL}${user?.imageUrl}`}
+            src={avatarSrc ?? appendDomain(user?.imageUrl || "", ASSET_URL)}
             style={{ objectFit: "cover" }}
             loading="lazy"
             width={200}

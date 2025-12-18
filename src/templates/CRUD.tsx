@@ -226,6 +226,7 @@ export default function CRUD<DataType extends WithId<object>>(
                   item: record as any,
                 });
                 setUploaderQueryKey?.(searchParams?.entries()?.toArray());
+                setOpenUploadBox(true);
               }}
             />
           )}
@@ -328,6 +329,7 @@ export default function CRUD<DataType extends WithId<object>>(
   const setFormValues = useModalForm((s) => s.setFormValues);
   const setUploaderPayload = useFileUploadBox((s) => s.setPayload);
   const setUploaderQueryKey = useFileUploadBox((s) => s.setQueryKey);
+  const setOpenUploadBox = useFileUploadBox((s) => s.setOpen);
 
   let formJSX: ReactNode = null;
   if (form?.customComponent) {
@@ -432,7 +434,7 @@ export default function CRUD<DataType extends WithId<object>>(
   );
 
   const fileUploadJSX = fileFields && collectionName && (
-    <FileUploadBox fields={fileFields} />
+    <FileUploadBox fields={fileFields} uploadTo="/upload/gcs-upload" />
   );
 
   const selectOperationsJSX = (

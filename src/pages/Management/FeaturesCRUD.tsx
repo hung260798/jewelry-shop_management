@@ -8,7 +8,7 @@ import { Button, Input, InputNumber, Select, Space, Switch, Tag } from "antd";
 import Search from "antd/es/input/Search";
 import { ColumnsType } from "antd/es/table";
 import { UploadInput } from "components/Inputs/FileUpload";
-import { API_URL, ASSET_URL } from "utils/constants/URLS";
+import { ASSET_URL } from "utils/constants/URLS";
 
 const formFields = [
   {

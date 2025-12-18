@@ -1,8 +1,9 @@
+import { appendDomain } from "@/utils/stringUtils";
 import { Avatar } from "antd";
 import clsx from "clsx";
 import { useAuthStore } from "hooks/useAuthStore";
 import { format } from "timeago.js";
-import { API_URL } from "utils/constants/URLS";
+import { ASSET_URL } from "utils/constants/URLS";
 import { Message } from "utils/types/Entities";
 
 const MessageBox: React.FC<PropTypes> = ({ data }: PropTypes) => {
@@ -26,11 +27,10 @@ const MessageBox: React.FC<PropTypes> = ({ data }: PropTypes) => {
       <div className={avatarClass}>
         <Avatar
           size={40}
-          src={
-            isOwn
-              ? API_URL + auth?.user?.imageUrl
-              : API_URL + data?.receiver?.imageUrl
-          }
+          src={appendDomain(
+            (isOwn ? auth.user?.imageUrl : data.receiver.imageUrl) || "",
+            ASSET_URL
+          )}
         />
       </div>
       <div className={bodyClass}>

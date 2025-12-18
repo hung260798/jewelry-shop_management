@@ -62,12 +62,14 @@ interface UploadBoxPayload<T extends { _id: string } = IdAndName> {
 interface StateFields<TPayload extends { _id: string } = IdAndName> {
   payload: UploadBoxPayload<TPayload> | null;
   queryKey?: unknown[];
+  open: boolean;
 }
 
 type StateType<TPayload extends { _id: string } = IdAndName> =
   StateFields<TPayload> & {
     setPayload: SetState<StateFields<TPayload>["payload"]>;
     setQueryKey?: SetState<StateFields<TPayload>["queryKey"]>;
+    setOpen: SetState<StateFields<TPayload>["open"]>;
   };
 
 export const useFileUploadBox = create<StateType>()((set) => {
@@ -88,6 +90,14 @@ export const useFileUploadBox = create<StateType>()((set) => {
         set({ queryKey: updater });
       }
     },
+    open: false,
+    setOpen(updater) {
+      if (typeof updater === "function") {
+        return set((prev) => ({ open: updater(prev.open) }));
+      } else {
+        set({ open: updater });
+      }
+    },
   };
 });
 
@@ -106,6 +116,9 @@ export default function FileUploadBox({
   const payload = useFileUploadBox((s) => s.payload);
   const setPayload = useFileUploadBox((s) => s.setPayload);
   const setQueryKey = useFileUploadBox((s) => s.setQueryKey);
+  const open = useFileUploadBox((s) => s.open);
+  const setOpen = useFileUploadBox((s) => s.setOpen);
+
   const { collection, id = "", item } = payload ?? ({} as UploadBoxPayload);
   const qKey = [`get_${collection}`, ...queryKey];
 
@@ -127,7 +140,12 @@ export default function FileUploadBox({
   }, [payload]);
 
   const handleSubmit = async () => {
-    if (!collection || !id || !item) return;
+    setOpen(false);
+    if (!collection || !id || !item) {
+      setPayload(null);
+      setQueryKey?.([]);
+      return;
+    }
     // Previous data for rollback
     const previousCache = queryClient.getQueryData<{
       results: { _id: string }[];
@@ -223,11 +241,12 @@ export default function FileUploadBox({
   return (
     <>
       <Modal
-        open={payload !== null}
+        open={open}
         onOk={() => {
           handleSubmit();
         }}
         onCancel={() => {
+          setOpen(false);
           setPayload(null);
         }}
         title={modalTitle}

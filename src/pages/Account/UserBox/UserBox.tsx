@@ -1,16 +1,18 @@
-import { UserOutlined } from "@ant-design/icons";
 import { Avatar, Badge } from "antd";
-import { useState } from "react";
 import clsx from "clsx";
+import React from "react";
 import { format } from "timeago.js";
-import { API_URL } from "../../../utils/constants/URLS";
+import { API_URL } from "utils/constants/URLS";
+
 interface UserBoxProps {
   data: any;
   selected: any;
   onClick: (conversationId: string) => void;
+  children?: React.ReactNode;
 }
 
-const UserBox: React.FC<UserBoxProps> = ({ data, selected, onClick }) => {
+const UserBox: React.FC<UserBoxProps> = (props) => {
+  const { data, selected, onClick } = props;
   const handleClick = () => {
     onClick(data);
   };
@@ -24,21 +26,12 @@ const UserBox: React.FC<UserBoxProps> = ({ data, selected, onClick }) => {
           selected === data.conversationId ? "bg-neutral-100" : "bg-white"
         )}
       >
-        <Badge
-          dot
-          color="green"
-        >
-          <Avatar
-            size={40}
-            src={`${API_URL}${data?.employeeInfo?.imageUrl}`}
-          />
+        <Badge dot color="green">
+          <Avatar size={40} src={`${API_URL}${data?.employeeInfo?.imageUrl}`} />
         </Badge>
         <div className="min-w-0 flex-1">
           <div className="focus:outline-none">
-            <span
-              className="absolute inset-0"
-              aria-hidden="true"
-            />
+            <span className="absolute inset-0" aria-hidden="true" />
             <div className="flex justify-between">
               <p className="text-md font-medium text-gray-900">
                 {data?.employeeInfo?.firstName} {data?.employeeInfo?.lastName}

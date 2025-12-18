@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Button, Divider, List, Skeleton } from "antd";
 import InfiniteScroll from "react-infinite-scroll-component";
-import { useAuthStore } from "../../hooks/useAuthStore";
+import { useAuthStore } from "@/hooks/useAuthStore";
 import { UserOutlined } from "@ant-design/icons";
 import axios from "axios";
 import { API_URL } from "@/utils/constants/URLS";
@@ -13,18 +13,18 @@ type DataAttemp = {
 };
 
 type ConverAttemp = {
-  members: any;
+  members: any[];
 };
 
 const Conversation = ({ conver }: { conver: ConverAttemp[] }) => {
-  const { auth } = useAuthStore((state: any) => state);
+  const auth = useAuthStore((state) => state.auth);
 
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<DataAttemp[]>([]);
 
   useEffect(() => {
-    const friendId = conver.flatMap((object): any =>
-      object.members.filter((memberId: any) => memberId !== auth.payload._id)
+    const friendId = conver.flatMap((object) =>
+      object.members.filter((memberId) => memberId !== auth?.user?._id)
     );
     const query = friendId
       .map((employeeId: string) => `employeeId=${employeeId}`)
@@ -36,7 +36,7 @@ const Conversation = ({ conver }: { conver: ConverAttemp[] }) => {
       setData(res.data.results);
     };
     getUser();
-  }, [auth.payload._id, conver]);
+  }, [auth?.user?._id, conver]);
 
   const loadMoreData = () => {
     if (loading) {

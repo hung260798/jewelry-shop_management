@@ -8,11 +8,12 @@ import numeral from "numeral";
 import "numeral/locales/vi";
 import React, { memo, useEffect, useState } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import { API_URL } from "utils/constants/URLS";
+import { ASSET_URL } from "utils/constants/URLS";
 import "./App.css";
+import CKEditorPage from "./CKEditor";
 import ErrorBoundary from "./components/ErrorBoundary";
-import Error from "./components/Placeholders/Error";
 import MainMenu from "./components/MainMenu";
+import Error from "./components/Placeholders/Error";
 import { useMyPrefetch } from "./hooks/useMyQuery";
 import { queryClient } from "./libraries/react-query";
 import Information from "./pages/Account/Information";
@@ -31,7 +32,7 @@ import UpdatePage from "./pages/Management/UpdatePage";
 import NotFoundPage from "./pages/NotFoundPage";
 import Orders from "./pages/Order/Orders";
 import SearchOrdersByStatus from "./pages/Order/SearchOrdersByStatus";
-import CKEditorPage from "./CKEditor";
+import { appendDomain } from "./utils/stringUtils";
 
 numeral.locale("vi");
 
@@ -227,7 +228,10 @@ const InnerApp = () => {
             </div>
             {!isSmallScreen && (
               <div className="flex items-center gap-[8px] ml-0 cursor-pointer hover:bg-slate-200 rounded-2xl px-3">
-                <Avatar src={`${API_URL}${user.imageUrl}`} size={44} />
+                <Avatar
+                  src={appendDomain(user.imageUrl || "", ASSET_URL)}
+                  size={44}
+                />
               </div>
             )}
           </div>

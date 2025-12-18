@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import UserBox from "../UserBox/UserBox";
-import { useChat } from "../../../hooks/useChat";
-import { API_URL } from "../../../utils/constants/URLS";
+import { useChat } from "@/hooks/useChat";
+import { useRef, useState } from "react";
 import { io } from "socket.io-client";
+import { API_URL } from "utils/constants/URLS";
+import UserBox from "../UserBox/UserBox";
 
 interface UserListProps {
   items: any;
