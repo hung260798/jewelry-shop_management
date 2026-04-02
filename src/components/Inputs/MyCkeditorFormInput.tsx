@@ -245,7 +245,7 @@ export default function MyCkeditorFormInput({
 }
 
 // LocalUploadAdapter.ts
-export class LocalUploadAdapter {
+class LocalUploadAdapter {
   private loader: any;
   private onAddImage: (file: File) => void;
 
@@ -273,7 +273,7 @@ export class LocalUploadAdapter {
   }
 }
 
-export class LocalUploadAdapterPlugin extends Plugin {
+class LocalUploadAdapterPlugin extends Plugin {
   static get requires() {
     return [];
   }

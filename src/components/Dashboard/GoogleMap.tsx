@@ -3,21 +3,32 @@ import "leaflet/dist/leaflet.css";
 import { useEffect, useState } from "react";
 import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import { axiosClientJson } from "../../libraries/axiosClient";
-import { Order } from "@/utils/types/Entities";
+import { GetMany, Order } from "@/utils/types/Entities";
+
+type Position = {
+  name: string;
+  lat: number;
+  lng: number;
+};
 
 const Address = () => {
-  const [positions, setPositions] = useState<Order[]>([]);
+  const [positions, setPositions] = useState<Position[]>([]);
   useEffect(() => {
     const fetchLocation = async () => {
       try {
-        const response = await axiosClientJson.get(`/orders`);
-        const fetchedPositions = response?.data?.results?.map(
-          (item: Order) => ({
-            name: item.position.name,
-            lat: parseFloat(item.position.lat),
-            lng: parseFloat(item.position.lng),
-          })
-        );
+        const response = await axiosClientJson.get<GetMany<Order>>(`/orders`);
+        if (!Array.isArray(response?.data?.results)) {
+          return;
+        }
+        const orders = response.data.results;
+        if (orders.length && orders.some((order) => order.position == null)) {
+          return;
+        }
+        const fetchedPositions = response?.data?.results?.map((item) => ({
+          name: item.position.name,
+          lat: parseFloat(item.position.lat),
+          lng: parseFloat(item.position.lng),
+        }));
         setPositions(fetchedPositions);
       } catch (error) {
         console.log("Error fetching location:", error);

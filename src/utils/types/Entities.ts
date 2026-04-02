@@ -67,7 +67,10 @@ interface TimeStamp {
 
 interface OrderLine {
   quantity: number;
-  product: Product & { total: number };
+  product: WithId<Product> & { total: number };
+  productId: string;
+  price: number;
+  discount: number;
 }
 
 interface PersonName {
@@ -90,6 +93,7 @@ interface Order {
   orderDetails: OrderLine[];
   active: boolean;
   isDeleted: boolean;
+  createdDate: string;
   position: {
     name: string;
     lat: string;
@@ -101,7 +105,7 @@ interface Collection {
   name: string;
   image: string;
   coverImage: string;
-  products: Product[];
+  products: WithId<Product>[];
 }
 
 interface Slide {
@@ -123,12 +127,12 @@ interface Message {
   createdAt: string;
 }
 
-type GetMany<T> = {
+type GetMany<T = unknown> = {
   results: T[];
   amountResults: number;
 };
 
-type GetOne<T> = {
+type GetOne<T = unknown> = {
   result: T;
 };
 

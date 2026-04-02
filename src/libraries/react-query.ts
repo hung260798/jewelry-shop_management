@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   DefaultOptions,
   QueryClient,
@@ -15,9 +16,7 @@ const queryConfig: DefaultOptions = {
   },
 };
 
-
 export const queryClient = new QueryClient({ defaultOptions: queryConfig });
-
 
 export type ExtractFnReturnType<FnType extends (...args: any) => any> = Awaited<
   ReturnType<FnType>

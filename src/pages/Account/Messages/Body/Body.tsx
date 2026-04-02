@@ -5,13 +5,17 @@ import { axiosClientJson } from "@/libraries/axiosClient";
 import { API_URL } from "utils/constants/URLS";
 import { io, Socket } from "socket.io-client";
 import { Skeleton } from "antd";
-import { Message } from "@/utils/types/Entities";
+import { Message, WithId } from "@/utils/types/Entities";
+
+interface DirectMessagePayload {
+  newData: WithId<Message>;
+}
 
 const Body = () => {
   const boxMessage = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true); // Flag to control automatic scrolling
   const { conversationData } = useChat((state) => state);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<WithId<Message>[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const socket = useRef<Socket>();
   socket.current = io(API_URL);
@@ -27,7 +31,7 @@ const Body = () => {
     };
     socket.current?.emit("client-message", data);
 
-    const handleDirectMessage = (data: any) => {
+    const handleDirectMessage = (data: DirectMessagePayload) => {
       const { newData } = data;
       setMessages((prevMessages) => {
         if (prevMessages.some((message) => message._id === newData._id)) {

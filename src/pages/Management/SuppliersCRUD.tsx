@@ -1,9 +1,10 @@
-import { useGetList } from "@/hooks/useMyQuery";
+import { extractArrayFromGetOneOrMany, useGetList } from "@/hooks/useMyQuery";
 import CRUD from "@/templates/CRUD";
 import * as Types from "utils/types/Entities";
 import { Checkbox, Input, Select, Tag } from "antd";
 import Search from "antd/es/input/Search";
 import { ColumnsType } from "antd/es/table";
+import { getSortOrder } from "@/utils/stringUtils";
 
 export const formItems = [
   {
@@ -65,11 +66,11 @@ type Supplier = Types.WithId<Types.Supplier> & Types.Active;
 
 function SupplierCRUD() {
   const {
-    query: { data: suppliersData, refetch, error },
+    query: { data: suppliersData, refetch, error, isLoading },
     searchParams,
     setSearchParams,
     searchItems,
-  } = useGetList<Types.GetMany<Supplier>>({
+  } = useGetList<Supplier>({
     queryKey: ["get_suppliers"],
     url: "/suppliers",
     // placeholderData: { results: [], amountResults: 0 },
@@ -177,8 +178,7 @@ function SupplierCRUD() {
       title: () => {
         return (
           <div
-            className={searchParams.get("name") ? "text-danger" : "secondary"}
-          >
+            className={searchParams.get("name") ? "text-danger" : "secondary"}>
             Tên nhà cung cấp
           </div>
         );
@@ -218,10 +218,15 @@ function SupplierCRUD() {
           // />
         );
       },
-      sorter: ({ name: name1 }, { name: name2 }) =>
-        name1
-          .toLowerCase()
-          .localeCompare(name2.toLowerCase(), "vi", { sensitivity: "base" }),
+      sorter: true,
+      sortOrder: getSortOrder(searchParams.toString(), "name"),
+    },
+    // Logo
+    {
+      title: "Logo",
+      width: "130px",
+      dataIndex: "logo",
+      key: "logo",
     },
     //Email
     {
@@ -253,8 +258,8 @@ function SupplierCRUD() {
           </div>
         );
       },
-      sorter: ({ email: name1 }, { email: name2 }) =>
-        name1.toLowerCase().localeCompare(name2.toLowerCase()),
+      sorter: true,
+      sortOrder: getSortOrder(searchParams.toString(), "email"),
     },
     //Phone Number
     {
@@ -262,8 +267,7 @@ function SupplierCRUD() {
         <div
           className={
             searchParams.get("phoneNumber") ? "text-danger" : "secondary"
-          }
-        >
+          }>
           Điện thoại
         </div>
       ),
@@ -292,8 +296,7 @@ function SupplierCRUD() {
           <div
             className={
               searchParams.get("address") ? "text-danger" : "secondary"
-            }
-          >
+            }>
             Địa chỉ nhà cung cấp
           </div>
         );
@@ -315,21 +318,20 @@ function SupplierCRUD() {
           </div>
         );
       },
-      sorter: ({ address: name1 }, { address: name2 }) =>
-        name1
-          .toLowerCase()
-          .localeCompare(name2.toLowerCase(), "vi", { sensitivity: "base" }),
+      sorter: true,
+      sortOrder: getSortOrder(searchParams.toString(), "address"),
     },
     //Note
     { title: "Ghi chú", dataIndex: "note", key: "note", width: "10%" },
   ];
-  const dataSource = suppliersData?.results ?? [];
+  const { dataSource, amountResults } =
+    extractArrayFromGetOneOrMany(suppliersData);
 
   return (
     <CRUD<Supplier>
       columns={columns}
       dataSource={dataSource}
-      totalAmount={suppliersData?.amountResults || 0}
+      totalAmount={amountResults}
       // FormFn={SuppplierForm}
       collectionName="suppliers"
       searchParams={searchParams}
@@ -339,6 +341,7 @@ function SupplierCRUD() {
         title: "Supplier",
       }}
       fetchError={error}
+      loading={isLoading}
     />
   );
 }

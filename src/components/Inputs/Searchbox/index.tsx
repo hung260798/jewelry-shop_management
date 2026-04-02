@@ -1,12 +1,17 @@
 import { axiosClientJson as client } from "@/libraries/axiosClient";
-import { GetList, Product as Product0, WithId } from "utils/types/Entities";
 import { useQuery } from "@tanstack/react-query";
 import { Button, Input, List } from "antd";
-import { AxiosResponse } from "axios";
-import { useEffect, useRef, useState } from "react";
-import ErrorAndLoading from "components/Placeholders/ErrorAndLoading";
-import style from "./style.module.css";
 import { SearchProps } from "antd/es/input";
+import { AxiosResponse } from "axios";
+import ErrorAndLoading from "components/Placeholders/ErrorAndLoading";
+import { useEffect, useRef, useState } from "react";
+import {
+  GetMany as GetList,
+  Product as Product0,
+  WithId,
+} from "utils/types/Entities";
+import style from "./style.module.css";
+import { hasKeyOfType } from "@/utils/typeUtils";
 
 type Product = WithId<Product0>;
 type Element = JSX.Element;
@@ -213,13 +218,27 @@ export const useSearchProducts: SearchBoxOptions["useSearch"] = () => {
 type SearchAllData = {
   key: string;
   promise: Promise<AxiosResponse<GetList<unknown>>>;
-  toString: (entity: any) => string | React.ReactNode;
+  toString: (entity: unknown) => React.ReactNode;
   collection: string;
+};
+
+type Entity = object;
+
+const isString = (v: unknown): v is string => typeof v === "string";
+
+const printObj = (entity: unknown, ...fields: string[]) => {
+  if (!entity || typeof entity !== "object") {
+    return "";
+  }
+  const result = fields.map((field) =>
+    hasKeyOfType(entity, field, isString) ? entity[field] : ""
+  );
+  return result.join(" ");
 };
 
 export const useSearchAll: SearchBoxOptions<
   Omit<SearchAllData, "promise"> & {
-    value: WithId<object>[];
+    value: WithId<Entity>[];
     error?: unknown;
     collection: string;
   }
@@ -244,7 +263,7 @@ export const useSearchAll: SearchBoxOptions<
             promise: client.get("/products", {
               params: { ...searchParams, productName: trimmedName },
             }),
-            toString: (entity) => `${entity.name}`,
+            toString: (obj) => printObj(obj, "name"),
             collection: "products",
           },
           {
@@ -252,7 +271,7 @@ export const useSearchAll: SearchBoxOptions<
             promise: client.get("/categories", {
               params: { ...searchParams, name: trimmedName },
             }),
-            toString: (entity) => `${entity.name}`,
+            toString: (obj) => printObj(obj, "name"),
             collection: "categories",
           },
           {
@@ -260,7 +279,7 @@ export const useSearchAll: SearchBoxOptions<
             promise: client.get("/collections", {
               params: { ...searchParams, name: trimmedName },
             }),
-            toString: (entity) => `${entity.name}`,
+            toString: (obj) => printObj(obj, "name"),
             collection: "collections",
           },
           {
@@ -268,7 +287,7 @@ export const useSearchAll: SearchBoxOptions<
             promise: client.get("/suppliers", {
               params: { ...searchParams, name: trimmedName },
             }),
-            toString: (entity) => `${entity.name}`,
+            toString: (obj) => printObj(obj, "name"),
             collection: "suppliers",
           },
           {
@@ -276,8 +295,7 @@ export const useSearchAll: SearchBoxOptions<
             promise: client.get("/customers", {
               params: { ...searchParams, firstName: trimmedName },
             }),
-            toString: (entity) =>
-              `${entity.firstName} ${entity.lastName} ${entity.email}`,
+            toString: (obj) => printObj(obj, "firstName", "lastName", "email"),
             collection: "customers",
           },
           {
@@ -285,7 +303,7 @@ export const useSearchAll: SearchBoxOptions<
             promise: client.get("/customers", {
               params: { ...searchParams, lastName: trimmedName },
             }),
-            toString: (entity) => `${entity.firstName} ${entity.lastName}`,
+            toString: (obj) => printObj(obj, "firstName", "lastName"),
             collection: "customers",
           },
           {
@@ -294,7 +312,7 @@ export const useSearchAll: SearchBoxOptions<
               params: { ...searchParams, email: trimmedName },
             }),
             toString: (entity) =>
-              `${entity.firstName} ${entity.lastName} ${entity.email}`,
+              printObj(entity, "firstName", "lastName", "email"),
             collection: "customers",
           },
           {
@@ -302,8 +320,7 @@ export const useSearchAll: SearchBoxOptions<
             promise: client.get("/employees", {
               params: { ...searchParams, firstName: trimmedName },
             }),
-            toString: (entity) =>
-              `${entity.firstName} ${entity.lastName} ${entity.email}`,
+            toString: (obj) => printObj(obj, "firstName", "lastName", "email"),
             collection: "employees",
           },
           {
@@ -311,7 +328,7 @@ export const useSearchAll: SearchBoxOptions<
             promise: client.get("/employees", {
               params: { ...searchParams, lastName: trimmedName },
             }),
-            toString: (entity) => `${entity.firstName} ${entity.lastName}`,
+            toString: (obj) => printObj(obj, "firstName", "lastName"),
             collection: "employees",
           },
           {
@@ -320,7 +337,7 @@ export const useSearchAll: SearchBoxOptions<
               params: { ...searchParams, email: trimmedName },
             }),
             toString: (entity) =>
-              `${entity.firstName} ${entity.lastName} ${entity.email}`,
+              printObj(entity, "firstName", "lastName", "email"),
             collection: "employees",
           },
         ];

@@ -1,7 +1,7 @@
-import LazyFadeImage from "@/components/images/Lazy/SmartImage";
+import SmartImage from "@/components/images/Lazy/SmartImage";
 import { useGetList } from "@/hooks/useMyQuery";
 import CRUD from "@/templates/CRUD";
-import { appendDomain } from "@/utils/stringUtils";
+import { appendDomain, getSortOrder } from "@/utils/stringUtils";
 import { Active, Category, WithId } from "@/utils/types/Entities";
 import { FormControl } from "@/utils/types/Form";
 import { Select, Space, Tag } from "antd";
@@ -254,14 +254,14 @@ function CategoryCRUD() {
       {
         title: (
           <div
-            className={searchParams.get("name") ? "text-danger" : "secondary"}
-          >
+            className={searchParams.get("name") ? "text-danger" : "secondary"}>
             Tên danh mục
           </div>
         ),
         dataIndex: "name",
         key: "name",
         sorter: true,
+        sortOrder: getSortOrder(searchParams.toString(), "name"),
         filterDropdown: () => {
           return (
             <div style={{ padding: 8 }}>
@@ -286,14 +286,16 @@ function CategoryCRUD() {
         render: (text, record) => {
           const imageSrc = appendDomain(record.imageUrl, ASSET_URL);
           return (
-            <div className="flex justify-center items-center gap-2 h-[120px]">
+            <div className="flex justify-center items-center gap-2 ">
               {imageSrc && (
-                <LazyFadeImage
+                <SmartImage
                   src={`${imageSrc}`}
                   // style={{ width: "100px" }}
                   smallSizes={imageSizes as [number, number][]}
                   alt="record.imageUrl"
                   className="object-fill"
+                  width={150}
+                  height={150}
                 />
               )}
             </div>
@@ -310,7 +312,7 @@ function CategoryCRUD() {
           return (
             <div className="flex justify-center items-center gap-2">
               {coverImageUrl && (
-                <LazyFadeImage
+                <SmartImage
                   src={appendDomain(coverImageUrl, ASSET_URL)}
                   // style={{ width: "100px" }}
                   smallSizes={coverImageSizes as [number, number][]}
@@ -334,6 +336,7 @@ function CategoryCRUD() {
         dataIndex: "description",
         key: "description",
         sorter: true,
+        sortOrder: getSortOrder(searchParams.toString(), "description"),
         filterDropdown: () => {
           return (
             <div style={{ padding: 8 }}>
@@ -358,12 +361,22 @@ function CategoryCRUD() {
         dataIndex: "note",
         key: "note",
         sorter: true,
+        sortOrder: getSortOrder(searchParams.toString(), "note"),
         width: "10%",
       },
     ] as ColumnsType<WithId<Category> & Active>;
   }, [searchItems, searchParams]);
 
-  const dataSource = categoriesData?.results;
+  const dataSource = categoriesData
+    ? "results" in categoriesData
+      ? categoriesData.results
+      : [categoriesData.result]
+    : [];
+  const totalAmount = categoriesData
+    ? "results" in categoriesData
+      ? categoriesData.amountResults
+      : 1
+    : 0;
 
   const converRecordToFormValues = (record: Entity) => {
     return {
@@ -379,12 +392,12 @@ function CategoryCRUD() {
     <CRUD
       columns={columns}
       dataSource={dataSource}
+      totalAmount={totalAmount}
       searchParams={searchParams}
       setSearchParams={setSearchParams}
       collectionName="categories"
-      totalAmount={categoriesData?.amountResults ?? 0}
       form={{
-        title: "Category",
+        title: "Danh mục sản phẩm",
         controls: controls,
       }}
       fileFields={[

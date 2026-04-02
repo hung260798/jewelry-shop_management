@@ -2,10 +2,11 @@ import { axiosClientJson } from "@/libraries/axiosClient";
 import { OrderStatus } from "@/meta/OrderStatus";
 import { Button, Form, FormProps, message, Select, Table } from "antd";
 import React from "react";
-import { Order } from "@/utils/types/Entities";
+import { Order, WithId } from "@/utils/types/Entities";
 import { ColumnsType } from "antd/es/table";
 import numeral from "numeral";
 import { devLog } from "@/utils/logger";
+import { GetManyData } from "@/utils/mutationFn";
 
 export default function SearchOrdersByStatus() {
   const columns: ColumnsType<Order> = [
@@ -31,7 +32,6 @@ export default function SearchOrdersByStatus() {
       dataIndex: "status",
       key: "status",
     },
-
     {
       title: "Nhân viên",
       dataIndex: "employee",
@@ -61,16 +61,15 @@ export default function SearchOrdersByStatus() {
     },
   ];
   const [loading, setLoading] = React.useState(false);
-  const [orders, setOrders] = React.useState([]);
+  const [orders, setOrders] = React.useState<Order[]>([]);
   const [searchForm] = Form.useForm();
 
-  const onFinish = (values: any) => {
+  const onFinish = (values: { status: string }) => {
     setLoading(true);
     axiosClientJson
-      .get(`/orders/questions/7?status=${values.status}`)
+      .get<GetManyData<WithId<Order>>>(`/orders?status=${values.status}`)
       .then((response) => {
-        // console.log(response.data);
-        setOrders(response.data);
+        setOrders(response.data.results);
         setLoading(false);
       })
       .catch(() => {
@@ -93,8 +92,7 @@ export default function SearchOrdersByStatus() {
         initialValues={{ status: "" }}
         onFinish={onFinish}
         onFinishFailed={onFinishFailed}
-        autoComplete="on"
-      >
+        autoComplete="on">
         <Form.Item label="Trạng thái đơn hàng" name="status">
           <Select options={OrderStatus} />
         </Form.Item>

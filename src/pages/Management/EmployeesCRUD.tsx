@@ -1,24 +1,26 @@
 import CRUD from "@/templates/CRUD";
 // import { LazyFadeImage } from "@repo/components/src/images";
 import { UploadInput } from "@/components/Inputs/FileUpload";
-import { appendDomain } from "@/utils/stringUtils";
+import { appendDomain, getSortOrder } from "@/utils/stringUtils";
 import { UploadOutlined } from "@ant-design/icons";
 import { Button, DatePicker, Input, Select, Switch, Tag } from "antd";
 import locale from "antd/es/date-picker/locale/vi_VN";
 import Search from "antd/es/input/Search";
 import { ColumnsType } from "antd/es/table";
-import LazyFadeImage from "components/images/Lazy/SmartImage";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import { useGetList } from "hooks/useMyQuery";
 import { ASSET_URL } from "utils/constants/URLS";
 import { Active, User, WithId } from "utils/types/Entities";
+import SmartImage from "components/images/Lazy/SmartImage";
 
 const { RangePicker } = DatePicker;
 const dateFormat = "DD/MM/YYYY";
 dayjs.extend(customParseFormat);
 
 type Data = WithId<User> & Active & { Locked: boolean };
+
+const imageSizes: [number, number][] = [[80, 120]];
 
 export default function EmployeeCRUD() {
   const {
@@ -45,8 +47,9 @@ export default function EmployeeCRUD() {
       title: () => {
         return (
           <div
-            className={searchParams.get("Locked") ? "text-danger" : "secondary"}
-          >
+            className={
+              searchParams.get("Locked") ? "text-danger" : "secondary"
+            }>
             No
           </div>
         );
@@ -107,24 +110,21 @@ export default function EmployeeCRUD() {
     },
     //IMAGE
     {
-      width: "10%",
+      width: "100px",
       title: "Ảnh hồ sơ",
       key: "imageUrl",
       dataIndex: "imageUrl",
       render: (text: string, record) => {
         return (
-          <div className="flex flex-1 justify-center items-center h-[160px] w-[110px]">
+          <div className="flex flex-1 justify-center items-center h-[140px] w-[100px]">
             {record.imageUrl && (
-              <LazyFadeImage
+              <SmartImage
                 src={appendDomain(record.imageUrl, ASSET_URL)}
-                // fallbackSources={[`${API_URL}${record.imageUrl}`]}
-                smallSizes={[[80, 120]]}
-                // style={{ height: 60 }}
-                // preview={{
-                //   destroyOnHidden: true,
-                //   src: `${API_URL}${record.imageUrl}`,
-                // }}
+                smallSizes={imageSizes}
                 alt="record.imageUrl"
+                fallback="/placeholder-user.jpg"
+                width={80}
+                height={120}
               />
             )}
           </div>
@@ -152,6 +152,7 @@ export default function EmployeeCRUD() {
         );
       },
       sorter: true,
+      sortOrder: getSortOrder(searchParams.toString(), "firstName"),
     },
     //Last Name
     {
@@ -174,6 +175,7 @@ export default function EmployeeCRUD() {
         );
       },
       sorter: true,
+      sortOrder: getSortOrder(searchParams.toString(), "lastName"),
     },
     //Email
     {
@@ -196,6 +198,7 @@ export default function EmployeeCRUD() {
         );
       },
       sorter: true,
+      sortOrder: getSortOrder(searchParams.toString(), "email"),
     },
     //Phone number
     {
@@ -218,6 +221,7 @@ export default function EmployeeCRUD() {
         );
       },
       sorter: true,
+      sortOrder: getSortOrder(searchParams.toString(), "phoneNumber"),
     },
     //Address
     {
@@ -240,6 +244,7 @@ export default function EmployeeCRUD() {
         );
       },
       sorter: true,
+      sortOrder: getSortOrder(searchParams.toString(), "address"),
     },
     //Birthday
     {
@@ -258,14 +263,16 @@ export default function EmployeeCRUD() {
       dataIndex: "birthday",
       key: "birthday",
       render: (birthday: string) => {
-        const formattedBirthday = dayjs(birthday).format("DD/MM/YYYY");
+        const formattedBirthday = dayjs(birthday).format(dateFormat);
         return <span>{formattedBirthday}</span>;
       },
       filterDropdown: () => {
-        const birthdayFrom: string | dayjs.Dayjs =
-          searchParams.get("birthdayFrom") ?? "01/01/1900";
-        const birthdayTo: string | dayjs.Dayjs =
-          searchParams.get("birthdayTo") ?? "01/01/2023";
+        const birthdayFrom: string | dayjs.Dayjs = dayjs(
+          searchParams.get("birthdayFrom") ?? "01/01/1900"
+        );
+        const birthdayTo: string | dayjs.Dayjs = dayjs(
+          searchParams.get("birthdayTo") ?? "01/01/2023"
+        );
 
         return (
           <div style={{ padding: 8 }}>
@@ -277,27 +284,50 @@ export default function EmployeeCRUD() {
               ]}
               format={dateFormat}
               onChange={async (e) => {
-                const searchValues: { type: string; value?: string }[] = [
-                  { type: "birthdayFrom", value: birthdayFrom },
-                  { type: "birthdayTo", value: birthdayTo },
-                ];
                 const data = e?.map((date) => dayjs(date).format("YYYY/MM/DD"));
                 if (data) {
-                  searchValues[0] = { type: "birthdayFrom", value: data[0] };
-                  searchValues[1] = { type: "birthdayTo", value: data[1] };
+                  searchItems(
+                    [
+                      { type: "birthdayFrom", value: data[0] },
+                      { type: "birthdayTo", value: data[1] },
+                    ],
+                    { resetSkip: true }
+                  );
                 }
-                searchItems(searchValues, { resetSkip: true });
               }}
             />
           </div>
         );
       },
       sorter: true,
+      sortOrder: getSortOrder(searchParams.toString(), "birthday"),
     },
     //Note
     { title: "Ghi chú", dataIndex: "note", key: "note", width: "10%" },
+    // Created date
+    {
+      title: "Ngày tạo",
+      dataIndex: "createdDate",
+      sorter: true,
+      sortOrder: getSortOrder(searchParams.toString(), "createdDate"),
+      render(date: string | undefined) {
+        if (!date) return "";
+        const d: Date = new Date(date);
+        return (
+          <>
+            <span>{d.toLocaleDateString()}</span>
+            <br />
+            <span>{d.toLocaleTimeString()}</span>
+          </>
+        );
+      },
+    },
   ];
-  const dataSource = employeesResponse?.results;
+  const { results: dataSource, amountResults } = employeesResponse
+    ? "results" in employeesResponse
+      ? employeesResponse
+      : { results: [employeesResponse.result], amountResults: 1 }
+    : { results: [], amountResults: 0 };
 
   const converRecordToFormValues = (record: Data) => {
     return {
@@ -312,14 +342,14 @@ export default function EmployeeCRUD() {
     <CRUD
       columns={columns}
       dataSource={dataSource}
-      totalAmount={employeesResponse?.amountResults || 0}
+      totalAmount={amountResults}
       searchParams={searchParams}
       setSearchParams={setSearchParams}
       collectionName={"employees"}
       loading={isLoading || isFetching}
       form={{
         controls: formControls,
-        title: "Employee",
+        title: "Nhân viên",
       }}
       fileFields={[
         {
@@ -327,11 +357,14 @@ export default function EmployeeCRUD() {
           fileType: "image",
           label: "Image",
           maxCount: 1,
-          sizes: [[80, 120]],
+          sizes: imageSizes,
         },
       ]}
       fetchError={error}
       convertToFormValues={converRecordToFormValues}
+      uploadModalTitle={(employee) =>
+        `${employee?.firstName} ${employee?.lastName}`
+      }
     />
   );
 }

@@ -5,20 +5,20 @@ import { axiosClientJson } from "@/libraries/axiosClient";
 import CRUD from "@/templates/CRUD";
 import { ASSET_URL } from "@/utils/constants/URLS";
 import { devLog } from "@/utils/logger";
-import { appendDomain } from "@/utils/stringUtils";
+import { appendDomain, getSortOrder } from "@/utils/stringUtils";
 import {
   DeleteOutlined,
   PlusOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Flex, Input, List, Modal, Space, Switch, Tag } from "antd";
+import { Button, Flex, Input, List, Modal, Switch, Tag } from "antd";
 import { ColumnsType } from "antd/es/table";
 import { AxiosResponse } from "axios";
 import SearchBox, {
   useSearchProducts,
 } from "components/Inputs/Searchbox/index";
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import {
   Active,
   Collection as Collection0,
@@ -36,119 +36,8 @@ const MemoSearchBox = memo(SearchBox);
 const imageSmallSizes: [number, number][] = [[200, 200]];
 
 export default function CollectionCRUD() {
-  const columns: ColumnsType<DataRecord> = [
-    {
-      title: "No",
-      key: "no",
-      render(value, record, index) {
-        return index + 1;
-      },
-    },
-    {
-      title: "Tên bộ sưu tập",
-      dataIndex: "name",
-      sorter: true,
-      filterDropdown: () => {
-        return (
-          <Input.Search
-            allowClear
-            placeholder="input search text"
-            onSearch={(e) => {
-              searchItems(
-                [
-                  {
-                    type: "name",
-                    value: e,
-                  },
-                ],
-                { resetSkip: true }
-              );
-            }}
-            defaultValue={searchParams.get("name") ?? ""}
-            style={{ width: 200 }}
-          />
-        );
-      },
-    },
-    {
-      title: "Mô tả",
-      dataIndex: "description",
-      sorter: true,
-      filterDropdown: () => {
-        return (
-          <Input.Search
-            allowClear
-            placeholder="input search text"
-            onSearch={(e) => {
-              searchItems(
-                [
-                  {
-                    type: "description",
-                    value: e,
-                  },
-                ],
-                { resetSkip: true }
-              );
-            }}
-            defaultValue={searchParams.get("description") ?? ""}
-            style={{ width: 200 }}
-          />
-        );
-      },
-    },
-    {
-      dataIndex: "activeState",
-      key: "activeState",
-      title: "Trạng thái",
-      render: (text: string, record) => {
-        return (
-          <Space>
-            {record.active === true && !record.isDeleted && (
-              <Tag color="green">ACTIVE</Tag>
-            )}
-            {record.active === false && !record.isDeleted && (
-              <Tag color="yellow">INACTIVE</Tag>
-            )}
-            {record.isDeleted === true && <Tag color="red">DELETED</Tag>}
-          </Space>
-        );
-      },
-    },
-    {
-      title: "Ảnh  BST",
-      dataIndex: "image",
-      render(src: string) {
-        return (
-          <SmartImage
-            src={appendDomain(src, ASSET_URL)}
-            width={200}
-            height={200}
-            smallSizes={imageSmallSizes}
-            // preview={true}
-          />
-        );
-      },
-      width: 240,
-    },
-    {
-      title: "Ảnh bìa BST",
-      dataIndex: "coverImage",
-      render(src: string) {
-        return (
-          <SmartImage
-            src={appendDomain(src, ASSET_URL)}
-            width={200}
-            height={200}
-            // preview={true}
-            smallSizes={imageSmallSizes}
-          />
-        );
-      },
-      width: 240,
-    },
-  ];
   const {
-    query: { data: collectionsData, isLoading, error },
+    query: { data: collectionsData, isLoading, error, isFetching },
     searchParams,
     setSearchParams,
     searchItems,
@@ -156,24 +45,177 @@ export default function CollectionCRUD() {
     url: "/collections",
     queryKey: ["get_collections"],
   });
-  let dataSource: Array<DataRecord> = [];
-  let amountResults: number = 0;
-  if (collectionsData) {
-    if ("results" in collectionsData) {
-      dataSource = collectionsData.results;
-      amountResults = collectionsData.amountResults;
-    } else {
-      dataSource = [collectionsData.result];
-      amountResults = 1;
-    }
-  }
+  const columns: ColumnsType<DataRecord> = useMemo<
+    ColumnsType<DataRecord>
+  >(() => {
+    return [
+      {
+        title: "No",
+        key: "no",
+        render(value, record, index) {
+          return index + 1;
+        },
+      },
+      {
+        title: (
+          <div
+            className={searchParams.get("name") ? "text-danger" : "secondary"}>
+            Tên bộ sưu tập
+          </div>
+        ),
+        dataIndex: "name",
+        sorter: true,
+        sortOrder: getSortOrder(searchParams.toString(), "name"),
+        filterDropdown: () => {
+          return (
+            <Input.Search
+              allowClear
+              placeholder="input search text"
+              onSearch={(e) => {
+                searchItems(
+                  [
+                    {
+                      type: "name",
+                      value: e,
+                    },
+                  ],
+                  { resetSkip: true }
+                );
+              }}
+              defaultValue={searchParams.get("name") ?? ""}
+              style={{ width: 200 }}
+            />
+          );
+        },
+      },
+      {
+        title: (
+          <div
+            className={
+              searchParams.get("description") ? "text-danger" : "secondary"
+            }>
+            Mô tả
+          </div>
+        ),
+        dataIndex: "description",
+        sorter: true,
+        sortOrder: getSortOrder(searchParams.toString(), "description"),
+        filterDropdown: () => {
+          return (
+            <Input.Search
+              allowClear
+              placeholder="input search text"
+              onSearch={(e) => {
+                searchItems(
+                  [
+                    {
+                      type: "description",
+                      value: e,
+                    },
+                  ],
+                  { resetSkip: true }
+                );
+              }}
+              defaultValue={searchParams.get("description") ?? ""}
+              style={{ width: 200 }}
+            />
+          );
+        },
+      },
+      {
+        title: "Ngày tạo",
+        dataIndex: "createdDate",
+        sorter: true,
+        sortOrder: getSortOrder(searchParams.toString(), "createdDate"),
+        render(date: string | undefined) {
+          if (!date) return "";
+          const d: Date = new Date(date);
+          return (
+            <>
+              <span>{d.toLocaleDateString()}</span>
+              <br />
+              <span>{d.toLocaleTimeString()}</span>
+            </>
+          );
+        },
+      },
+      {
+        title: "Chỉnh sửa lần cuối",
+        dataIndex: "modifiedDate",
+        sorter: true,
+        sortOrder: getSortOrder(searchParams.toString(), "modifiedDate"),
+        render(date: string | undefined) {
+          if (!date) return "";
+          const d: Date = new Date(date);
+          return (
+            <>
+              <span>{d.toLocaleDateString()}</span>
+              <br />
+              <span>{d.toLocaleTimeString()}</span>
+            </>
+          );
+        },
+      },
+      {
+        dataIndex: "status",
+        key: "status",
+        title: "Trạng thái",
+        render: (status: string | undefined) => {
+          return (
+            <Tag color="blue">{status ? status.toUpperCase() : "INACTIVE"}</Tag>
+          );
+        },
+        sorter: true,
+      },
+      {
+        title: "Ảnh  BST",
+        dataIndex: "image",
+        render(src: string) {
+          if (typeof src !== "string") return null;
+          return (
+            <SmartImage
+              src={appendDomain(src, ASSET_URL)}
+              width={200}
+              height={200}
+              smallSizes={imageSmallSizes}
+              // preview={true}
+            />
+          );
+        },
+        width: 240,
+      },
+      {
+        title: "Ảnh bìa BST",
+        dataIndex: "coverImage",
+        render(src: string) {
+          if (typeof src !== "string") return null;
+          return (
+            <SmartImage
+              src={appendDomain(src, ASSET_URL)}
+              width={350}
+              height={100}
+              smallSizes={[[350, 100]]}
+              style={{ width: "350px", height: "100px" }}
+            />
+          );
+        },
+        width: 240,
+      },
+    ];
+  }, [searchItems, searchParams]);
+  const dataSource = collectionsData
+    ? "results" in collectionsData
+      ? collectionsData.results
+      : [collectionsData.result]
+    : [];
+  const totalAmount = collectionsData
+    ? "results" in collectionsData
+      ? collectionsData.amountResults
+      : 1
+    : 0;
   const [showProductList, setShowProductList] = useState<DataRecord | null>(
     null
   );
-
-  if (isLoading) {
-    return null;
-  }
 
   const converRecordToFormValues = (record: Collection0) => {
     return {
@@ -187,15 +229,17 @@ export default function CollectionCRUD() {
 
   return (
     <>
-      <CRUD
+      <CRUD<DataRecord>
         columns={columns}
         dataSource={dataSource}
-        totalAmount={amountResults}
+        totalAmount={totalAmount}
+        searchParams={searchParams}
+        setSearchParams={setSearchParams}
+        collectionName="collections"
         form={{
           title: "Bộ sưu tập",
           controls: formControls,
         }}
-        collectionName="collections"
         fileFields={[
           {
             name: "image",
@@ -207,11 +251,9 @@ export default function CollectionCRUD() {
             name: "coverImage",
             maxCount: 1,
             fileType: "image",
-            sizes: imageSmallSizes,
+            sizes: [[350, 100]],
           },
         ]}
-        searchParams={searchParams}
-        setSearchParams={setSearchParams}
         functionColumn={{
           extraFunctions: [
             (record) => (
@@ -225,8 +267,9 @@ export default function CollectionCRUD() {
             ),
           ],
         }}
-        convertToFormValues={converRecordToFormValues}
+        loading={isLoading || isFetching}
         fetchError={error}
+        convertToFormValues={converRecordToFormValues}
       />
       <AddProductBox
         isOpen={showProductList}
@@ -299,7 +342,7 @@ function AddProductBox({
       try {
         if (collection !== null) {
           await axiosClientJson.patch(`/collections/${collection._id}`, {
-            products: checked,
+            products: added,
           });
           queryClient.setQueryData<AxiosResponse<GetOne<DataRecord>>>(
             ["get_collections", { _id: collectionId }],
@@ -310,7 +353,7 @@ function AddProductBox({
                   ...response,
                   data: {
                     ...response.data,
-                    result: { ...response.data.result, products: checked },
+                    result: { ...response.data.result, products: added },
                   },
                 };
               return undefined;
@@ -327,7 +370,7 @@ function AddProductBox({
     onCancel: () => close(),
   };
   const collectionId = collection?._id;
-  const [checked, setChecked] = useState<Product[]>([]);
+  const [added, setAdded] = useState<Product[]>([]);
   const { data: response } = useQuery({
     queryFn: async () => {
       return collectionId
@@ -341,7 +384,7 @@ function AddProductBox({
 
   useEffect(() => {
     const products = response?.data.result.products;
-    setChecked(products ?? []);
+    setAdded(products ?? []);
   }, [collection, response]);
 
   return (
@@ -349,20 +392,21 @@ function AddProductBox({
       {...modalProps}
       className="relative"
       width={"60rem"}
-      height={"45rem"}
-    >
+      height={"45rem"}>
       <Flex className="relative min-h-52 h-full w-full flex-col" gap={"1rem"}>
-        <div>Tìm sản phẩm</div>
+        <div>
+          BST: <strong>{collection?.name}</strong>
+        </div>
         <MemoSearchBox
           useSearch={useSearchProducts}
           renderItem={(item, context) => {
             const product = item as Product;
+            const isExisted = added.some((p) => p._id === product._id);
             return (
               <Flex
                 className="px-3 w-full text-[0.8rem]"
                 justify="space-between"
-                align="center"
-              >
+                align="center">
                 <Flex align="center">
                   <SmartImage
                     src={appendDomain(product.imageUrl, ASSET_URL)}
@@ -373,7 +417,7 @@ function AddProductBox({
                 </Flex>
                 <Button
                   onClick={() => {
-                    setChecked((prev) => {
+                    setAdded((prev) => {
                       const currentProducts = prev as Product[];
                       const newArr = [...currentProducts, product];
                       return [
@@ -385,25 +429,24 @@ function AddProductBox({
                   size="small"
                   className="text-[.8rem]"
                   icon={<PlusOutlined />}
-                >
-                  Thêm
+                  disabled={isExisted}>
+                  {isExisted ? "Đã thêm" : "Thêm"}
                 </Button>
               </Flex>
             );
           }}
         />
-        <div>
+        <div className="max-h-64 overflow-auto">
           <h6>Sản phẩm hiện tại:</h6>
           <List size="small">
-            {checked.map((item) => {
+            {added.map((item) => {
               const { _id } = item;
               return (
                 <List.Item key={_id} className="text-[.8rem]">
                   <Flex
                     justify="space-between"
                     align="center"
-                    className="w-full"
-                  >
+                    className="w-full">
                     <Flex align="center">
                       <SmartImage
                         src={appendDomain(item.imageUrl, ASSET_URL)}
@@ -414,7 +457,7 @@ function AddProductBox({
                     </Flex>
                     <Button
                       onClick={() => {
-                        setChecked((prev) => {
+                        setAdded((prev) => {
                           const i = prev.findIndex((elem) => elem._id === _id);
                           if (i >= 0) {
                             const newArr = prev.slice();
@@ -427,7 +470,7 @@ function AddProductBox({
                       size="small"
                       icon={<DeleteOutlined />}
                       danger
-                    >
+                      type="dashed">
                       Xóa
                     </Button>
                   </Flex>

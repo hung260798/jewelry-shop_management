@@ -1,10 +1,10 @@
-import { useModalForm } from "@/components/Forms/ModalForm";
-import { useAuthStore } from "@/hooks/useAuthStore";
+import { useModalForm } from "@/components/Forms/ModalForm/useModalForm";
 import { axiosClientJson } from "@/libraries/axiosClient";
 import CRUD from "@/templates/CRUD";
+import { devLog } from "@/utils/logger";
 import { GetManyData } from "@/utils/mutationFn";
-import { EditOutlined, SendOutlined } from "@ant-design/icons";
-import { Order, OrderLine, WithId } from "utils/types/Entities";
+import { capitalizeFirstLetter } from "@/utils/stringUtils";
+import { CheckOutlined, EyeOutlined } from "@ant-design/icons";
 import {
   Button,
   Card,
@@ -28,11 +28,12 @@ import customParseFormat from "dayjs/plugin/customParseFormat";
 import useMyQuery from "hooks/useMyQuery";
 import _ from "lodash";
 import numeral from "numeral";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { Order, OrderLine, WithId } from "utils/types/Entities";
 // import { FormProps } from "utils/types/Form";
 dayjs.extend(customParseFormat);
 
-function OrderCRUD() {
+const OrderCRUD: React.FC = () => {
   const {
     searchParams,
     setSearchParams,
@@ -45,7 +46,9 @@ function OrderCRUD() {
     placeholderData: { results: [], amountResults: 0 },
   });
   const [selectedOrder, setSelectedOrder] = useState<WithId<Order>>();
-  const [isAddingProducts, setIsAddingProducts] = useState<boolean>(false);
+  const [isSelectingProducts, setIsSelectingProducts] =
+    useState<boolean>(false);
+  const [messageApi, contextHolder] = message.useMessage();
 
   //Setting column
   const columns: ColumnsType<WithId<Order>> = [
@@ -74,6 +77,7 @@ function OrderCRUD() {
     },
     {
       title: "Ngày đặt hàng",
+      width: "120px",
       dataIndex: "createdDate",
       render(date: string) {
         const d: Date = new Date(date);
@@ -88,9 +92,12 @@ function OrderCRUD() {
       sorter: true,
     },
     {
-      title: "Ngày giao hàng",
+      title: "Ngày giao",
       dataIndex: "shippedDate",
-      render(date: string) {
+      render(date: string | undefined, record) {
+        if (!date || record.status.toUpperCase() !== "COMPLETED") {
+          return "";
+        }
         const d: Date = new Date(date);
         return (
           <>
@@ -130,6 +137,7 @@ function OrderCRUD() {
     },
     {
       title: "Hình thức thanh toán",
+      width: "120px",
       dataIndex: "paymentType",
       key: "paymentType",
       filterDropdown: () => {
@@ -161,17 +169,19 @@ function OrderCRUD() {
     },
     {
       title: "Trạng thái",
+      width: "150px",
       dataIndex: "status",
       key: "status",
       sorter: true,
-      render: (text) => {
-        const cn: Record<string, string> = {
+      render: (status) => {
+        const colors: Record<string, string> = {
           WAITING: "gold",
           ECONFIRMED: "blue",
           COMPLETED: "green",
-          CANCELLED: "red",
+          CANCELED: "red",
         };
-        return <Tag color={cn[text] ?? "blue"}>{text}</Tag>;
+        const tagColor = colors[status] ?? "blue";
+        return <Tag color={tagColor}>{status}</Tag>;
       },
       filterDropdown: () => {
         return (
@@ -212,13 +222,13 @@ function OrderCRUD() {
 
     {
       width: "10%",
-      title: "Nhân viên",
+      title: "Xác nhận bởi",
       dataIndex: "employee",
       key: "employee",
-      render: (text, record) => {
+      render: (employee: Order["employee"] | undefined) => {
         return (
           <strong>
-            {record.employee?.firstName} {record.employee?.lastName}
+            {employee?.firstName} {employee?.lastName}
           </strong>
         );
       },
@@ -245,96 +255,10 @@ function OrderCRUD() {
         );
       },
     },
-
-    //Function
-    // {
-    //   title: "Function",
-    //   dataIndex: "function",
-    //   key: "function",
-    //   render: (text, record) => {
-    //     const id = record._id;
-    //     return (
-    //       <Space>
-    //         <Button
-    //           onClick={() => {
-    //             setSelectedOrder(record);
-    //             console.log("order:", record);
-    //           }}
-    //           shape="circle"
-    //           icon={<SearchOutlined />}
-    //         />
-    //         <Popconfirm
-    //           okText="Delete"
-    //           okType="danger"
-    //           onConfirm={() => cancelOrder(id)}
-    //           title={"Bạn chắc chắn sẽ hủy đơn hàng?"}
-    //         >
-    //           <Button
-    //             title="Cancel Order"
-    //             danger
-    //             icon={<RestOutlined />}
-    //           ></Button>
-    //         </Popconfirm>
-    //         {record.status === "WAITING" && (
-    //           <Popconfirm
-    //             okText="Confirm"
-    //             okType="danger"
-    //             title={"Are you sure to Confirm it?"}
-    //             onConfirm={() => confirmOrder(id)}
-    //           >
-    //             <Button
-    //               title="Confirm Order"
-    //               danger
-    //               icon={<SendOutlined />}
-    //             ></Button>
-    //           </Popconfirm>
-    //         )}
-    //       </Space>
-    //     );
-    //   },
-    //   fixed: "right",
-    // },
   ];
-
-  const formTitle = "orders";
 
   const setFormValues = useModalForm((s) => s.setFormValues);
   const setShowingForm = useModalForm((s) => s.setTitle);
-  const crudJSX = (
-    <CRUD
-      collectionName="orders"
-      columns={columns}
-      searchParams={searchParams}
-      setSearchParams={setSearchParams}
-      dataSource={ordersData?.results || []}
-      totalAmount={ordersData?.amountResults || 0}
-      loading={isLoading || isFetching}
-      // FormFn={OrderDetailModal}
-      form={{
-        customComponent: OrderDetailModal,
-      }}
-      functionColumn={{
-        edit: (record) => {
-          return (
-            <Button
-              icon={<EditOutlined />}
-              title="Update"
-              type="dashed"
-              onClick={() => {
-                setFormValues({
-                  selectedOrder: record,
-                  functions: { setAddProducts: setIsAddingProducts, refetch },
-                });
-                setShowingForm(formTitle);
-                setSelectedOrder(record);
-              }}
-            />
-          );
-        },
-      }}
-      fetchError={error}
-    />
-  );
 
   // KEEP UPDATE ID:
   // useEffect(() => {
@@ -348,378 +272,469 @@ function OrderCRUD() {
   // return null;
   return (
     <>
-      {crudJSX}
+      {contextHolder}
+      <CRUD
+        collectionName="orders"
+        columns={columns}
+        searchParams={searchParams}
+        setSearchParams={setSearchParams}
+        dataSource={ordersData?.results || []}
+        totalAmount={ordersData?.amountResults || 0}
+        loading={isLoading || isFetching}
+        form={{
+          customComponent: OrderDetailModal,
+        }}
+        functionColumn={{
+          edit: (record) => {
+            return (
+              <Button
+                icon={<EyeOutlined />}
+                title="Xem"
+                type="dashed"
+                onClick={() => {
+                  setFormValues({
+                    selectedOrder: record,
+                    functions: {
+                      setIsSelectingProducts,
+                      refetch,
+                    },
+                  });
+                  setShowingForm("orders");
+                  setSelectedOrder(record);
+                }}
+              />
+            );
+          },
+          extraFunctions: [
+            (order) =>
+              order.status === "WAITING" && (
+                <Button
+                  icon={<CheckOutlined />}
+                  onClick={() => {
+                    messageApi.open({
+                      key: "confirmOrder",
+                      type: "loading",
+                      content: "Đang xác nhận đơn hàng",
+                    });
+                    axiosClientJson
+                      .patch(`/orders/${order._id}`, { status: "ECONFIRMED" })
+                      .then(() => {
+                        messageApi.open({
+                          key: "confirmOrder",
+                          type: "success",
+                          content: "Đã xác nhận đơn hàng",
+                          duration: 1,
+                        });
+                      })
+                      .catch((reason) => {
+                        devLog(reason);
+                        messageApi.open({
+                          key: "confirmOrder",
+                          type: "error",
+                          content: "Xác nhận đơn hàng bị lỗi",
+                          duration: 1,
+                        });
+                      })
+                      .finally(() => {
+                        refetch();
+                      });
+                  }}></Button>
+              ),
+          ],
+        }}
+        fetchError={error}
+      />
       <ProductDrawer
-        addProducts={isAddingProducts}
-        setAddProducts={setIsAddingProducts}
+        isSelectingProducts={isSelectingProducts}
+        setIsSelectingProducts={setIsSelectingProducts}
         selectedOrder={selectedOrder}
         refetch={refetch}
       />
     </>
   );
-}
+};
 
 export default OrderCRUD;
 
 type OrderFormValues = {
   selectedOrder?: WithId<Order>;
   functions: {
-    setAddProducts: (b: boolean) => void;
+    setIsSelectingProducts: (b: boolean) => void;
     refetch?: () => void;
   };
 };
 
 function OrderDetailModal() {
   // props: Omit<FormProps, "submitFn" | "title" | "formControls" | "formValues">
-  const {
-    title: showing,
-    setTitle: setShowing,
-    formValues,
-  } = useModalForm((s) => s);
-  const [statusDisabled, setStatusDisabled] = useState<boolean>(true);
-  const [shippingAddressDisabled, setShippingAddressDisabled] =
-    useState<boolean>(true);
+  const [messageApi, contextHolder] = message.useMessage();
+  const { title, setTitle, formValues } = useModalForm((s) => s);
   const { selectedOrder, functions } = (formValues ?? {}) as OrderFormValues;
-  const { setAddProducts, refetch } = functions ?? {};
-  const { updateStatus } = useConfirmOrder({ refetch: refetch }) ?? {};
+  const changes = useRef<{ shippingAddress?: string; status?: string }>({});
+  const [localOrder, setLocalOrder] = useState<
+    | {
+        shippingAddress?: string;
+        status?: string;
+      }
+    | undefined
+  >(undefined);
 
-  if (!selectedOrder || !functions || !updateStatus) {
+  if (!selectedOrder || !functions) {
     return null;
   }
 
-  const { _id, status, customer, employee, orderDetails } = selectedOrder;
-
-  async function removeProduct(productId: string) {
-    try {
-      await axiosClientJson.patch(`/orders/${_id}`, {
-        orderDetails: orderDetails.filter(
-          (line) => line.product._id !== productId
-        ),
-      });
-    } catch {
-      const msg = "Remove product failed";
-      console.error(msg);
-      message.error(msg, 1);
-    }
-  }
-
-  // async function changeQuantity(product: WithId<Product>, amount: number) {
-  //   const newOrderDetails = _.clone(orderDetails);
-  //   const itemId = product._id;
-  //   const foundIndex = orderDetails.findIndex(
-  //     (elem) => elem.product._id === itemId
-  //   );
-  //   if (foundIndex < 0) {
-  //     if (amount <= 0) return;
-  //     newOrderDetails.push({
-  //       quantity: amount,
-  //       product: product,
-  //     });
-  //   } else {
-  //     const found = orderDetails[foundIndex];
-  //     const newQuantity = found.quantity + amount;
-  //     if (newQuantity < 1) {
-  //       newOrderDetails.splice(foundIndex, 1);
-  //     } else {
-  //       found.quantity = newQuantity;
-  //     }
-  //   }
-  //   if (!selectedOrder) return;
-  //   await axiosClientJson.patch("orders/" + selectedOrder._id, {
-  //     orderDetails: newOrderDetails,
-  //   });
-  //   refetch?.();
-  //   message.success("Thay đổi số lượng sản phẩm thành công", 1.5);
-  // }
-
-  // async function incQty(item: WithId<Product>) {
-  //   await changeQuantity(item, 1);
-  // }
-
-  // async function decQty(item: WithId<Product>) {
-  //   await changeQuantity(item, -1);
-  // }
-
-  const productColumns: ColumnsType<OrderLine> = [
-    {
-      title: "Số lượng",
-      dataIndex: "quantity",
-      key: "quantity",
-      render: (num: number, record) => (
-        <div className="d-flex justify-content-center">
-          <button
-            type="button"
-            className="btn btn-outline-primary"
-            onClick={async () => {
-              const foundIndex = orderDetails.findIndex(
-                (x) => x.product._id === record.product._id
-              );
-              const newOrderDetails = _.clone(orderDetails);
-              if (foundIndex >= 0) {
-                newOrderDetails[foundIndex].quantity += 1;
-              } else {
-                newOrderDetails.push({
-                  // productId: record.product._id,
-                  quantity: 1,
-                  product: record.product,
-                });
-              }
-
-              await axiosClientJson.patch("orders/" + selectedOrder._id, {
-                orderDetails: newOrderDetails,
-              });
-              // refetch?.();
-              message.success("Plus a product sucessfully!!", 1.5);
-            }}
-          >
-            +
-          </button>
-          <div className="border px-4 py-2 text-center align-self-center justify-content-center ">
-            {num}
-          </div>
-
-          <button
-            type="button"
-            className="btn btn-outline-danger"
-            onClick={async () => {
-              const newOrderDetails = _.clone(orderDetails);
-              const foundIndex = orderDetails.findIndex(
-                (x) => x.product._id === record.product._id
-              );
-              if (foundIndex < 0) return;
-              const found = orderDetails[foundIndex];
-              if (found.quantity === 1) {
-                newOrderDetails.splice(foundIndex, 1);
-              } else {
-                newOrderDetails[foundIndex].quantity -= 1;
-              }
-              await axiosClientJson.patch("orders/" + selectedOrder._id, {
-                orderDetails: newOrderDetails,
-              });
-              refetch?.();
-              message.success("Minus a product sucessfully!!", 1.5);
-            }}
-          >
-            -
-          </button>
-        </div>
-      ),
-    },
-    {
-      title: "Tên sản phẩm",
-      dataIndex: "product.name",
-      key: "product.name",
-      render: (text, record) => {
-        return <strong>{record?.product?.name}</strong>;
-      },
-    },
-    {
-      title: "Giá",
-      dataIndex: "product.price",
-      key: "product.price",
-      render: (text, record) => {
-        return (
-          <div style={{ textAlign: "right" }}>
-            {numeral(record?.product?.price).format("0,0$")}
-          </div>
-        );
-      },
-    },
-    {
-      title: "Giảm giá",
-      dataIndex: "product.discount",
-      key: "product.discount",
-      render: (text, record) => {
-        return (
-          <div style={{ textAlign: "right" }}>
-            {numeral(record?.product?.discount).format("0,0")}%
-          </div>
-        );
-      },
-    },
-    {
-      title: "",
-      key: "actions",
-      render: (text, record) => {
-        return (
-          <>
-            <div>
-              <Button
-                danger
-                type="dashed"
-                onClick={() => removeProduct(record.product._id)}
-              >
-                Delete
-              </Button>
-            </div>
-          </>
-        );
-      },
-    },
-  ];
+  const { _id, status, customer, employee, orderDetails, shippingAddress } =
+    selectedOrder;
 
   return (
-    <Modal
-      width={"100%"}
-      onCancel={() => {
-        setShowing(null);
-      }}
-      onOk={() => {
-        setShowing(null);
-      }}
-      okType="dashed"
-      open={showing === "orders"}
-    >
-      <Card title="Order Detail">
-        <Descriptions bordered column={1}>
-          <Descriptions.Item label="Status">
-            <Space>
-              <Select
-                disabled={statusDisabled}
-                allowClear
-                showSearch
-                value={status}
-                style={{ width: "100%" }}
-                optionFilterProp="children"
-                onChange={async (e) => {
-                  message.loading("Changing status !!", 1.5);
-                  updateStatus(_id, e);
-                }}
-                filterOption={(input, option) =>
-                  (option?.label ?? "")
-                    .toLowerCase()
-                    .indexOf(input.toLowerCase()) >= 0
-                }
-                options={[
-                  { label: "WAITING", value: "WAITING" },
-                  { label: "ECONFIRMED", value: "ECONFIRMED" },
-                  { label: "COMPLETED", value: "COMPLETED" },
-                  { label: "CANCELED", value: "CANCELED" },
-                ]}
-              />
-
-              <Button
-                danger={!statusDisabled}
-                type="dashed"
-                icon={<EditOutlined />}
-                onClick={() => {
-                  setStatusDisabled(!statusDisabled);
-                }}
-              />
-            </Space>
-          </Descriptions.Item>
-          <Descriptions.Item label="Customer">
-            <Space>
-              <Input
-                disabled={true}
-                placeholder={`${customer?.firstName} ${customer?.lastName}`}
-              />
-            </Space>
-          </Descriptions.Item>
-          <Descriptions.Item label="Employee">
-            <Space>
-              {employee ? (
+    <div>
+      {contextHolder}
+      <Modal
+        width={"100%"}
+        onCancel={() => {
+          setTitle(null);
+          setLocalOrder(undefined);
+          changes.current = {};
+        }}
+        onOk={() => {
+          setTitle(null);
+          setLocalOrder(undefined);
+          if (_.isEmpty(changes.current)) {
+            return;
+          }
+          axiosClientJson
+            .patch(`/orders/${_id}`, changes.current)
+            .then((res) => {
+              if (res.data) {
+                messageApi.open({
+                  key: "updateOrder",
+                  type: "success",
+                  content: "Đã cập nhật thông tin đơn hàng",
+                  duration: 1,
+                });
+                functions?.refetch?.();
+              }
+            })
+            .catch((error) => {
+              messageApi.open({
+                key: "updateOrder",
+                type: "error",
+                content: "Cập nhật thông tin đơn hàng thất bại",
+                duration: 1,
+              });
+              devLog(error);
+            })
+            .finally(() => {
+              changes.current = {};
+            });
+        }}
+        okType="dashed"
+        open={title === "orders"}
+        okText="OK"
+        cancelText="Hủy">
+        <Card title="Chi tiết đơn hàng">
+          <Descriptions bordered column={1}>
+            <Descriptions.Item label="Trạng thái đơn hàng">
+              <Space>
+                <Select
+                  allowClear
+                  showSearch
+                  value={localOrder ? localOrder.status : status}
+                  style={{ width: "100%" }}
+                  optionFilterProp="children"
+                  onChange={async (newStatus) => {
+                    if (newStatus !== status) {
+                      changes.current.status = newStatus;
+                    } else {
+                      delete changes.current.status;
+                    }
+                    setLocalOrder((prev) => {
+                      if (!prev) return { ...selectedOrder, status: newStatus };
+                      return { ...prev, status: newStatus };
+                    });
+                  }}
+                  filterOption={(input, option) =>
+                    (option?.label ?? "")
+                      .toLowerCase()
+                      .indexOf(input.toLowerCase()) >= 0
+                  }
+                  options={[
+                    { label: "WAITING", value: "WAITING" },
+                    { label: "ECONFIRMED", value: "ECONFIRMED" },
+                    { label: "COMPLETED", value: "COMPLETED" },
+                    { label: "CANCELED", value: "CANCELED" },
+                  ]}
+                />
+              </Space>
+            </Descriptions.Item>
+            <Descriptions.Item label="Khách hàng">
+              <Space>
                 <Input
                   disabled={true}
-                  placeholder={`${employee?.firstName} ${employee?.lastName}`}
+                  placeholder={
+                    customer?.firstName && customer?.lastName
+                      ? `${customer?.firstName} ${customer?.lastName}`
+                      : ``
+                  }
                 />
-              ) : (
-                "Not confirm yet"
-              )}
-            </Space>
-          </Descriptions.Item>
-          <Descriptions.Item label="Shipping address">
-            <Row gutter={10} className="py-2">
-              <Col span={20}>
-                <Input.Search
-                  disabled={shippingAddressDisabled}
-                  enterButton={<SendOutlined />}
-                  placeholder={selectedOrder?.shippingAddress}
-                  style={{ width: "100%" }}
-                  onSearch={async (e) => {
-                    message.loading("Changing Shipping Address !!", 1.5);
-                    const req = await axiosClientJson.patch(`/orders/${_id}`, {
-                      shippingAddress: e,
-                    });
-                    if (req.data) {
-                      message.success(
-                        `Change Shipping address to ${req.data.status} successfully!!`,
-                        1.5
-                      );
-                      // setRefresh((f) => f + 1);
-                      refetch?.();
-                      setShippingAddressDisabled(!shippingAddressDisabled);
+              </Space>
+            </Descriptions.Item>
+            <Descriptions.Item label="Ngày đặt hàng">
+              <Space>
+                {capitalizeFirstLetter(
+                  new Date(selectedOrder.createdDate).toLocaleString("vi-VN", {
+                    dateStyle: "full",
+                    timeStyle: "full",
+                  })
+                )}
+              </Space>
+            </Descriptions.Item>
+            <Descriptions.Item label="Nhân viên xác nhận">
+              <Space>
+                {employee ? (
+                  <Input
+                    disabled={true}
+                    placeholder={`${employee?.firstName} ${employee?.lastName}`}
+                  />
+                ) : (
+                  "Chưa xác nhận"
+                )}
+              </Space>
+            </Descriptions.Item>
+            <Descriptions.Item label="Địa chỉ giao hàng">
+              <Row gutter={10} className="py-2">
+                <Col span={20}>
+                  <Input
+                    value={
+                      localOrder ? localOrder.shippingAddress : shippingAddress
                     }
-                  }}
-                />
-              </Col>
+                    style={{ width: "100%" }}
+                    onChange={async (e) => {
+                      const newAddress = e.target.value;
+                      if (newAddress !== shippingAddress) {
+                        changes.current.shippingAddress = newAddress;
+                      } else {
+                        delete changes.current.shippingAddress;
+                      }
+                      setLocalOrder((prev) => {
+                        if (!prev)
+                          return {
+                            ...selectedOrder,
+                            shippingAddress: newAddress,
+                          };
+                        return { ...prev, shippingAddress: newAddress };
+                      });
+                      return;
+                    }}
+                  />
+                </Col>
+              </Row>
+            </Descriptions.Item>
+          </Descriptions>
 
-              <Col span={4}>
-                <Button
-                  danger={!shippingAddressDisabled}
-                  type="dashed"
-                  icon={<EditOutlined />}
-                  onClick={() => {
-                    setShippingAddressDisabled(!shippingAddressDisabled);
-                  }}
-                />
-              </Col>
-            </Row>
-          </Descriptions.Item>
-        </Descriptions>
+          <Divider />
 
-        <Divider />
+          {/* Table include product of orderDetails */}
+          <Table<OrderLine>
+            bordered
+            scroll={{ x: 200 }}
+            rowKey="_id"
+            dataSource={orderDetails}
+            columns={[
+              {
+                title: "Số lượng",
+                dataIndex: "quantity",
+                key: "quantity",
+                render: (
+                  quantity: number,
+                  orderLine: OrderLine,
+                  index: number
+                ) => (
+                  <div className="d-flex justify-content-center">
+                    <button
+                      type="button"
+                      className="btn btn-outline-primary"
+                      disabled={["COMPLETED", "CANCELED"].includes(
+                        status.toUpperCase()
+                      )}
+                      onClick={async () => {
+                        try {
+                          const newOrderDetails = _.clone(orderDetails);
+                          newOrderDetails[index].quantity++;
+                          await axiosClientJson.patch(
+                            "orders/" + selectedOrder._id,
+                            {
+                              orderDetails: newOrderDetails,
+                            }
+                          );
+                          functions?.refetch?.();
+                          messageApi.open({
+                            key: "updateOrder",
+                            type: "success",
+                            content: "Đã cập nhật số lượng sản phẩm",
+                            duration: 1,
+                          });
+                        } catch {
+                          messageApi.open({
+                            key: "updateOrder",
+                            type: "error",
+                            content: "Cập nhật số lượng sản phẩm thất bại",
+                            duration: 1,
+                          });
+                        }
+                      }}>
+                      +
+                    </button>
+                    <div className="border px-4 py-2 text-center align-self-center justify-content-center ">
+                      {quantity}
+                    </div>
 
-        {/* Table include product of orderDetails */}
-        <Table
-          bordered
-          scroll={{ x: 200 }}
-          rowKey="_id"
-          dataSource={orderDetails}
-          columns={productColumns}
-        />
+                    <button
+                      type="button"
+                      className="btn btn-outline-danger"
+                      disabled={["COMPLETED", "CANCELED"].includes(
+                        status.toUpperCase()
+                      )}
+                      onClick={async () => {
+                        try {
+                          const newOrderDetails = _.clone(orderDetails);
+                          if (quantity === 1) {
+                            messageApi.open({
+                              key: "updateOrder",
+                              type: "error",
+                              content:
+                                "Số lượng sản phẩm không thể nhỏ hơn 1, nếu muốn xóa sản phẩm vui lòng sử dụng chức năng xóa",
+                              duration: 2,
+                            });
+                            return;
+                          } else {
+                            newOrderDetails[index].quantity--;
+                          }
+                          await axiosClientJson.patch(
+                            "orders/" + selectedOrder._id,
+                            {
+                              orderDetails: newOrderDetails,
+                            }
+                          );
+                          functions?.refetch?.();
+                          messageApi.open({
+                            key: "updateOrder",
+                            type: "success",
+                            content: "Đã cập nhật số lượng sản phẩm",
+                            duration: 1,
+                          });
+                        } catch {
+                          messageApi.open({
+                            key: "updateOrder",
+                            type: "error",
+                            content: "Cập nhật số lượng sản phẩm thất bại",
+                            duration: 1,
+                          });
+                        }
+                      }}>
+                      -
+                    </button>
+                  </div>
+                ),
+              },
+              {
+                title: "Tên sản phẩm",
+                dataIndex: "product.name",
+                key: "product.name",
+                render: (text, record) => {
+                  return <strong>{record?.product?.name}</strong>;
+                },
+              },
+              {
+                title: "Giá",
+                dataIndex: "product.price",
+                key: "product.price",
+                render: (text, record) => {
+                  return (
+                    <div style={{ textAlign: "right" }}>
+                      {numeral(record?.product?.price).format("0,0$")}
+                    </div>
+                  );
+                },
+              },
+              {
+                title: "Giảm giá",
+                dataIndex: "product.discount",
+                key: "product.discount",
+                render: (text, record) => {
+                  return (
+                    <div style={{ textAlign: "right" }}>
+                      {numeral(record?.product?.discount).format("0,0")}%
+                    </div>
+                  );
+                },
+              },
+              {
+                title: "",
+                key: "actions",
+                render: (text, record) => {
+                  return (
+                    <>
+                      <div>
+                        <Button
+                          danger
+                          type="dashed"
+                          onClick={async () => {
+                            try {
+                              const productId = record.product._id;
+                              if (selectedOrder.orderDetails.length === 1) {
+                                messageApi.open({
+                                  key: "updateOrder",
+                                  type: "error",
+                                  content:
+                                    "Đơn hàng phải có ít nhất 1 sản phẩm, nếu muốn xóa sản phẩm vui lòng hủy đơn hàng",
+                                  duration: 2,
+                                });
+                                return;
+                              }
+                              await axiosClientJson.patch(`/orders/${_id}`, {
+                                orderDetails: orderDetails.filter(
+                                  (line) => line.product._id !== productId
+                                ),
+                              });
+                              messageApi.open({
+                                key: "updateOrder",
+                                type: "success",
+                                content: "Đã xóa sản phẩm khỏi đơn hàng",
+                                duration: 1,
+                              });
+                              functions?.refetch?.();
+                            } catch {
+                              const msg = "Xóa sản phẩm khỏi đơn hàng thất bại";
+                              messageApi.open({
+                                key: "updateOrder",
+                                type: "error",
+                                content: msg,
+                                duration: 1,
+                              });
+                            }
+                          }}
+                          disabled={["COMPLETED", "CANCELED"].includes(
+                            status.toUpperCase()
+                          )}>
+                          Xóa
+                        </Button>
+                      </div>
+                    </>
+                  );
+                },
+              },
+            ]}
+          />
 
-        <Button
-          onClick={() => {
-            setAddProducts(true);
-          }}
-        >
-          Thêm sản phẩm
-        </Button>
-      </Card>
-    </Modal>
+          <Button
+            onClick={() => {
+              functions?.setIsSelectingProducts?.(true);
+            }}
+            disabled={["COMPLETED", "CANCELED"].includes(status.toUpperCase())}>
+            Thêm sản phẩm
+          </Button>
+        </Card>
+      </Modal>
+    </div>
   );
 }
-
-const useConfirmOrder = ({ refetch }: { refetch?: () => void }) => {
-  const auth = useAuthStore((s) => s.auth);
-  if (!auth?.user) {
-    return;
-  }
-  const cancelOrder = async (id: string) => {
-    return updateStatus(id, "CANCELED");
-  };
-
-  const confirmOrder = async (id: string) => {
-    return updateStatus(id, "ECONFIRMED");
-  };
-
-  const updateStatus = async (id: string, status: string) => {
-    const response = await axiosClientJson.patch(`/orders/${id}`, {
-      status: status.toUpperCase(),
-      employeeId: auth?.user?._id,
-    });
-    if (response?.data?._id) {
-      message.success(`change order'S status successfully`);
-      refetch?.();
-    } else {
-      message.error(`SYSTEM ERROR !!!`);
-    }
-  };
-
-  return {
-    confirm: confirmOrder,
-    cancel: cancelOrder,
-    updateStatus: updateStatus,
-  };
-};

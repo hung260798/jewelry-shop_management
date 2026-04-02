@@ -1,4 +1,5 @@
-import FileUploadBox, { useFileUploadBox } from "@/components/Modals/UploadBox";
+import { useModalForm } from "@/components/Forms/ModalForm/useModalForm";
+import FileUploadBox from "@/components/Modals/UploadBox";
 import { axiosClientJson } from "@/libraries/axiosClient";
 import {
   ClearOutlined,
@@ -10,24 +11,20 @@ import {
   QuestionCircleOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
-import { WithId } from "utils/types/Entities";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button, Flex, Grid, message, Popconfirm, Table } from "antd";
 import { ColumnsType, ColumnType, TableProps } from "antd/es/table";
-import { FormOfCollection, useModalForm } from "@/components/Forms/ModalForm";
-import React, { memo, ReactNode, useEffect, useState } from "react";
+import React, { ReactNode, useEffect, useState } from "react";
 import { SetURLSearchParams } from "react-router-dom";
+import { GetOne, WithId } from "utils/types/Entities";
 import { FileField, FormControl, FormProps } from "utils/types/Form";
+import { ModalForm } from "@/components/Forms/ModalForm";
 import cssStyles from "./crud.module.css";
 // import ErrorPage from "@/components/fallbacks/Error";
-import { devLog } from "@/utils/logger";
-
-const MemoForm = memo(FormOfCollection, (oldProps, newProps) => {
-  return (
-    oldProps.collectionName === newProps.collectionName &&
-    oldProps.title === newProps.title
-  );
-});
+import useFileUploadBox, {
+  IdAndName,
+} from "@/components/Modals/UploadBox/useFileUploadBox";
+import { devLog, getErrorMessage } from "@/utils/logger";
 
 export type CRUDFunctions = {
   handleDelete?: (record: {
@@ -45,6 +42,7 @@ export interface CRUDProps<T> {
   functions?: CRUDFunctions;
   dataChangeButtons?: JSX.Element[];
   fileFields?: FileField[];
+  uploadModalTitle?: string | ((record: T) => string);
   searchParams?: URLSearchParams;
   setSearchParams?: SetURLSearchParams;
   totalAmount?: number;
@@ -52,15 +50,16 @@ export interface CRUDProps<T> {
   form?: {
     controls?: FormControl[];
     title?: string;
-    submitFn?: (values: unknown) => void;
+    submitFn?: (values: unknown) => Promise<void>;
     customComponent?: React.FC<
       Omit<FormProps, "submitFn" | "formControls" | "title" | "formValues">
     >;
   };
   convertToFormValues?: (record: T) => unknown;
   functionColumn?: {
-    edit?: (record: T) => JSX.Element;
-    extraFunctions?: ((record: T) => JSX.Element)[];
+    edit?: (record: T) => ReactNode;
+    extraFunctions?: ((record: T) => ReactNode)[];
+    override?: (record: T) => ReactNode;
   };
   loading?: boolean;
   layout?: (...parts: ReactNode[]) => JSX.Element;
@@ -77,17 +76,28 @@ export const PERPAGE_SIZE = 10;
 export default function CRUD<DataType extends WithId<object>>(
   props: CRUDProps<DataType>
 ) {
+  const [messageApi, contextHolder] = message.useMessage();
+  const screens = Grid.useBreakpoint();
+  const queryClient = useQueryClient();
+
+  const setShowingForm = useModalForm((s) => s.setTitle);
+  const setFormValues = useModalForm((s) => s.setFormValues);
+  const setFieldsChange = useModalForm((s) => s.setFieldsChange);
+  const setUploaderPayload = useFileUploadBox((s) => s.setPayload);
+  const setUploaderQueryKey = useFileUploadBox((s) => s.setQueryKey);
+  const setOpenUploadBox = useFileUploadBox((s) => s.setOpen);
+
   async function defaultHandleDelete({ _id }: { _id: string }) {
     if (collectionName) {
       try {
         await axiosClientJson.delete(`/${collectionName}/${_id}`);
-        message.success("Delete success", 1);
+        messageApi.success("Delete success", 1);
         queryClient.invalidateQueries({
           queryKey: [`get_${collectionName}`],
         });
       } catch (error) {
         const errorName = error instanceof Error ? error.name : "Unknown error";
-        message.error(`Delete fail: ${errorName}`, 1);
+        messageApi.error(`Delete fail: ${errorName}`, 1);
       }
     }
   }
@@ -100,8 +110,6 @@ export default function CRUD<DataType extends WithId<object>>(
       // await refetch();
     }
   }
-
-  const screens = Grid.useBreakpoint();
 
   const {
     columns,
@@ -155,9 +163,6 @@ export default function CRUD<DataType extends WithId<object>>(
     sorter
   ) => {
     if (!searchParams || !setSearchParams) return;
-    devLog("handleTableChange:");
-    devLog("pagination", pagination);
-    devLog("sorter", sorter);
     const params = new URLSearchParams(searchParams);
     const { current, pageSize } = pagination;
     if (
@@ -189,7 +194,8 @@ export default function CRUD<DataType extends WithId<object>>(
     key: "functionCol",
     title: "Thao tác",
     width: "9rem",
-    render: (value, record) => {
+    dataIndex: "_id",
+    render: (_id, record) => {
       return (
         <Flex gap={4} wrap>
           {props.functionColumn?.edit ? (
@@ -200,8 +206,31 @@ export default function CRUD<DataType extends WithId<object>>(
               title="Update"
               type="dashed"
               onClick={() => {
-                setFormValues(convertToFormValues(record));
-                setShowingForm(form?.title ?? null);
+                messageApi.open({
+                  key: "open-detail",
+                  content: "Đang tải dữ liệu",
+                  type: "loading",
+                });
+                axiosClientJson
+                  .get<GetOne<DataType>>(`${collectionName}/${_id}`)
+                  .then((response) => {
+                    setFormValues(convertToFormValues(response.data.result));
+                    setShowingForm(form?.title ?? null);
+                    setFieldsChange(false);
+                    messageApi.destroy("open-detail");
+                  })
+                  .catch((error) => {
+                    messageApi.open({
+                      key: "open-detail",
+                      content: "Không thể tải dữ liệu",
+                      type: "error",
+                      duration: 1,
+                    });
+                    devLog(error);
+                  });
+                // setFormValues(convertToFormValues(record));
+                // setShowingForm(form?.title ?? null);
+                // setFieldsChange(false);
               }}
             />
           )}
@@ -211,21 +240,29 @@ export default function CRUD<DataType extends WithId<object>>(
             onConfirm={() => {
               handleDelete(record);
             }}
-            cancelText="Hủy"
-          >
-            <Button title="delete" danger icon={<DeleteOutlined />} />
+            cancelText="Hủy">
+            <Button
+              title="Xóa"
+              type="dashed"
+              danger
+              icon={<DeleteOutlined />}
+            />
           </Popconfirm>
           {fileFields && collectionName && (
             <Button
               icon={<UploadOutlined />}
-              title="Upload"
+              title="Tải tệp lên"
               onClick={function () {
                 setUploaderPayload({
                   collection: collectionName,
                   id: record._id,
-                  item: record as any,
+                  item: record as unknown as IdAndName,
                 });
-                setUploaderQueryKey?.(searchParams?.entries()?.toArray());
+                const qk: string[][] = [];
+                for (const pair of searchParams?.entries() ?? []) {
+                  qk.push(pair);
+                }
+                setUploaderQueryKey?.(qk);
                 setOpenUploadBox(true);
               }}
             />
@@ -245,8 +282,7 @@ export default function CRUD<DataType extends WithId<object>>(
               clearParams();
             }}
             icon={<ClearOutlined />}
-            type="text"
-          >
+            type="text">
             Xóa bộ lọc
           </Button>
           {/* Add */}
@@ -258,8 +294,7 @@ export default function CRUD<DataType extends WithId<object>>(
               setFormValues(undefined);
             }}
             icon={<PlusCircleOutlined />}
-            type="text"
-          >
+            type="text">
             Thêm
           </Button>
           {hasSelected && (
@@ -267,15 +302,13 @@ export default function CRUD<DataType extends WithId<object>>(
               title="Xac nhan"
               description="Xoa cac phan tu da chon?"
               icon={<QuestionCircleOutlined style={{ color: "red" }} />}
-              onConfirm={() => deleteSelectedRows()}
-            >
+              onConfirm={() => deleteSelectedRows()}>
               <Button
                 style={{ width: "150px", height: "40px" }}
                 title="delete"
                 type="text"
                 danger
-                icon={<DeleteOutlined />}
-              >
+                icon={<DeleteOutlined />}>
                 Xoa da chon
               </Button>
             </Popconfirm>
@@ -285,8 +318,6 @@ export default function CRUD<DataType extends WithId<object>>(
     },
     fixed: window.innerWidth > 768 ? "right" : undefined,
   };
-
-  const queryClient = useQueryClient();
 
   async function deleteSelectedRows() {
     try {
@@ -308,28 +339,23 @@ export default function CRUD<DataType extends WithId<object>>(
         }
       });
       if (failureCount) {
-        message.warning(
+        messageApi.warning(
           `${failureCount} delete failed, ${
             selectedRowKeys.length - failureCount
           } success`
         );
       } else {
-        message.success(`All delete success`);
+        messageApi.success(`All delete success`);
       }
       if (successCount) {
         queryClient.invalidateQueries({ queryKey: [`get_${collectionName}`] });
       }
     } catch (error) {
-      message.error((error as Error).message);
+      messageApi.error((error as Error).message);
     }
   }
 
   const cols = [...columns, functionColumn];
-  const setShowingForm = useModalForm((s) => s.setTitle);
-  const setFormValues = useModalForm((s) => s.setFormValues);
-  const setUploaderPayload = useFileUploadBox((s) => s.setPayload);
-  const setUploaderQueryKey = useFileUploadBox((s) => s.setQueryKey);
-  const setOpenUploadBox = useFileUploadBox((s) => s.setOpen);
 
   let formJSX: ReactNode = null;
   if (form?.customComponent) {
@@ -338,7 +364,7 @@ export default function CRUD<DataType extends WithId<object>>(
   } else if (form) {
     const { controls = [], title = collectionName, submitFn } = form;
     formJSX = (
-      <MemoForm
+      <ModalForm
         formControls={controls}
         submitFn={submitFn}
         title={title}
@@ -349,16 +375,21 @@ export default function CRUD<DataType extends WithId<object>>(
     );
   }
 
-  const isFiltering = searchParams?.entries().find((pair) => {
-    const [key] = pair;
-    return !["skip", "limit"].includes(key);
-  });
+  let isFiltering = false;
+  if (searchParams) {
+    for (const key of searchParams.keys()) {
+      if (!["skip", "limit", "sortBy", "sortOrder"].includes(key)) {
+        isFiltering = true;
+        break;
+      }
+    }
+  }
+
   const clearParamBtn = (
     <Button
       onClick={() => defaultClearParams()}
       disabled={!isFiltering}
-      icon={<FilterOutlined />}
-    >
+      icon={<FilterOutlined />}>
       Xóa bộ lọc
     </Button>
   );
@@ -370,9 +401,9 @@ export default function CRUD<DataType extends WithId<object>>(
         onClick={() => {
           setShowingForm(form?.title ?? null);
           setFormValues(undefined);
+          setFieldsChange(false);
         }}
-        icon={<PlusOutlined />}
-      >
+        icon={<PlusOutlined />}>
         Thêm
       </Button>
       {clearParamBtn}
@@ -396,11 +427,7 @@ export default function CRUD<DataType extends WithId<object>>(
 
   useEffect(() => {
     if (fetchError) {
-      if (fetchError instanceof Error) {
-        message.error(fetchError.message, 1);
-      } else {
-        message.error("Lỗi khi truy cập danh sách", 1);
-      }
+      messageApi.error(getErrorMessage(fetchError));
       devLog(fetchError);
     }
   }, [fetchError]);
@@ -410,8 +437,8 @@ export default function CRUD<DataType extends WithId<object>>(
   const finalDataSource = fetchError
     ? cachedData.dataSource || []
     : tableLoading
-    ? cachedData.dataSource
-    : dataSource;
+      ? cachedData.dataSource
+      : dataSource;
 
   const tableJSX = (
     <Table<DataType>
@@ -423,10 +450,14 @@ export default function CRUD<DataType extends WithId<object>>(
         pageSize: PERPAGE_SIZE,
         total: tableLoading ? cachedData.totalAmount : totalAmount,
         current: currentPage,
+        size: "default",
       }}
       onChange={handleTableChange}
       scroll={{ x: "max-content" }}
-      loading={tableLoading}
+      loading={{
+        spinning: tableLoading,
+        size: "large",
+      }}
       rowSelection={{ ...rowSelection }}
       className={`${cssStyles["custom-header-table"]} shadow-2xl`}
       size={screens.xl ? "middle" : "small"}
@@ -434,7 +465,16 @@ export default function CRUD<DataType extends WithId<object>>(
   );
 
   const fileUploadJSX = fileFields && collectionName && (
-    <FileUploadBox fields={fileFields} uploadTo="/upload/gcs-upload" />
+    <FileUploadBox
+      fields={fileFields}
+      uploadTo="/upload/gcs-upload"
+      modalTitle={
+        props.uploadModalTitle as
+          | string
+          | ((record: unknown) => string)
+          | undefined
+      }
+    />
   );
 
   const selectOperationsJSX = (
@@ -443,8 +483,7 @@ export default function CRUD<DataType extends WithId<object>>(
       description="Bạn muốn xóa các bản ghi đã chọn?"
       onConfirm={() => deleteSelectedRows()}
       cancelText="Hủy"
-      okText="Xóa"
-    >
+      okText="Xóa">
       <Button danger disabled={!hasSelected} icon={<DeleteOutlined />}>
         Xóa
       </Button>
@@ -460,6 +499,7 @@ export default function CRUD<DataType extends WithId<object>>(
   ) => {
     return (
       <div>
+        {contextHolder}
         <Flex className="my-2 mx-4" gap={4} wrap>
           {addBtn}
           {dataChangeButtons}

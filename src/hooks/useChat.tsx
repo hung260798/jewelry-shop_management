@@ -23,7 +23,7 @@ export const useChat = create<SliceType>()(
             { type: "get/Conversation" }
           );
         } catch {
-          set({ auth: null }, false, { type: "auth/login-error" });
+          // set({ auth: null }, false, { type: "auth/login-error" });
           // throw new Error("Login failed");
           throw message.error("Account's not found", 1.5);
         }

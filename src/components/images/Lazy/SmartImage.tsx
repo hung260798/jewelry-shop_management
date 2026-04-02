@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, useCallback } from "react";
 import { Image, ImageProps } from "antd";
+import { useCallback, useEffect, useRef, useState } from "react";
 import cssStyles from "./style.module.css";
 
 interface SmartImageProps extends Omit<ImageProps, "sizes"> {
@@ -12,7 +12,7 @@ interface SmartImageProps extends Omit<ImageProps, "sizes"> {
 
 const SmartImage: React.FC<SmartImageProps> = ({
   src,
-  smallSizes = [],
+  smallSizes,
   alt,
   className,
   style,
@@ -24,6 +24,11 @@ const SmartImage: React.FC<SmartImageProps> = ({
   const [attemptIndex, setAttemptIndex] = useState<number>(0);
   const failedSet = useRef<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(false);
+  const [sortedSizes, setSortedSizes] = useState<[number, number][]>([]);
+
+  useEffect(() => {
+    setSortedSizes([...(smallSizes || [])].sort((a, b) => a[0] - b[0]));
+  }, [smallSizes]);
 
   useEffect(() => {
     const parent = containerRef.current?.parentElement;
@@ -47,31 +52,40 @@ const SmartImage: React.FC<SmartImageProps> = ({
   }, []);
 
   useEffect(() => {
-    if (!containerWidth || smallSizes.length === 0 || !src) {
-      setCurrentSrc("");
+    if (!containerWidth || sortedSizes.length === 0) {
+      setCurrentSrc(src);
       return;
     }
 
-    const sorted = [...smallSizes].sort((a, b) => a[0] - b[0]);
-    const chosen =
-      sorted.find(([w]) => w >= containerWidth) || sorted[sorted.length - 1];
+    const chosen = sortedSizes.find(([w]) => w >= containerWidth);
+
+    if (!chosen) {
+      setCurrentSrc(src);
+      return;
+    }
 
     const base = src.replace(/(\.[^.]+)$/i, "");
     const ext = src.match(/\.[^.]+$/i)?.[0] || "";
     const smallerUrl = `${base}_${chosen[0]}x${chosen[1]}${ext}`;
 
     setCurrentSrc(smallerUrl);
-    setAttemptIndex(sorted.findIndex((s) => s === chosen));
-  }, [containerWidth, smallSizes, src]);
+    setAttemptIndex(sortedSizes.findIndex((s) => s === chosen));
+  }, [containerWidth, sortedSizes, src]);
 
   const handleError = useCallback(() => {
-    const stop =
-      !smallSizes.length || failedSet.current.has(currentSrc) || !src;
-    if (stop) return;
+    if (
+      !smallSizes ||
+      !smallSizes.length ||
+      failedSet.current.has(currentSrc)
+    ) {
+      if (src) {
+        setCurrentSrc(src);
+      }
+      return;
+    }
 
     failedSet.current.add(currentSrc);
-    const sorted = [...smallSizes].sort((a, b) => a[0] - b[0]);
-    const nextSize = sorted[attemptIndex + 1];
+    const nextSize = sortedSizes[attemptIndex + 1];
 
     if (nextSize) {
       const base = src.replace(/(\.[^.]+)$/i, "");
@@ -80,7 +94,7 @@ const SmartImage: React.FC<SmartImageProps> = ({
       setCurrentSrc(nextUrl);
       setAttemptIndex(attemptIndex + 1);
     } else if (currentSrc !== src) {
-      setCurrentSrc("");
+      setCurrentSrc(src);
     }
   }, [smallSizes, attemptIndex, currentSrc, src]);
 
@@ -90,10 +104,14 @@ const SmartImage: React.FC<SmartImageProps> = ({
         loading="lazy"
         src={currentSrc}
         alt={alt}
-        preview={{ src: src, destroyOnHidden: true }}
+        preview={
+          currentSrc !== props.fallback
+            ? { src: src, destroyOnHidden: true, mask: "Xem" }
+            : false
+        }
         className={`${loaded ? cssStyles.fadeIn : cssStyles.hidden} ${
           cssStyles.fallbackTransition
-        } ${className} object-cover h-full w-auto`}
+        } ${className} object-cover h-full`}
         onError={handleError}
         onLoad={() => setLoaded(true)}
         {...props}

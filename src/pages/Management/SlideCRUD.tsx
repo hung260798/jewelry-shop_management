@@ -2,7 +2,7 @@ import useMyQuery from "@/hooks/useMyQuery";
 import CRUD from "@/templates/CRUD";
 import { Slide } from "@/utils/types/Entities";
 // import { LazyFadeImage } from "@repo/components/src/images";
-import LazyFadeImage from "@/components/images/Lazy/SmartImage";
+import SmartImage from "@/components/images/Lazy/SmartImage";
 import { appendDomain } from "@/utils/stringUtils";
 import { Input, InputNumber, Select, Space, Switch, Tag } from "antd";
 import Search from "antd/es/input/Search";
@@ -161,28 +161,27 @@ function SlidesCRUD() {
     //IMAGE
     {
       width: "350px",
-      title: "Picture",
+      title: "Ảnh",
       key: "imageUrl",
       dataIndex: "imageUrl",
-      render: (text, record) => {
-        const url = new URL(appendDomain(record.imageUrl, ASSET_URL));
-        const filename = url.pathname.split("/").pop() ?? "";
+      render: (imageUrl) => {
+        if (typeof imageUrl !== "string") return null;
+        const url = new URL(appendDomain(imageUrl, ASSET_URL));
+        const filename = url.pathname.split("/").pop() || "";
         const imgNameNoExt = filename.split(".")[0];
         const newImgNameNoExt = imgNameNoExt ? `${imgNameNoExt}_300x100` : "";
-        const newImgUrl = record.imageUrl.replace(
-          imgNameNoExt,
-          newImgNameNoExt
-        );
+        const newImgUrl = imageUrl.replace(imgNameNoExt, newImgNameNoExt);
         return (
           <div>
-            {record.imageUrl && (
-              <LazyFadeImage
+            {imageUrl && (
+              <SmartImage
                 src={appendDomain(newImgUrl, ASSET_URL)}
                 style={{ height: 100 }}
-                alt="record.imageUrl"
+                // smallSizes={[]}
+                // alt={imageUrl}
                 preview={{
                   destroyOnHidden: true,
-                  src: appendDomain(record.imageUrl, ASSET_URL),
+                  src: appendDomain(imageUrl, ASSET_URL),
                 }}
               />
             )}
@@ -196,9 +195,9 @@ function SlidesCRUD() {
         return (
           <div>
             {searchParams.get("title") ? (
-              <div className="text-danger">Title</div>
+              <div className="text-danger">Tiêu đề</div>
             ) : (
-              <div className="secondary">Title</div>
+              <div className="secondary">Tiêu đề</div>
             )}
           </div>
         );
@@ -227,9 +226,9 @@ function SlidesCRUD() {
         return (
           <div>
             {searchParams.get("summary") ? (
-              <div className="text-danger">Summary</div>
+              <div className="text-danger">Tóm tắt</div>
             ) : (
-              <div className="secondary">Summary</div>
+              <div className="secondary">Tóm tắt</div>
             )}
           </div>
         );
@@ -252,8 +251,10 @@ function SlidesCRUD() {
         );
       },
     },
+    //URL
+    { title: "URL", dataIndex: "url", key: "url", width: "10%" },
     //Note
-    { title: "Note", dataIndex: "note", key: "note", width: "10%" },
+    { title: "Lưu ý", dataIndex: "note", key: "note", width: "10%" },
   ];
 
   const dataSource = slidesData?.results;

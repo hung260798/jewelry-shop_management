@@ -1,38 +1,52 @@
-import React from "react";
-import { Upload, message } from "antd";
-import ImgCrop from "antd-img-crop";
 import { PlusOutlined } from "@ant-design/icons";
+import { Upload } from "antd";
+import ImgCrop from "antd-img-crop";
 
 // Utility: resize image to max 300px width
-const resizeImage = (file) =>
-  new Promise((resolve) => {
+const resizeImage: (file: File) => Promise<File> = (file: File) =>
+  new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.src = e.target.result;
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
+    const img = new Image();
 
-        // Scale down if width > 300
-        const scale = Math.min(1, 300 / img.width);
-        const size = img.width * scale; // since it's square, width = height
-
-        canvas.width = size;
-        canvas.height = size;
-
-        ctx.drawImage(img, 0, 0, size, size);
-
-        canvas.toBlob((blob) => {
-          const newFile = new File([blob], file.name, { type: file.type });
-          resolve(newFile);
-        }, file.type);
-      };
+    reader.onload = () => {
+      img.src = reader.result as string;
     };
+
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+
+      // Scale down if width > 300
+      const scale = Math.min(1, 300 / img.width);
+      const size = img.width * scale; // since it's square, width = height
+
+      canvas.width = size;
+      canvas.height = size;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return reject(new Error("Canvas context error"));
+      ctx.drawImage(img, 0, 0, size, size);
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) return reject(new Error("Blob error"));
+
+          const newFile = new File([blob], file.name, {
+            type: file.type,
+            lastModified: Date.now(),
+          });
+          resolve(newFile);
+        },
+        file.type,
+        0.9
+      );
+    };
+    img.onerror = reject;
+    reader.onerror = reject;
+
     reader.readAsDataURL(file);
   });
 
-const beforeUpload = async (file) => {
+const beforeUpload = async (file: File) => {
   // Resize after crop
   const resized = await resizeImage(file);
   return resized;

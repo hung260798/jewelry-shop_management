@@ -479,13 +479,11 @@ export default function CKEditorPage() {
       <div className="presence" ref={editorPresenceRef}></div>
       <div
         className="editor-container editor-container_classic-editor editor-container_include-outline editor-container_include-annotations editor-container_include-fullscreen"
-        ref={editorContainerRef}
-      >
+        ref={editorContainerRef}>
         <div className="editor-container__editor-wrapper">
           <div
             className="editor-container__sidebar"
-            ref={editorOutlineRef}
-          ></div>
+            ref={editorOutlineRef}></div>
           <div className="editor-container__editor">
             <div ref={editorRef}>
               {editorConfig && (
@@ -501,20 +499,17 @@ export default function CKEditorPage() {
           </div>
           <div
             className="editor-container__sidebar"
-            ref={editorAnnotationsRef}
-          ></div>
+            ref={editorAnnotationsRef}></div>
         </div>
       </div>
       <div className="revision-history" ref={editorRevisionHistoryRef}>
         <div className="revision-history__wrapper">
           <div
             className="revision-history__editor"
-            ref={editorRevisionHistoryEditorRef}
-          ></div>
+            ref={editorRevisionHistoryEditorRef}></div>
           <div
             className="revision-history__sidebar"
-            ref={editorRevisionHistorySidebarRef}
-          ></div>
+            ref={editorRevisionHistorySidebarRef}></div>
         </div>
       </div>
 
@@ -522,15 +517,13 @@ export default function CKEditorPage() {
         <button
           onClick={() => {
             devLog(editRef.current?.getData());
-          }}
-        >
+          }}>
           get data
         </button>
         <button
           onClick={() => {
             devLog(editRef.current?.setData("<b><i><u>aaaa</u></i></b>"));
-          }}
-        >
+          }}>
           set data
         </button>
       </div>
@@ -542,7 +535,7 @@ export default function CKEditorPage() {
  * This function exists to remind you to update the config needed for premium features.
  * The function can be safely removed. Make sure to also remove call to this function when doing so.
  */
-function configUpdateAlert(config) {
+function configUpdateAlert(config: EditorConfig) {
   if (configUpdateAlert.configUpdateAlertShown) {
     return;
   }

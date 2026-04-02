@@ -1,10 +1,10 @@
-import { Button, Form, Input, message } from "antd";
-import { useAuthStore } from "hooks/useAuthStore";
-import style from "./login.module.css";
-import axios, { AxiosError } from "axios";
 import { API_URL } from "@/utils/constants/URLS";
-import { User, WithId } from "utils/types/Entities";
 import { devLog } from "@/utils/logger";
+import { Button, Form, Input, message } from "antd";
+import axios, { AxiosError } from "axios";
+import { AuthUser, useAuthStore } from "hooks/stores/useAuthStore";
+import { User } from "utils/types/Entities";
+import style from "./login.module.css";
 
 const noAuthClient = axios.create({
   baseURL: API_URL,
@@ -34,7 +34,7 @@ const Login = () => {
       if (loginResponse.data.refreshToken) {
         localStorage.setItem("refreshToken", loginResponse.data.refreshToken);
       }
-      const profileResponse = await noAuthClient.get<WithId<User>>(
+      const profileResponse = await noAuthClient.get<AuthUser>(
         `/employees/login/profile`,
         {
           headers: {
@@ -63,9 +63,6 @@ const Login = () => {
       devLog(err);
     }
   };
-  const handleSubmit = async (values: any) => {
-    await login(values);
-  };
 
   return (
     <div
@@ -74,8 +71,7 @@ const Login = () => {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-      }}
-    >
+      }}>
       <div className={`${style.form_box}`}>
         <h2 className={`${style.title}`}>Login</h2>
         <Form
@@ -88,9 +84,10 @@ const Login = () => {
             padding: "3rem",
           }}
           initialValues={{ remember: true }}
-          onFinish={handleSubmit}
-          autoComplete="off"
-        >
+          onFinish={async (values) => {
+            await login(values);
+          }}
+          autoComplete="off">
           <Form.Item
             label="Email"
             name="email"
@@ -99,8 +96,7 @@ const Login = () => {
               { type: "email", message: "Email không hợp lệ" },
             ]}
             validateTrigger="onBlur"
-            className="mb-5"
-          >
+            className="mb-5">
             <Input />
           </Form.Item>
 
@@ -116,8 +112,7 @@ const Login = () => {
               },
             ]}
             validateTrigger="onBlur"
-            className="mb-5"
-          >
+            className="mb-5">
             <Input.Password />
           </Form.Item>
 

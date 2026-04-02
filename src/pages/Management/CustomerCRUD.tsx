@@ -1,11 +1,11 @@
 import CRUD from "@/templates/CRUD";
-import { appendDomain } from "@/utils/stringUtils";
+import { appendDomain, getSortOrder } from "@/utils/stringUtils";
 import { FormControl } from "@/utils/types/Form";
 import { DatePicker, Input, Select, Space, Switch, Tag } from "antd";
 import locale from "antd/es/date-picker/locale/en_US";
 import Search from "antd/es/input/Search";
 import { ColumnsType } from "antd/es/table";
-import LazyFadeImage from "components/images/Lazy/SmartImage";
+import SmartImage from "components/images/Lazy/SmartImage";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import { useGetList } from "hooks/useMyQuery";
@@ -115,13 +115,13 @@ export default function CustomerCRUD() {
     // initData: { results: [], amountResults: 0 },
   };
   // const queryHook = useMyQuery<GetManyData<CustomerWithId>>;
-  const queryHook = useGetList<CustomerWithId>;
+  // const queryHook = useGetList<CustomerWithId>;
   const {
     searchItems,
     searchParams,
     setSearchParams,
     query: { data: customersData, isLoading, refetch, error },
-  } = queryHook(queryProps);
+  } = useGetList<CustomerWithId>(queryProps);
 
   const renderTitle = (paramKey: string, label: string) => (
     <div className={searchParams.get(paramKey) ? "text-danger" : "secondary"}>
@@ -208,17 +208,21 @@ export default function CustomerCRUD() {
     //IMAGE
     {
       width: 90,
-      title: "Picture",
+      title: "Ảnh đại diện",
       key: "imageUrl",
       dataIndex: "imageUrl",
       render: (text, record) => {
         return (
-          <div className="flex justify-center items-center h-[180px] w-[110px]">
+          <div className="flex justify-center items-center  w-[110px]">
             {record.imageUrl && (
-              <LazyFadeImage
+              <SmartImage
                 src={appendDomain(record.imageUrl, ASSET_URL)}
                 smallSizes={[[100, 150]]}
                 alt="record.imageUrl"
+                fallback="/placeholder-user.jpg"
+                width={100}
+                height={100}
+                style={{ width: "100px", height: "100px" }}
               />
             )}
           </div>
@@ -232,6 +236,7 @@ export default function CustomerCRUD() {
       dataIndex: "firstName",
       key: "firstName",
       sorter: true,
+      sortOrder: getSortOrder(searchParams.toString(), "firstName"),
       filterDropdown: () => {
         return (
           <div style={{ padding: 8 }}>
@@ -255,6 +260,7 @@ export default function CustomerCRUD() {
       dataIndex: "lastName",
       key: "lastName",
       sorter: true,
+      sortOrder: getSortOrder(searchParams.toString(), "lastName"),
       filterDropdown: () => {
         return (
           <div style={{ padding: 8 }}>
@@ -278,6 +284,7 @@ export default function CustomerCRUD() {
       dataIndex: "email",
       key: "email",
       sorter: true,
+      sortOrder: getSortOrder(searchParams.toString(), "email"),
       filterDropdown: () => {
         return (
           <div style={{ padding: 8 }}>
@@ -349,9 +356,9 @@ export default function CustomerCRUD() {
           <div>
             {searchParams.get("birthdayFrom") ||
             searchParams.get("birthdayTo") ? (
-              <div className="text-danger">Birthday</div>
+              <div className="text-danger">Ngày sinh</div>
             ) : (
-              <div className="secondary">Birthday</div>
+              <div className="secondary">Ngày sinh</div>
             )}
           </div>
         );
@@ -363,6 +370,7 @@ export default function CustomerCRUD() {
         return <span>{formattedBirthday}</span>;
       },
       sorter: true,
+      sortOrder: getSortOrder(searchParams.toString(), "birthday"),
       filterDropdown: () => {
         return (
           <div style={{ padding: 8 }}>
@@ -393,16 +401,75 @@ export default function CustomerCRUD() {
       width: 80,
     },
     //Note
+    // {
+    //   title: "Ghi chú",
+    //   dataIndex: "note",
+    //   key: "note",
+    //   width: 100,
+    //   responsive: ["xl"],
+    // },
     {
-      title: "Ghi chú",
-      dataIndex: "note",
-      key: "note",
+      title: (
+        <div
+          className={
+            searchParams.get("createdDateFrom") ||
+            searchParams.get("createdDateTo")
+              ? "text-danger"
+              : "secondary"
+          }>
+          Ngày đăng ký
+        </div>
+      ),
+      dataIndex: "createdDate",
+      key: "createdDate",
       width: 100,
       responsive: ["xl"],
+      render: (createdDate) => {
+        const formattedDate = dayjs(createdDate).format("DD/MM/YYYY");
+        return <span>{formattedDate}</span>;
+      },
+      filterDropdown: () => {
+        return (
+          <div style={{ padding: 8 }}>
+            <RangePicker
+              allowClear
+              defaultValue={[
+                dayjs("01/01/1900", dateFormat),
+                dayjs("01/01/2023", dateFormat),
+              ]}
+              format={dateFormat}
+              onChange={async (e) => {
+                const searchValues: { type: string; value?: string }[] = [
+                  { type: "createdDateFrom", value: undefined },
+                  { type: "createdDateTo", value: undefined },
+                ];
+                const data = e?.map((date) => dayjs(date).format("YYYY/MM/DD"));
+                if (data) {
+                  searchValues[0] = { type: "createdDateFrom", value: data[0] };
+                  searchValues[1] = { type: "createdDateTo", value: data[1] };
+                }
+                searchItems(searchValues, { resetSkip: true });
+              }}
+            />
+          </div>
+        );
+      },
+      sorter: true,
+      sortOrder: getSortOrder(searchParams.toString(), "createdDate"),
     },
   ];
 
-  const dataSource = customersData?.results;
+  const dataSource = customersData
+    ? "results" in customersData
+      ? customersData?.results
+      : [customersData.result]
+    : [];
+
+  const totalAmount = customersData
+    ? "results" in customersData
+      ? customersData.amountResults
+      : 1
+    : 0;
 
   return (
     <CRUD
@@ -424,7 +491,7 @@ export default function CustomerCRUD() {
         },
       ]}
       fetchError={error}
-      totalAmount={customersData?.amountResults || 0}
+      totalAmount={totalAmount}
     />
   );
 }

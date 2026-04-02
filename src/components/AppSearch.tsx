@@ -52,30 +52,28 @@ export default function AppSearch() {
                     {key.replace("/", "").replace(/-/g, " ")}
                   </div>
                   {/* Section Items */}
-                  {arr.length > 0 && (
-                    <List
-                      className="ml-4 bg-gray-50 rounded-lg p-2"
-                      size="small"
-                      bordered
-                    >
-                      {arr.map((item, index) => {
-                        return (
-                          <List.Item
-                            key={index}
-                            className="overflow-clip text-sm text-gray-600 hover:bg-gray-100 rounded-md px-2"
+                  <List
+                    className="ml-4 bg-gray-50 rounded-lg p-2"
+                    size="small"
+                    bordered
+                  >
+                    {arr.map((item, index) => {
+                      return (
+                        <List.Item
+                          key={index}
+                          className="overflow-clip text-sm text-gray-600 hover:bg-gray-100 rounded-md px-2"
+                        >
+                          <Link
+                            to={`/management/${collectionName}?searchId=${item._id}`}
+                            style={{ textDecoration: "none" }}
+                            onClick={() => context?.clickItem?.()}
                           >
-                            <Link
-                              to={`/management/${collectionName}?searchId=${item._id}`}
-                              style={{ textDecoration: "none" }}
-                              onClick={() => context?.clickItem?.()}
-                            >
-                              {toString(item)}
-                            </Link>
-                          </List.Item>
-                        );
-                      })}
-                    </List>
-                  )}
+                            {toString(item)}
+                          </Link>
+                        </List.Item>
+                      );
+                    })}
+                  </List>
                 </div>
               </List.Item>
             )

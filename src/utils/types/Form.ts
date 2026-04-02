@@ -5,11 +5,11 @@ export type SubmitData = { _id?: string } & Record<string, unknown>;
 
 export type FormProps = {
   formValues: unknown;
-  submitFn: (values: unknown) => void;
+  submitFn?: (values: unknown) => Promise<void>;
   formControls: FormControl[];
   title: string;
   refetch?: () => void | Promise<void>;
-  // collectionName?: string;
+  collectionName?: string;
   fileFields?: FileField[];
 };
 

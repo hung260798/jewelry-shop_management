@@ -1,7 +1,7 @@
-import GeneralInformation from "../components/Dashboard/GeneralInformation";
-import Address from "../components/Dashboard/GoogleMap";
-import Numberofgoods from "../components/Dashboard/Numberofgoods";
-import YearInformation from "../components/Dashboard/YearInformation";
+import GeneralInformation from "@/components/Dashboard/GeneralInformation";
+import Address from "@/components/Dashboard/GoogleMap";
+import Numberofgoods from "@/components/Dashboard/Numberofgoods";
+import YearInformation from "@/components/Dashboard/YearInformation";
 
 const HomePage = () => {
   return (

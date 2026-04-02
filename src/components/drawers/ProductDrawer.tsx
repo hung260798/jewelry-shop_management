@@ -1,18 +1,15 @@
 import useMyQuery from "@/hooks/useMyQuery";
 import { axiosClientJson } from "@/libraries/axiosClient";
-// import { Order, Product, WithId } from "@/utils/types/Entities";
 import { Order, Product, WithId } from "utils/types/Entities";
 import { Button, Card, Drawer, message, Pagination, Spin } from "antd";
 import { GetMany } from "utils/types/Entities";
 
-interface PropTypes {
-  addProducts: boolean;
-  setAddProducts: (b: boolean) => void;
+const ProductDrawer = (props: {
+  isSelectingProducts: boolean;
+  setIsSelectingProducts: (b: boolean) => void;
   selectedOrder?: Order & WithId<Order>;
   refetch: () => void;
-}
-
-const ProductDrawer = (props: PropTypes) => {
+}) => {
   const {
     query: { data, isLoading, isFetching },
     searchItems,
@@ -26,21 +23,30 @@ const ProductDrawer = (props: PropTypes) => {
     results: [],
     amountResults: 0,
   };
-  const { addProducts, setAddProducts, selectedOrder, refetch } = props;
+  const {
+    isSelectingProducts: addProducts,
+    setIsSelectingProducts: setAddProducts,
+    selectedOrder,
+    refetch,
+  } = props;
 
   if (!selectedOrder) return null;
 
   const onAddProduct = async (product: WithId<Product>) => {
-    const response = await axiosClientJson.get("orders/" + selectedOrder._id);
-    const currentOrder = response.data;
-    const { orderDetails } = currentOrder;
-    const found = orderDetails.find((x: any) => x.productId === product._id);
+    const response = await axiosClientJson.get<Order>(
+      "orders/" + selectedOrder._id
+    );
+    const { orderDetails } = response.data;
+    const found = orderDetails.find((x) => x.productId === product._id);
     if (found) {
       found.quantity++;
     } else {
       orderDetails.push({
         productId: product._id,
         quantity: 1,
+        product: { ...product, total: product.price },
+        price: product.price,
+        discount: product.discount || 0,
       });
     }
 
@@ -62,7 +68,7 @@ const ProductDrawer = (props: PropTypes) => {
     <Card key={product._id}>
       <strong className="px-2">{product.name}</strong>
       <Button className="px-2" onClick={() => onAddProduct(product)}>
-        <span>Add</span>
+        <span>Thêm</span>
       </Button>
     </Card>
   );
@@ -85,15 +91,13 @@ const ProductDrawer = (props: PropTypes) => {
       onClose={() => {
         setAddProducts(false);
       }}
-      placement="right"
-    >
+      placement="right">
       <div>
         {productListUI}
         <Pagination
           current={currentPage}
           onChange={onPageChange}
-          total={amountProducts}
-        ></Pagination>
+          total={amountProducts}></Pagination>
       </div>
     </Drawer>
   );

@@ -71,7 +71,7 @@ export function extractPathname(src: string): string {
  * @returns FormData/null
  */
 export function createFormData(
-  value: RcFile | (RcFile | undefined)[] | undefined,
+  value: File | (File | undefined)[] | undefined,
   fieldName: string = "file"
 ) {
   const formData = new FormData();
@@ -88,4 +88,25 @@ export function createFormData(
     formData.append(fieldName, value);
   }
   return formData;
+}
+
+export function capitalizeFirstLetter(str: string): string {
+  if (!str) return str;
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+export function getSortOrder(
+  queryString: string,
+  field: string
+): "ascend" | "descend" | undefined {
+  const params = new URLSearchParams(queryString);
+  const sortByParam = params.get("sortBy");
+  const sortOrderParam = params.get("sortOrder");
+  if (!sortByParam) return undefined;
+
+  if (sortByParam === field) {
+    if (sortOrderParam === "asc" || sortOrderParam === "1") return "ascend";
+    if (sortOrderParam === "desc" || sortOrderParam === "-1") return "descend";
+  }
+  return undefined;
 }

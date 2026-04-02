@@ -15,7 +15,7 @@ interface UseMyQueryProps {
   queryKey?: (string | number)[];
   initParams?: Record<string, string>;
   usePrivateParams?: boolean;
-  placeholderData?: any;
+  placeholderData?: GetMany<unknown> | GetOne<unknown>;
 }
 
 interface ReturnType<T> {
@@ -35,7 +35,7 @@ interface ReturnType<T> {
   setPrivateParams?: Dispatch<SetStateAction<URLSearchParams>>;
 }
 
-const REFETCH_INTERVAL_MINUTE = 1;
+const REFETCH_INTERVAL_MINUTE = 5;
 
 const ONE_MINUTE = 60 * 1000;
 
@@ -91,7 +91,7 @@ export default function useMyQuery<T extends object>(
   const setParamsFn = usePrivateParams ? setPrivateParams : setSearchParams;
 
   const query = useQuery({
-    queryKey: [...queryKey, ...usedParams.entries().toArray()],
+    queryKey: [...queryKey, ...usedParams.toString().split("&")],
     queryFn: async () => {
       const idNames = ["_id", "id", "searchId"];
       let idValue;
@@ -164,30 +164,31 @@ export type GetOneOrMany<T> = GetMany<T> | GetOne<T>;
 
 export function useGetList<T>(props: UseMyQueryProps) {
   const queryReturn = useMyQuery<GetOneOrMany<T>>(props);
-  const data = queryReturn.query.data;
-  if (data) {
-    if ("result" in data) {
-      return produce(queryReturn, (queryReturn) => {
-        queryReturn.query.data = {
-          ...data,
-          amountResults: 1,
-          results: [data.result],
-        };
-      });
-      // return {
-      //   ...queryReturn,
-      //   query: {
-      //     ...queryReturn.query,
-      //     data: {
-      //       ...data,
-      //       amountResults: 1,
-      //       results: [data.result],
-      //     },
-      //   },
-      // };
-    }
+  return produce(queryReturn, (queryReturn) => {
+    const data = queryReturn.query.data;
+    if (!data || !("result" in data)) return;
+    queryReturn.query.data = {
+      ...data,
+      amountResults: 1,
+      results: [data.result],
+    };
+  });
+}
+
+export function extractArrayFromGetOneOrMany<T>(
+  data: GetOneOrMany<T> | undefined
+) {
+  if (!data) return { dataSource: [], amountResults: 0 };
+  if ("results" in data) {
+    return {
+      dataSource: data.results,
+      amountResults: data.amountResults ?? data.results.length,
+    };
   }
-  return queryReturn as ReturnType<GetMany<T>>;
+  if ("result" in data) {
+    return { dataSource: [data.result], amountResults: 1 };
+  }
+  return { dataSource: [], amountResults: 0 };
 }
 
 export function useMyPrefetch() {
