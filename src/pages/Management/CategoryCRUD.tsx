@@ -8,11 +8,11 @@ import { Select, Space, Tag } from "antd";
 import Search from "antd/es/input/Search";
 import { ColumnsType } from "antd/es/table";
 import { useMemo } from "react";
-
 import { UploadInput } from "@/components/Inputs/FileUpload";
 import { UploadOutlined } from "@ant-design/icons";
 import { Button, Checkbox, Input, InputNumber } from "antd";
 import { ASSET_URL } from "@/utils/constants/URLS";
+import dayjs from "dayjs";
 
 const formItems = [
   {
@@ -20,6 +20,7 @@ const formItems = [
     name: "_id",
     className: "hidden",
     component: <Input />,
+    defaultValue: "",
   },
   {
     label: "Tên",
@@ -27,6 +28,7 @@ const formItems = [
     rules: [{ required: true, message: "Please input Name!" }],
     component: <Input />,
     className: "texxt basis-full",
+    defaultValue: "",
   },
   {
     label: "Mô tả",
@@ -34,6 +36,7 @@ const formItems = [
     rules: [{ required: true, message: "Please input Description!" }],
     component: <Input />,
     className: "basis-full",
+    defaultValue: "",
   },
   // {
   //   label: "Hình đại diện",
@@ -67,12 +70,14 @@ const formItems = [
       />
     ),
     className: "basis-full",
+    defaultValue: [],
   },
   {
     label: "Vị trí sắp xếp",
     name: "sortOrder",
     component: <InputNumber min={1} />,
     className: "basis-1/3",
+    defaultValue: "",
   },
   {
     label: "Hoạt động",
@@ -80,6 +85,7 @@ const formItems = [
     valuePropName: "checked",
     component: <Checkbox />,
     className: "basis-1/3",
+    defaultValue: true,
   },
   {
     label: "Đã xóa",
@@ -87,11 +93,13 @@ const formItems = [
     valuePropName: "checked",
     component: <Checkbox />,
     className: "basis-1/3",
+    defaultValue: false,
   },
   {
     label: "Ghi chú",
     name: "note",
     component: <Input />,
+    defaultValue: "",
   },
   {
     label: "Image",
@@ -363,6 +371,23 @@ function CategoryCRUD() {
         sorter: true,
         sortOrder: getSortOrder(searchParams.toString(), "note"),
         width: "10%",
+      },
+      {
+        title: "Chỉnh sửa lần cuối",
+        dataIndex: "updatedDate",
+        key: "updatedDate",
+        sorter: true,
+        sortOrder: getSortOrder(searchParams.toString(), "updatedDate"),
+        width: "150px",
+        render: (updatedDate: string) => {
+          const d = dayjs(updatedDate);
+          return (
+            <div>
+              <div>{d.format("DD-MM-YYYY")}</div>
+              <div>{d.format("HH:mm")}</div>
+            </div>
+          );
+        },
       },
     ] as ColumnsType<WithId<Category> & Active>;
   }, [searchItems, searchParams]);

@@ -1,3 +1,4 @@
+import { ModalForm } from "@/components/Forms/ModalForm";
 import { useModalForm } from "@/components/Forms/ModalForm/useModalForm";
 import FileUploadBox from "@/components/Modals/UploadBox";
 import { axiosClientJson } from "@/libraries/axiosClient";
@@ -16,9 +17,8 @@ import { Button, Flex, Grid, message, Popconfirm, Table } from "antd";
 import { ColumnsType, ColumnType, TableProps } from "antd/es/table";
 import React, { ReactNode, useEffect, useState } from "react";
 import { SetURLSearchParams } from "react-router-dom";
-import { GetOne, WithId } from "utils/types/Entities";
+import { WithId } from "utils/types/Entities";
 import { FileField, FormControl, FormProps } from "utils/types/Form";
-import { ModalForm } from "@/components/Forms/ModalForm";
 import cssStyles from "./crud.module.css";
 // import ErrorPage from "@/components/fallbacks/Error";
 import useFileUploadBox, {
@@ -80,9 +80,9 @@ export default function CRUD<DataType extends WithId<object>>(
   const screens = Grid.useBreakpoint();
   const queryClient = useQueryClient();
 
-  const setShowingForm = useModalForm((s) => s.setTitle);
+  const setOpen = useModalForm((s) => s.setOpen);
   const setFormValues = useModalForm((s) => s.setFormValues);
-  const setFieldsChange = useModalForm((s) => s.setFieldsChange);
+  // const setFieldsChange = useModalForm((s) => s.setFieldsChange);
   const setUploaderPayload = useFileUploadBox((s) => s.setPayload);
   const setUploaderQueryKey = useFileUploadBox((s) => s.setQueryKey);
   const setOpenUploadBox = useFileUploadBox((s) => s.setOpen);
@@ -206,31 +206,29 @@ export default function CRUD<DataType extends WithId<object>>(
               title="Update"
               type="dashed"
               onClick={() => {
-                messageApi.open({
-                  key: "open-detail",
-                  content: "Đang tải dữ liệu",
-                  type: "loading",
-                });
-                axiosClientJson
-                  .get<GetOne<DataType>>(`${collectionName}/${_id}`)
-                  .then((response) => {
-                    setFormValues(convertToFormValues(response.data.result));
-                    setShowingForm(form?.title ?? null);
-                    setFieldsChange(false);
-                    messageApi.destroy("open-detail");
-                  })
-                  .catch((error) => {
-                    messageApi.open({
-                      key: "open-detail",
-                      content: "Không thể tải dữ liệu",
-                      type: "error",
-                      duration: 1,
-                    });
-                    devLog(error);
-                  });
-                // setFormValues(convertToFormValues(record));
-                // setShowingForm(form?.title ?? null);
-                // setFieldsChange(false);
+                // messageApi.open({
+                //   key: "open-detail",
+                //   content: "Đang tải dữ liệu",
+                //   type: "loading",
+                // });
+                // axiosClientJson
+                //   .get<GetOne<DataType>>(`${collectionName}/${_id}`)
+                //   .then((response) => {
+                //     setFormValues(convertToFormValues(response.data.result));
+                //     setOpen(true);
+                //     messageApi.destroy("open-detail");
+                //   })
+                //   .catch((error) => {
+                //     messageApi.open({
+                //       key: "open-detail",
+                //       content: "Không thể tải dữ liệu",
+                //       type: "error",
+                //       duration: 1,
+                //     });
+                //     devLog(error);
+                //   });
+                setFormValues(convertToFormValues(record));
+                setOpen(true);
               }}
             />
           )}
@@ -290,8 +288,9 @@ export default function CRUD<DataType extends WithId<object>>(
             style={{ width: "150px", height: "40px" }}
             onClick={() => {
               close();
-              setShowingForm(form?.title ?? null);
               setFormValues(undefined);
+              setOpen(true);
+              // setFieldsChange(false);
             }}
             icon={<PlusCircleOutlined />}
             type="text">
@@ -399,9 +398,9 @@ export default function CRUD<DataType extends WithId<object>>(
       <Button
         type="primary"
         onClick={() => {
-          setShowingForm(form?.title ?? null);
           setFormValues(undefined);
-          setFieldsChange(false);
+          setOpen(true);
+          // setFieldsChange(false);
         }}
         icon={<PlusOutlined />}>
         Thêm

@@ -12,6 +12,7 @@ export const formItems = [
     name: "_id",
     className: "hidden",
     component: <Input />,
+    defaultValue: "",
   },
   {
     label: "Tên nhà cung cấp",
@@ -19,6 +20,7 @@ export const formItems = [
     rules: [{ required: true, message: "Please input Name!" }],
     component: <Input />,
     className: "basis-1/2",
+    defaultValue: "",
   },
   {
     label: "Email",
@@ -26,12 +28,14 @@ export const formItems = [
     rules: [{ required: true, message: "Please input Email!" }],
     component: <Input />,
     className: "basis-1/2",
+    defaultValue: "",
   },
   {
     label: "Số điện thoại",
     name: "phoneNumber",
     component: <Input />,
     className: "basis-1/2",
+    defaultValue: "",
   },
   {
     label: "Địa chỉ",
@@ -39,6 +43,7 @@ export const formItems = [
     rules: [{ required: true, message: "Please input Address!" }],
     component: <Input />,
     className: "basis-1/2",
+    defaultValue: "",
   },
   {
     label: "Đang hoạt động",
@@ -46,6 +51,7 @@ export const formItems = [
     component: <Checkbox />,
     valuePropName: "checked",
     className: "basis-1/2",
+    defaultValue: true,
   },
   {
     label: "Đã xóa",
@@ -53,12 +59,14 @@ export const formItems = [
     component: <Checkbox />,
     valuePropName: "checked",
     className: "basis-1/2",
+    defaultValue: false,
   },
   {
     label: "Ghi chú",
     name: "note",
     component: <Input />,
     className: "basis-full",
+    defaultValue: "",
   },
 ];
 

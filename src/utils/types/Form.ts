@@ -23,6 +23,7 @@ export interface FormControl {
     | FormItemProps["rules"]
     | Record<"add" | "update", FormItemProps["rules"]>;
   flex?: string;
+  defaultValue?: unknown;
   getValueProps?: (value: any) => Record<string, unknown>;
   getValueFromEvent?: (...args: any[]) => any;
   onSubmit?: (v: any) => any;

@@ -18,30 +18,35 @@ const formItems: FormControl[] = [
     name: "_id",
     className: "hidden",
     component: <Input disabled readOnly />,
+    defaultValue: "",
   },
   {
     label: "Email",
     name: "email",
     rules: [{ required: true, message: "Please input Email!" }],
     component: <Input />,
+    defaultValue: "",
   },
   {
     label: "Tên",
     name: "firstName",
     rules: [{ required: true, message: "Please input First name!" }],
     component: <Input />,
+    defaultValue: "",
   },
   {
     label: "Họ",
     name: "lastName",
     rules: [{ required: true, message: "Please input Last name!" }],
     component: <Input />,
+    defaultValue: "",
   },
   {
     label: "Số điện thoại",
     name: "phoneNumber",
     rules: [{ required: true, message: "Please input Phone number!" }],
     component: <Input />,
+    defaultValue: "",
   },
   {
     label: "Mật khẩu",
@@ -56,23 +61,27 @@ const formItems: FormControl[] = [
       update: [],
     },
     component: <Input />,
+    defaultValue: "",
   },
   {
     label: "Địa chỉ",
     name: "address",
     rules: [{ required: true, message: "Please input Address!" }],
     component: <Input />,
+    defaultValue: "",
   },
   {
     label: "Bị khóa",
     name: "Locked",
     component: <Switch />,
     valuePropName: "checked",
+    defaultValue: false,
   },
   {
     label: "Ghi chú",
     name: "note",
     component: <Input />,
+    defaultValue: "",
   },
   {
     label: "Ngày sinh",
@@ -82,7 +91,7 @@ const formItems: FormControl[] = [
       <DatePicker
         size="middle"
         placement="bottomLeft"
-        format="DD/MM/YYYY"
+        format="YYYY-MM-DD"
         locale={locale}
       />
     ),
@@ -99,6 +108,7 @@ const formItems: FormControl[] = [
     onSubmit: (date) => {
       return date ? dayjs(date).format("YYYY-MM-DD") : null;
     },
+    defaultValue: dayjs(Date(), { format: "YYYY-MM-DD" }),
   },
 ];
 
@@ -213,7 +223,7 @@ export default function CustomerCRUD() {
       dataIndex: "imageUrl",
       render: (text, record) => {
         return (
-          <div className="flex justify-center items-center  w-[110px]">
+          <div className="flex justify-center items-center  w-27.5">
             {record.imageUrl && (
               <SmartImage
                 src={appendDomain(record.imageUrl, ASSET_URL)}

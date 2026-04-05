@@ -258,7 +258,7 @@ const OrderCRUD: React.FC = () => {
   ];
 
   const setFormValues = useModalForm((s) => s.setFormValues);
-  const setShowingForm = useModalForm((s) => s.setTitle);
+  const setOpen = useModalForm((s) => s.setOpen);
 
   // KEEP UPDATE ID:
   // useEffect(() => {
@@ -299,8 +299,9 @@ const OrderCRUD: React.FC = () => {
                       refetch,
                     },
                   });
-                  setShowingForm("orders");
+                  // setTitle("orders");
                   setSelectedOrder(record);
+                  setOpen(true);
                 }}
               />
             );
@@ -367,7 +368,9 @@ type OrderFormValues = {
 function OrderDetailModal() {
   // props: Omit<FormProps, "submitFn" | "title" | "formControls" | "formValues">
   const [messageApi, contextHolder] = message.useMessage();
-  const { title, setTitle, formValues } = useModalForm((s) => s);
+  const formValues = useModalForm((s) => s.formValues);
+  const open = useModalForm((s) => s.open);
+  const setOpen = useModalForm((s) => s.setOpen);
   const { selectedOrder, functions } = (formValues ?? {}) as OrderFormValues;
   const changes = useRef<{ shippingAddress?: string; status?: string }>({});
   const [localOrder, setLocalOrder] = useState<
@@ -391,12 +394,12 @@ function OrderDetailModal() {
       <Modal
         width={"100%"}
         onCancel={() => {
-          setTitle(null);
           setLocalOrder(undefined);
+          setOpen(false);
           changes.current = {};
         }}
         onOk={() => {
-          setTitle(null);
+          setOpen(false);
           setLocalOrder(undefined);
           if (_.isEmpty(changes.current)) {
             return;
@@ -428,8 +431,9 @@ function OrderDetailModal() {
             });
         }}
         okType="dashed"
-        open={title === "orders"}
+        open={open}
         okText="OK"
+        title="Đơn hàng"
         cancelText="Hủy">
         <Card title="Chi tiết đơn hàng">
           <Descriptions bordered column={1}>

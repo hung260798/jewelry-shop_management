@@ -285,24 +285,28 @@ const formControls: FormProps["formControls"] = [
     name: "_id",
     className: "hidden",
     component: <Input />,
+    defaultValue: "",
   },
   {
     name: "name",
     label: "Tên bộ sưu tập",
     component: <Input />,
     valuePropName: "value",
+    defaultValue: "",
   },
   {
     name: "description",
     label: "Mô tả",
     component: <Input />,
     valuePropName: "value",
+    defaultValue: "",
   },
   {
     name: "active",
     label: "Kích hoạt",
     component: <Switch />,
     valuePropName: "checked",
+    defaultValue: true,
   },
   {
     label: "Ảnh BST",

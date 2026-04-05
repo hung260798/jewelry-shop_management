@@ -13,6 +13,7 @@ import { useGetList } from "hooks/useMyQuery";
 import { ASSET_URL } from "utils/constants/URLS";
 import { Active, User, WithId } from "utils/types/Entities";
 import SmartImage from "components/images/Lazy/SmartImage";
+import { FormControl } from "@/utils/types/Form";
 
 const { RangePicker } = DatePicker;
 const dateFormat = "DD/MM/YYYY";
@@ -369,12 +370,13 @@ export default function EmployeeCRUD() {
   );
 }
 
-const formControls = [
+const formControls: FormControl[] = [
   {
     label: "Id",
     name: "_id",
     className: "hidden ",
     component: <Input />,
+    defaultValue: "",
   },
   {
     label: "Email",
@@ -382,36 +384,48 @@ const formControls = [
     rules: [{ required: true, message: "Please input Email!" }],
     component: <Input />,
     className: "order-2 basis-1/2",
+    defaultValue: "",
   },
   {
     label: "Tên",
     name: "firstName",
-    rules: [{ required: true, message: "Please input First name!" }],
+    rules: [{ required: true, message: "Phải nhập tên!" }],
     component: <Input />,
     className: "order-1 basis-1/2",
+    defaultValue: "",
   },
   {
     label: "Họ đệm",
     name: "lastName",
-    rules: [{ required: true, message: "Please input Last name!" }],
+    rules: [{ required: true, message: "Phải nhập họ!" }],
     component: <Input />,
     className: "order-1 basis-1/2",
+    defaultValue: "",
   },
   {
     label: "Số điện thoại",
     name: "phoneNumber",
-    rules: [{ required: true, message: "Please input Phone number!" }],
-    component: <Input />,
+    rules: [{ required: true, message: "Phải có số điện thoại!" }],
+    component: <Input autoComplete="none" />,
     className: "order-2 basis-1/2",
+    defaultValue: "",
   },
   {
     label: "Mật khẩu",
     name: "password",
     rules: {
-      add: [{ required: true, message: "Please input Pass word!" }],
+      add: [{ required: true, message: "Phải có mật khẩu!" }],
       update: [],
     },
-    component: <Input.Password />,
+    component: (
+      <Input.Password
+        readOnly
+        onFocus={(e) => e.target.removeAttribute("readonly")}
+        onBlur={(e) => e.target.setAttribute("readonly", "true")}
+        autoComplete="off"
+      />
+    ),
+    defaultValue: "",
     className: "order-3 basis-full",
   },
   {
@@ -420,6 +434,7 @@ const formControls = [
     rules: [{ required: true, message: "Please input Address!" }],
     component: <Input />,
     className: "order-4 basis-1/2",
+    defaultValue: "",
   },
   {
     label: "Bị khóa",
@@ -433,6 +448,7 @@ const formControls = [
     name: "note",
     component: <Input />,
     className: "order-6 basis-full",
+    defaultValue: "",
   },
   {
     label: "Ngày sinh",
@@ -442,7 +458,7 @@ const formControls = [
       <DatePicker
         size="middle"
         placement="bottomLeft"
-        format="DD/MM/YYYY"
+        format="YYYY-MM-DD"
         locale={locale}
       />
     ),
@@ -452,6 +468,7 @@ const formControls = [
     //   dayjs(10)
     //   return value && `${dayjs(value).valueOf()}`;
     // },
+    defaultValue: dayjs(Date(), { format: "YYYY-MM-DD" }),
   },
   {
     label: "Ảnh hồ sơ",

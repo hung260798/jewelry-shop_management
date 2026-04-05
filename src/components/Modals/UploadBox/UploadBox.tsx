@@ -18,11 +18,11 @@ import {
 } from "antd";
 import { PreviewLayer } from "components/images/ImagesPreview";
 import { DeletableImage } from "components/images/WithButton";
+import { produce } from "immer";
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { FileField } from "utils/types/Form";
 import useFileUploadBox from "./useFileUploadBox";
-import { produce } from "immer";
 
 type FileType = Parameters<GetProp<UploadProps, "beforeUpload">>[0];
 
@@ -77,9 +77,10 @@ export default function FileUploadBox({
     fileType: item.fileType,
   }));
 
-  type State = ({ currentFileList: UploadFile[] } & FileField)[];
-
-  const [fileFields, setFileFields] = useState<State>(defaultFileFields);
+  const [fileFields, setFileFields] =
+    useState<({ currentFileList: UploadFile[] } & FileField)[]>(
+      defaultFileFields
+    );
   useEffect(() => {
     if (!payload) {
       setFileFields(defaultFileFields);
@@ -117,51 +118,49 @@ export default function FileUploadBox({
               .map((elem) =>
                 (async function () {
                   const { maxCount = 1, currentFileList, name, sizes } = elem;
-                  const isArray = maxCount > 1;
-                  const queryStr = isArray ? "array=true" : "";
                   const multiFiles = currentFileList
                     .map((item) => item.originFileObj)
                     .slice(0, maxCount);
-                  const singleFile = currentFileList[0].originFileObj;
-                  const value = isArray ? multiFiles : singleFile;
-                  const formData = createFormData(value);
+                  const formData = createFormData(multiFiles);
                   if (!formData) {
                     return null;
                   }
                   if (sizes) {
                     formData.append("sizes", JSON.stringify(sizes));
                   }
-                  const fileUploadResponse = await axiosClientForm.postForm<
-                    { publicUrl: string } | { publicUrls: string[] }
-                  >(`${uploadTo}?${queryStr}`, formData);
-                  // const { data } = uploadResponse;
-                  // Chuẩn bị cho cập nhật dữ liệu, chỉnh sửa trường file với các file vừa upload
+                  const response = await axiosClientForm.postForm<{
+                    publicUrls: string[];
+                  }>(`${uploadTo}`, formData);
+                  const {
+                    data: { publicUrls },
+                  } = response;
                   let fieldValue: string | string[] = "";
-                  if ("publicUrl" in fileUploadResponse.data) {
-                    // Thay thế file
-                    fieldValue = fileUploadResponse.data.publicUrl;
-                  } else if ("publicUrls" in fileUploadResponse.data) {
-                    // Thêm file vào array
+                  if (maxCount === 1) {
+                    fieldValue = publicUrls[0];
+                  } else {
                     const oldArray: string[] = Array.isArray(item[name])
                       ? (item[name] as string[])
                       : [];
-                    fieldValue = [
-                      ...fileUploadResponse.data.publicUrls.map(
-                        (url: string) => url
-                      ),
-                      ...oldArray,
-                    ];
+                    fieldValue = [...publicUrls, ...oldArray].slice(
+                      0,
+                      maxCount
+                    );
                   }
                   updateBody[name] = fieldValue;
-                  return fileUploadResponse.data;
+                  return response.data;
                 })()
               );
             const settled = await Promise.allSettled(fileUploadPromises);
+            const succeedPromises = settled.filter(
+              (
+                p
+              ): p is {
+                status: "fulfilled";
+                value: { publicUrls: string[] };
+              } => p.status === "fulfilled"
+            );
             // Cập nhật dữ liệu
             await axiosClientJson.patch(`/${collection}/${id}`, updateBody);
-            const succeedPromises = settled.filter(
-              (p) => p.status === "fulfilled"
-            );
             if (succeedPromises.length === fileUploadPromises.length) {
               loadingSuccess("Cập nhật thành công");
             } else {
@@ -171,25 +170,26 @@ export default function FileUploadBox({
             }
 
             // Optimistic update
-            await queryClient.cancelQueries({
-              queryKey: [`get_${collection}`],
-            });
-            queryClient.setQueryData<{ results: { _id: string }[] }>(
-              qKey,
-              (data) => {
-                if (!data) {
-                  return undefined;
-                }
-                const { results: oldArray } = data;
-                const newArray = oldArray
-                  ? oldArray.map((elem) =>
-                      elem?._id === id ? { ...elem, ...updateBody } : elem
-                    )
-                  : [];
-                // devLog("newArray", newArray);
-                return { ...data, results: newArray };
-              }
-            );
+            // await queryClient.cancelQueries({
+            //   queryKey: [`get_${collection}`],
+            // });
+            // queryClient.setQueryData<{ results: { _id: string }[] }>(
+            //   qKey,
+            //   (data) => {
+            //     if (!data) {
+            //       return undefined;
+            //     }
+            //     const { results: oldArray } = data;
+            //     const newArray = oldArray
+            //       ? oldArray.map((elem) =>
+            //           elem?._id === id ? { ...elem, ...updateBody } : elem
+            //         )
+            //       : [];
+            //     // devLog("newArray", newArray);
+            //     return { ...data, results: newArray };
+            //   }
+            // );
+            queryClient.invalidateQueries({ queryKey: [`get_${collection}`] });
             // await refetch?.();
           } catch (error) {
             devLog(error);
@@ -447,7 +447,7 @@ function UploaderWithList({
             })}
 
           {nMore > 0 && (
-            <div className="w-[100px] h-[100px] text-2xl cursor-pointer flex justify-center items-center">
+            <div className="w-25 h-25 text-2xl cursor-pointer flex justify-center items-center">
               +{nMore}
             </div>
           )}

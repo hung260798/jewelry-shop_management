@@ -12,4 +12,3 @@ export type Updaters<S extends Record<string, unknown>> = {
 
 export type StateAndUpdaters<S extends Record<string, unknown>> = S &
   Updaters<S>;
-

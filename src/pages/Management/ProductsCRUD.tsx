@@ -100,6 +100,7 @@ const inputs: FormControl[] = [
     name: "_id",
     className: "hidden",
     component: <Input />,
+    defaultValue: "",
   },
   {
     label: "Danh mục",
@@ -112,6 +113,7 @@ const inputs: FormControl[] = [
     ],
     flex: "basis-[364px] grow-0",
     component: <CategorySelect />,
+    defaultValue: "",
   },
   {
     label: "Nhà cung cấp",
@@ -124,6 +126,7 @@ const inputs: FormControl[] = [
     ],
     flex: `grow-0`,
     component: <SupplierSelect />,
+    defaultValue: "",
   },
   {
     label: "Tên sản phẩm",
@@ -136,6 +139,7 @@ const inputs: FormControl[] = [
     ],
     component: <Input />,
     flex: "grow-0 basis-[100%]",
+    defaultValue: "",
   },
   {
     label: "Giá",
@@ -157,6 +161,7 @@ const inputs: FormControl[] = [
       />
     ),
     flex: `basis-[33%] grow-0`,
+    defaultValue: "",
   },
   {
     label: "Giảm giá",
@@ -174,6 +179,7 @@ const inputs: FormControl[] = [
     ],
     component: <InputNumber min={1} max={75} />,
     flex: `basis-[30%] grow-0`,
+    defaultValue: "",
   },
   {
     label: "Số lượng",
@@ -191,6 +197,7 @@ const inputs: FormControl[] = [
     ],
     component: <InputNumber min={1} />,
     flex: `basis-[30%] grow-0`,
+    defaultValue: "",
   },
   {
     label: "Đang hoạt động",
@@ -198,6 +205,7 @@ const inputs: FormControl[] = [
     component: <Switch />,
     valuePropName: "checked",
     flex: "basis-[30%] grow-0",
+    defaultValue: true,
   },
   {
     label: "Đã xóa",
@@ -205,6 +213,7 @@ const inputs: FormControl[] = [
     component: <Switch />,
     valuePropName: "checked",
     flex: "basis-[30%] grow-0",
+    defaultValue: false,
   },
   {
     label: "Vị trí quảng bá",
@@ -232,18 +241,21 @@ const inputs: FormControl[] = [
       />
     ),
     flex: "basis-[364px] grow-0",
+    defaultValue: "",
   },
   {
     label: "Ghi chú",
     name: "note",
     component: <Input />,
     flex: "basis-[364px] grow-0",
+    defaultValue: "",
   },
   {
     label: "Mô tả",
     name: "description",
     component: <MyCkeditorFormInput />,
     flex: "basis-[364px] grow-0",
+    defaultValue: "",
   },
 ];
 
@@ -434,7 +446,7 @@ export default function ProductCRUD() {
     // ImageUrl
     {
       width: "40px",
-      title: <div className="max-w-[40px] truncate">Ảnh sản phẩm</div>,
+      title: <div className="max-w-10 truncate">Ảnh sản phẩm</div>,
       key: "imageUrl",
       dataIndex: "imageUrl",
       render: (url, record) => {
