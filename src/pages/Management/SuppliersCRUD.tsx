@@ -1,12 +1,13 @@
 import { extractArrayFromGetOneOrMany, useGetList } from "@/hooks/useMyQuery";
 import CRUD from "@/templates/CRUD";
 import * as Types from "utils/types/Entities";
-import { Checkbox, Input, Select, Tag } from "antd";
+import { Checkbox, Input, Select, Space, Tag } from "antd";
 import Search from "antd/es/input/Search";
 import { ColumnsType } from "antd/es/table";
 import { getSortOrder } from "@/utils/stringUtils";
+import { FormControl } from "@/utils/types/Form";
 
-export const formItems = [
+export const formItems: FormControl[] = [
   {
     label: "Id",
     name: "_id",
@@ -81,7 +82,6 @@ function SupplierCRUD() {
   } = useGetList<Supplier>({
     queryKey: ["get_suppliers"],
     url: "/suppliers",
-    // placeholderData: { results: [], amountResults: 0 },
   });
 
   //Setting column
@@ -89,14 +89,10 @@ function SupplierCRUD() {
     //No
     {
       title: () => {
+        const isFiltering =
+          searchParams.has("active") || searchParams.has("isDeleted");
         return (
-          <div>
-            {searchParams.get("active") || searchParams.get("isDeleted") ? (
-              <div className="text-danger">No</div>
-            ) : (
-              <div className="secondary">No</div>
-            )}
-          </div>
+          <div className={isFiltering ? "text-danger" : "secondary"}>No</div>
         );
       },
       dataIndex: "id",
@@ -114,9 +110,10 @@ function SupplierCRUD() {
           txt = "DELETED";
         }
         return (
-          <>
-            {index + 1} <Tag color={tagColor}>{txt}</Tag>
-          </>
+          <Space>
+            <span>{index + 1}</span>
+            <Tag color={tagColor}>{txt}</Tag>
+          </Space>
         );
       },
       filterDropdown: () => {
@@ -151,7 +148,6 @@ function SupplierCRUD() {
                     searchValue.type = "isDeleted";
                     searchValue.value = "true";
                   }
-                  console.log(`🚀🚀🚀!..e`, e);
                   searchItems(searchValue, { resetSkip: true });
                 }}
                 filterOption={(input, option) =>
@@ -186,7 +182,7 @@ function SupplierCRUD() {
       title: () => {
         return (
           <div
-            className={searchParams.get("name") ? "text-danger" : "secondary"}>
+            className={searchParams.has("name") ? "text-danger" : "secondary"}>
             Tên nhà cung cấp
           </div>
         );
@@ -204,26 +200,6 @@ function SupplierCRUD() {
               searchItems(valueSearch, { resetSkip: true });
             }}
           />
-          // <Select<string, { label: string; value: string }>
-          //   allowClear
-          //   style={{ width: "125px" }}
-          //   placeholder="Chọn tên nhà cung cấp"
-          //   optionFilterProp="children"
-          //   onSearch={(e) => {
-          //     const valueSearch = { type: "name", value: e };
-          //     searchItems(valueSearch, { resetSkip: true });
-          //   }}
-          //   showSearch
-          //   filterOption={(input, option) =>
-          //     (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-          //   }
-          //   options={suppliersData?.results?.map((item) => {
-          //     return {
-          //       label: `${item.name}`,
-          //       value: item.name,
-          //     };
-          //   })}
-          // />
         );
       },
       sorter: true,
@@ -240,12 +216,9 @@ function SupplierCRUD() {
     {
       title: () => {
         return (
-          <div>
-            {searchParams.get("email") ? (
-              <div className="text-danger">Email</div>
-            ) : (
-              <div className="secondary">Email</div>
-            )}
+          <div
+            className={searchParams.has("email") ? "text-danger" : "secondary"}>
+            Email
           </div>
         );
       },
@@ -274,7 +247,7 @@ function SupplierCRUD() {
       title: () => (
         <div
           className={
-            searchParams.get("phoneNumber") ? "text-danger" : "secondary"
+            searchParams.has("phoneNumber") ? "text-danger" : "secondary"
           }>
           Điện thoại
         </div>
@@ -340,7 +313,6 @@ function SupplierCRUD() {
       columns={columns}
       dataSource={dataSource}
       totalAmount={amountResults}
-      // FormFn={SuppplierForm}
       collectionName="suppliers"
       searchParams={searchParams}
       setSearchParams={setSearchParams}
@@ -353,18 +325,5 @@ function SupplierCRUD() {
     />
   );
 }
-
-// function SuppplierForm(
-//   props: Omit<FormProps, "submitFn" | "formControls" | "title">
-// ) {
-//   return (
-//     <ModalFormOfCollection
-//       {...props}
-//       collectionName="suppliers"
-//       title="Supplier"
-//       formControls={[]}
-//     />
-//   );
-// }
 
 export default SupplierCRUD;

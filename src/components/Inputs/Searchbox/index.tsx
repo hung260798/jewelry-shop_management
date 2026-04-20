@@ -159,8 +159,7 @@ export default function SearchBox<T extends object = { _id: string }>({
           className={`${style.mask} ${maskBg ? style.showing : ""}`}
           onClick={() => {
             setIsShowingResult(false);
-          }}
-        ></div>
+          }}></div>
       )}
       <div className="w-full absolute z-100 bg-white rounded shadow-xl overflow-hidden">
         {searchResults}
@@ -215,10 +214,10 @@ export const useSearchProducts: SearchBoxOptions["useSearch"] = () => {
   };
 };
 
-type SearchAllData = {
+type SearchAllData<TData = unknown> = {
   key: string;
-  promise: Promise<AxiosResponse<GetList<unknown>>>;
-  toString: (entity: unknown) => React.ReactNode;
+  promise: Promise<AxiosResponse<GetList<TData>>>;
+  toString: (entity: object) => React.ReactNode;
   collection: string;
 };
 
@@ -227,7 +226,10 @@ type Entity = object;
 const isString = (v: unknown): v is string => typeof v === "string";
 
 const printObj = (entity: unknown, ...fields: string[]) => {
-  if (!entity || typeof entity !== "object") {
+  if (entity == null) {
+    return "";
+  }
+  if (typeof entity !== "object") {
     return "";
   }
   const result = fields.map((field) =>

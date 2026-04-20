@@ -1,5 +1,5 @@
-import { UploadInput } from "@/components/Inputs/FileUpload";
 import SmartImage from "@/components/images/Lazy/SmartImage";
+import { UploadInput } from "@/components/Inputs/FileUpload";
 import { useGetList } from "@/hooks/useMyQuery";
 import { axiosClientJson } from "@/libraries/axiosClient";
 import CRUD from "@/templates/CRUD";
@@ -26,7 +26,7 @@ import {
   Product as Product0,
   WithId,
 } from "utils/types/Entities";
-import { FormProps } from "utils/types/Form";
+import { FormControl } from "utils/types/Form";
 
 type DataRecord = WithId<Collection0 & Active>;
 type Product = WithId<Product0>;
@@ -279,7 +279,7 @@ export default function CollectionCRUD() {
   );
 }
 
-const formControls: FormProps["formControls"] = [
+const formControls: FormControl[] = [
   {
     label: "Id",
     name: "_id",

@@ -95,23 +95,21 @@ const Numberofgoods = () => {
 
   return (
     <div>
-      <Divider orientation="left">Number of goods</Divider>
+      <Divider orientation="left">Số lượng hàng hóa</Divider>
       <Card>
         <Row className="px-1">
           <Col xs={24} xl={12}>
             <Card
               type="inner"
               title={"Số lượng hàng hóa trên mỗi danh mục"}
-              variant="borderless"
-            >
+              variant="borderless">
               <Pie {...config} />
             </Card>{" "}
           </Col>
           <Col xs={24} xl={12}>
             <Card
               type="inner"
-              title={"Số lượng hàng hóa trên mỗi nhà cung cấp"}
-            >
+              title={"Số lượng hàng hóa trên mỗi nhà cung cấp"}>
               <Pie {...config2} />
             </Card>{" "}
           </Col>

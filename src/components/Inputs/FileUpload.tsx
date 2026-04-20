@@ -1,4 +1,4 @@
-import { devLog } from "@/utils/logger";
+// import { devLog } from "@/utils/logger";
 import { UploadOutlined } from "@ant-design/icons";
 import { Button, Upload, UploadFile, UploadProps } from "antd";
 import React, { useState } from "react";
@@ -13,23 +13,22 @@ export const UploadInput: React.FC<
   }
 > = (props) => {
   const { id, value = {} as State, onChange, ...uploadProps } = props;
-  const [st, setSt] = useState<State>();
-  const triggerChange = (newFileList: State) => {
-    onChange?.(newFileList ?? value ?? st);
+  const [inputState, setInputState] = useState<State>();
+  const triggerChange = (newState: State) => {
+    onChange?.({ ...inputState, ...value, ...newState });
   };
   return (
     <div id={id}>
       <Upload
         {...uploadProps} // Spread all Upload component props
         beforeUpload={() => false}
-        onChange={(info) => {
-          devLog("info", info);
-          setSt({ file: info.file, fileList: info.fileList });
-          triggerChange({ file: info.file, fileList: info.fileList });
+        onChange={({ file, fileList }) => {
+          // devLog("info", info);
+          setInputState({ file, fileList });
+          triggerChange({ file, fileList });
         }}
-        fileList={value?.fileList || st?.fileList}
-        listType="text"
-      >
+        fileList={value?.fileList || inputState?.fileList}
+        listType="text">
         <Button icon={<UploadOutlined />} />
       </Upload>
     </div>

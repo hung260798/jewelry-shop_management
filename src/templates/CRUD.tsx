@@ -80,10 +80,10 @@ export default function CRUD<DataType extends WithId<object>>(
   const screens = Grid.useBreakpoint();
   const queryClient = useQueryClient();
 
-  const setOpen = useModalForm((s) => s.setOpen);
-  const setFormValues = useModalForm((s) => s.setFormValues);
-  // const setFieldsChange = useModalForm((s) => s.setFieldsChange);
-  const setUploaderPayload = useFileUploadBox((s) => s.setPayload);
+  // const setOpen = useModalForm((s) => s.setOpen);
+  // const setFormValues = useModalForm((s) => s.setFormValues);
+  const openModal = useModalForm((s) => s.openModal);
+  const setUploaderBoxContent = useFileUploadBox((s) => s.setBoxContent);
   const setUploaderQueryKey = useFileUploadBox((s) => s.setQueryKey);
   const setOpenUploadBox = useFileUploadBox((s) => s.setOpen);
 
@@ -92,7 +92,7 @@ export default function CRUD<DataType extends WithId<object>>(
       try {
         await axiosClientJson.delete(`/${collectionName}/${_id}`);
         messageApi.success("Delete success", 1);
-        queryClient.invalidateQueries({
+        await queryClient.invalidateQueries({
           queryKey: [`get_${collectionName}`],
         });
       } catch (error) {
@@ -203,7 +203,7 @@ export default function CRUD<DataType extends WithId<object>>(
           ) : (
             <Button
               icon={<EditOutlined />}
-              title="Update"
+              title="Chỉnh sửa"
               type="dashed"
               onClick={() => {
                 // messageApi.open({
@@ -227,8 +227,10 @@ export default function CRUD<DataType extends WithId<object>>(
                 //     });
                 //     devLog(error);
                 //   });
-                setFormValues(convertToFormValues(record));
-                setOpen(true);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                openModal(convertToFormValues(record) as any, collectionName);
+                // setFormValues(convertToFormValues(record) as any);
+                // setOpen(true);
               }}
             />
           )}
@@ -251,7 +253,7 @@ export default function CRUD<DataType extends WithId<object>>(
               icon={<UploadOutlined />}
               title="Tải tệp lên"
               onClick={function () {
-                setUploaderPayload({
+                setUploaderBoxContent({
                   collection: collectionName,
                   id: record._id,
                   item: record as unknown as IdAndName,
@@ -288,8 +290,9 @@ export default function CRUD<DataType extends WithId<object>>(
             style={{ width: "150px", height: "40px" }}
             onClick={() => {
               close();
-              setFormValues(undefined);
-              setOpen(true);
+              // setFormValues(undefined);
+              // setOpen(true);
+              openModal(undefined, collectionName);
               // setFieldsChange(false);
             }}
             icon={<PlusCircleOutlined />}
@@ -398,8 +401,9 @@ export default function CRUD<DataType extends WithId<object>>(
       <Button
         type="primary"
         onClick={() => {
-          setFormValues(undefined);
-          setOpen(true);
+          // setFormValues(undefined);
+          // setOpen(true);
+          openModal(undefined, collectionName);
           // setFieldsChange(false);
         }}
         icon={<PlusOutlined />}>

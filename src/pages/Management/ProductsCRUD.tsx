@@ -94,7 +94,7 @@ const SupplierSelect: React.FC<CustomSelectProps> = (props) => {
   );
 };
 
-const inputs: FormControl[] = [
+const formControls: FormControl[] = [
   {
     label: "Id",
     name: "_id",
@@ -177,7 +177,7 @@ const inputs: FormControl[] = [
         message: "Phần trăm giảm giá phải là số nguyên không âm",
       },
     ],
-    component: <InputNumber min={1} max={75} />,
+    component: <InputNumber max={75} />,
     flex: `basis-[30%] grow-0`,
     defaultValue: "",
   },
@@ -241,7 +241,7 @@ const inputs: FormControl[] = [
       />
     ),
     flex: "basis-[364px] grow-0",
-    defaultValue: "",
+    defaultValue: [],
   },
   {
     label: "Ghi chú",
@@ -275,7 +275,6 @@ export default function ProductCRUD() {
   } = useMyQuery<GetOneOrMany<Product>>({
     url: "/products",
     queryKey: ["get_products"],
-    placeholderData: { results: [], amountResults: 0 },
   });
 
   //GET CATEGORIES
@@ -970,6 +969,7 @@ export default function ProductCRUD() {
   const crudProps: CRUDProps<Product> = {
     columns: columns,
     dataSource: dataSource,
+    totalAmount: totalAmount,
     collectionName: "products",
     searchParams: searchParams,
     setSearchParams: setSearchParams,
@@ -989,11 +989,10 @@ export default function ProductCRUD() {
         sizes: IMG_SIZES,
       },
     ],
-    totalAmount: totalAmount,
     dataChangeButtons: extraButtons,
     refetch: () => refetch(),
     form: {
-      controls: inputs,
+      controls: formControls,
       title: "Sản phẩm",
     },
     layout: (

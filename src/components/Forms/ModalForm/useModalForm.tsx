@@ -1,44 +1,20 @@
-import { StateAndUpdaters } from "@/utils/types/Others";
-import { create } from "zustand";
+import { createStoreHook } from "@/hooks/stores/useMyStore";
 
-type State = {
-  formValues: unknown;
-  fieldsChange: boolean;
+export const useModalForm = createStoreHook<{
+  formValues: object | undefined;
   open: boolean;
-};
-
-// interface Actions {
-//   setFormValues: SetState<State["formValues"]>;
-//   setFieldsChange: SetState<State["fieldsChange"]>;
-//   setOpen: SetState<State["open"]>;
-// }
-
-export const useModalForm = create<StateAndUpdaters<State>>()((set) => {
-  return {
-    formValues: undefined,
-    fieldsChange: false,
-    open: false,
-
-    setFormValues(updater) {
-      if (typeof updater === "function") {
-        return set((state) => ({ formValues: updater(state.formValues) }));
-      } else {
-        return set({ formValues: updater });
-      }
-    },
-    setFieldsChange(updater) {
-      if (typeof updater === "function") {
-        return set((state) => ({ fieldsChange: updater(state.fieldsChange) }));
-      } else {
-        return set({ fieldsChange: updater });
-      }
-    },
-    setOpen(updater) {
-      if (typeof updater === "function") {
-        return set((state) => ({ open: updater(state.open) }));
-      } else {
-        return set({ open: updater });
-      }
-    },
-  };
+  formKey: string;
+}>({
+  formValues: undefined,
+  open: false,
+  formKey: "",
+})({
+  closeModal: (set) => () =>
+    set({ formValues: undefined, open: false, formKey: "" }),
+  openModal: (set) => (initValues: object | undefined, formKey: string) =>
+    set({
+      formValues: initValues,
+      formKey: formKey,
+      open: true,
+    }),
 });

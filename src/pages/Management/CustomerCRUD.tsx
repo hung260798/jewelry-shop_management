@@ -48,21 +48,21 @@ const formItems: FormControl[] = [
     component: <Input />,
     defaultValue: "",
   },
-  {
-    label: "Mật khẩu",
-    name: "password",
-    rules: {
-      add: [
-        {
-          required: true,
-          message: "Please input password!",
-        },
-      ],
-      update: [],
-    },
-    component: <Input />,
-    defaultValue: "",
-  },
+  // {
+  //   label: "Mật khẩu",
+  //   name: "password",
+  //   rules: {
+  //     add: [
+  //       {
+  //         required: true,
+  //         message: "Please input password!",
+  //       },
+  //     ],
+  //     update: [],
+  //   },
+  //   component: <Input.Password />,
+  //   defaultValue: "",
+  // },
   {
     label: "Địa chỉ",
     name: "address",
@@ -96,7 +96,6 @@ const formItems: FormControl[] = [
       />
     ),
     getValueProps: (value) => {
-      // console.log("getValueProps");
       return {
         value: value ? dayjs(value, { format: "YYYY-MM-DD" }) : undefined,
       };
@@ -105,7 +104,10 @@ const formItems: FormControl[] = [
     //   console.log("get from event")
     //   return date ? date.format("YYYY-MM-DD") : null;
     // },
-    onSubmit: (date) => {
+    // onSubmit: (date) => {
+    //   return date ? dayjs(date).format("YYYY-MM-DD") : null;
+    // },
+    normalize: (date) => {
       return date ? dayjs(date).format("YYYY-MM-DD") : null;
     },
     defaultValue: dayjs(Date(), { format: "YYYY-MM-DD" }),
@@ -311,7 +313,7 @@ export default function CustomerCRUD() {
         );
       },
       width: 160,
-      responsive: ["xs"],
+      responsive: ["lg", "xl"],
     },
     //Phone number
     {

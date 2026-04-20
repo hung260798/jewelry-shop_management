@@ -16,7 +16,7 @@ import {
   UploadFile,
   UploadProps,
 } from "antd";
-import { PreviewLayer } from "components/images/ImagesPreview";
+import { PreviewLayer } from "@/components/images/PreviewLayer";
 import { DeletableImage } from "components/images/WithButton";
 import { produce } from "immer";
 import React, { useEffect, useState } from "react";
@@ -53,14 +53,19 @@ export default function FileUploadBox({
   const queryKey =
     useFileUploadBox((state) => state.queryKey) ??
     searchParams.toString().split("&");
-  const payload = useFileUploadBox((s) => s.payload);
-  const setPayload = useFileUploadBox((s) => s.setPayload);
+  const payload = useFileUploadBox((s) => s.boxContent);
+  const setBoxContent = useFileUploadBox((s) => s.setBoxContent);
   const setQueryKey = useFileUploadBox((s) => s.setQueryKey);
   const open = useFileUploadBox((s) => s.open);
   const setOpen = useFileUploadBox((s) => s.setOpen);
 
-  const { startLoading, loadingSuccess, loadingWarning, contextHolder } =
-    usePopupMessage();
+  const {
+    startLoading,
+    loadingSuccess,
+    loadingWarning,
+    loadingError,
+    contextHolder,
+  } = usePopupMessage();
 
   const { collection, id, item } = payload ?? {
     collection: undefined,
@@ -69,21 +74,21 @@ export default function FileUploadBox({
   };
   const qKey = [`get_${collection}`, ...queryKey];
 
-  const defaultFileFields = fields.map((item) => ({
-    name: item.name,
-    maxCount: item.maxCount ?? 1,
-    currentFileList: [],
-    sizes: item.sizes,
-    fileType: item.fileType,
-  }));
+  const [fileFields, setFileFields] = useState<
+    ({ currentFileList: UploadFile[] } & FileField)[]
+  >(() =>
+    fields.map((item) => ({
+      name: item.name,
+      maxCount: item.maxCount ?? 1,
+      currentFileList: [],
+      sizes: item.sizes,
+      fileType: item.fileType,
+    }))
+  );
 
-  const [fileFields, setFileFields] =
-    useState<({ currentFileList: UploadFile[] } & FileField)[]>(
-      defaultFileFields
-    );
   useEffect(() => {
     if (!payload) {
-      setFileFields(defaultFileFields);
+      setFileFields(fields.map((field) => ({ ...field, currentFileList: [] })));
     }
   }, [payload]);
 
@@ -101,7 +106,7 @@ export default function FileUploadBox({
         onOk={async () => {
           setOpen(false);
           if (!collection || !id || !item) {
-            setPayload(null);
+            setBoxContent(null);
             setQueryKey?.([]);
             return;
           }
@@ -193,17 +198,17 @@ export default function FileUploadBox({
             // await refetch?.();
           } catch (error) {
             devLog(error);
-            message.error("upload fail", 1);
+            loadingError("Tải lên thất bại");
             // Rollback
             queryClient.setQueryData(qKey, previousCache);
           } finally {
-            setPayload(null);
+            setBoxContent(null);
             setQueryKey?.([]);
           }
         }}
         onCancel={() => {
+          setBoxContent(null);
           setOpen(false);
-          setPayload(null);
         }}
         title={title}
         cancelText="Hủy"
@@ -231,8 +236,8 @@ export default function FileUploadBox({
             </React.Fragment>
           );
         })}
+        <PreviewLayer />
       </Modal>
-      <PreviewLayer />
     </>
   );
 }
@@ -246,9 +251,7 @@ function UploaderWithList({
 }: {
   item?: { _id: string; [k: string]: unknown };
   collection?: string;
-  // fileFields?: FileField[];
   field: FileField;
-} & {
   onChange: (fileList: UploadFile[]) => void;
   showing?: number;
 }) {
@@ -260,12 +263,13 @@ function UploaderWithList({
     sizes,
   } = field;
   showing ??= maxCount;
+  const queryClient = useQueryClient();
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   // Source của file trên client
   const [clientFileSources, setClientFileSources] = useState<string[]>([]);
-  const payload = useFileUploadBox((s) => s.payload);
-  const queryClient = useQueryClient();
-  const setPayload = useFileUploadBox((s) => s.setPayload);
+  const boxContent = useFileUploadBox((s) => s.boxContent);
+  const setBoxContent = useFileUploadBox((s) => s.setBoxContent);
+  const [messageApi, contextHolder] = message.useMessage();
 
   useEffect(() => {
     const validFiles = fileList
@@ -284,13 +288,13 @@ function UploaderWithList({
       .then((sources) => setClientFileSources(sources))
       .catch((error) => {
         devLog(error);
-        message.error("Lỗi không xác định");
+        messageApi.error("Lỗi không xác định");
       });
   }, [fileList]);
 
   useEffect(() => {
     setFileList([]);
-  }, [payload]);
+  }, [boxContent]);
 
   if (!name || !item || !collection) {
     return null;
@@ -320,108 +324,44 @@ function UploaderWithList({
   }
 
   return (
-    <Flex vertical gap={"1rem"} className="mb-2">
-      {label} (Tối đa {maxCount}, {sizeStr}):
-      <Flex align="center">
-        <Upload
-          key={name}
-          maxCount={maxCount}
-          multiple={maxCount > 1}
-          listType={fileType === "image" ? "picture-card" : "text"}
-          showUploadList={false}
-          beforeUpload={() => false}
-          onChange={(info) => {
-            devLog("info", info);
-            setFileList(info.fileList);
-            onChange?.(info.fileList);
-          }}
-          fileList={fileList}>
-          <Button
-            icon={<UploadOutlined style={{ fontSize: 24 }} />}
-            type="dashed"
-            style={{ width: "100px", height: "100px" }}
-          />
-        </Upload>
-        <ul className="flex flex-wrap">
-          {clientFileSources.slice(0, showing).map((src, i, arr) => {
-            const onDelete = () => {
-              if (fileList.length === clientFileSources.length) {
-                const copyList = fileList.slice();
-                copyList.splice(i, 1);
-                setFileList(copyList);
-                onChange?.(copyList);
-              } else {
-                message.error("Xóa file không thành công!");
-              }
-            };
-            if (fileType === "image") {
-              return (
-                <li key={`client-${i}`}>
-                  <DeletableImage
-                    width={100}
-                    height={100}
-                    src={appendDomain(src, ASSET_URL)}
-                    onDelete={onDelete}
-                    listSrc={arr}
-                    currentIndex={i}
-                  />
-                </li>
-              );
-            } else {
-              return (
-                <li key={`client-${i}`}>
-                  <div className="flex justify-between">
-                    {src}
-                    <Popconfirm title="Xác nhận xóa" onConfirm={onDelete}>
-                      <Button icon={<DeleteOutlined />} type="text" />
-                    </Popconfirm>
-                  </div>
-                </li>
-              );
-            }
-          })}
-
-          {serverSources
-            .slice(0, Math.max(0, showing - clientFileSources.length))
-            .map((src, i, arr) => {
-              const onDelete = async function () {
-                if (maxCount <= 1) {
-                  message.info("Không thể  xóa file duy nhất", 1);
-                  return;
-                }
-                try {
-                  const newArray = arr.slice();
-                  newArray.splice(i, 1);
-                  await axiosClientJson.patch<{
-                    result: unknown;
-                  }>(`/${collection}/${item._id}`, {
-                    [field.name]: newArray,
-                  });
-                  message.success("Success", 1);
-                  queryClient.invalidateQueries(
-                    {
-                      queryKey: [`get_${collection}`],
-                    },
-                    { cancelRefetch: true }
-                  );
-                  setPayload(
-                    produce((old) => {
-                      if (!old?.item || typeof old.item !== "object")
-                        return old;
-                      old.item[field.name] = newArray;
-                    })
-                  );
-                } catch (error) {
-                  const msg =
-                    error instanceof Error
-                      ? error.message
-                      : "Lỗi không xác định";
-                  message.error(msg);
+    <>
+      <Flex vertical gap={"1rem"} className="mb-2">
+        {label} (Tối đa {maxCount}, {sizeStr}):
+        <Flex align="center">
+          <Upload
+            key={name}
+            maxCount={maxCount}
+            multiple={maxCount > 1}
+            listType={fileType === "image" ? "picture-card" : "text"}
+            showUploadList={false}
+            beforeUpload={() => false}
+            onChange={(info) => {
+              devLog("info", info);
+              setFileList(info.fileList);
+              onChange?.(info.fileList);
+            }}
+            fileList={fileList}>
+            <Button
+              icon={<UploadOutlined style={{ fontSize: 24 }} />}
+              type="dashed"
+              style={{ width: "100px", height: "100px" }}
+            />
+          </Upload>
+          <ul className="flex flex-wrap">
+            {clientFileSources.slice(0, showing).map((src, i, arr) => {
+              const onDelete = () => {
+                if (fileList.length === clientFileSources.length) {
+                  const copyList = fileList.slice();
+                  copyList.splice(i, 1);
+                  setFileList(copyList);
+                  onChange?.(copyList);
+                } else {
+                  messageApi.error("Xóa file không thành công!");
                 }
               };
               if (fileType === "image") {
                 return (
-                  <li key={`server-${i}`}>
+                  <li key={`client-${i}`}>
                     <DeletableImage
                       width={100}
                       height={100}
@@ -434,7 +374,7 @@ function UploaderWithList({
                 );
               } else {
                 return (
-                  <li key={`server-${i}`}>
+                  <li key={`client-${i}`}>
                     <div className="flex justify-between">
                       {src}
                       <Popconfirm title="Xác nhận xóa" onConfirm={onDelete}>
@@ -446,13 +386,91 @@ function UploaderWithList({
               }
             })}
 
-          {nMore > 0 && (
-            <div className="w-25 h-25 text-2xl cursor-pointer flex justify-center items-center">
-              +{nMore}
-            </div>
-          )}
-        </ul>
+            {serverSources
+              .slice(0, Math.max(0, showing - clientFileSources.length))
+              .map((src, i, arr) => {
+                const deleteServerFile = async function () {
+                  try {
+                    if (maxCount <= 1) {
+                      messageApi.error("Không thể xóa file duy nhất", 1);
+                      return;
+                    }
+                    const newArray = arr.slice();
+                    const [deletedItemUrl] = newArray.splice(i, 1);
+                    const deleteUrl = `/gcs/delete/${
+                      new URL(deletedItemUrl).pathname
+                        .split("/")
+                        .filter(Boolean)
+                        .pop() ?? deletedItemUrl
+                    }`;
+                    const res1 = await axiosClientJson.patch<{
+                      result: unknown;
+                    }>(`/${collection}/${item._id}`, {
+                      [field.name]: newArray,
+                    });
+                    const res2 = await axiosClientJson.delete(deleteUrl);
+                    messageApi.success("Cập nhật thành công", 1);
+                    devLog({
+                      updateDbResponse: res1,
+                      deleteFileResponse: res2,
+                    });
+                    queryClient.invalidateQueries(
+                      {
+                        queryKey: [`get_${collection}`],
+                      },
+                      { cancelRefetch: true }
+                    );
+                    setBoxContent(
+                      produce((old) => {
+                        if (!old?.item || typeof old.item !== "object")
+                          return old;
+                        old.item[field.name] = newArray;
+                      })
+                    );
+                  } catch (error) {
+                    const msg =
+                      error instanceof Error
+                        ? error.message
+                        : "Lỗi không xác định";
+                    messageApi.error(msg);
+                    devLog("Delete file error", error);
+                  }
+                };
+                return (
+                  <li key={`server-${i}`}>
+                    {fileType === "image" ? (
+                      <DeletableImage
+                        width={100}
+                        height={100}
+                        className="object-contain"
+                        src={appendDomain(src, ASSET_URL)}
+                        onDelete={deleteServerFile}
+                        listSrc={arr}
+                        currentIndex={i}
+                      />
+                    ) : (
+                      <div className="flex justify-between">
+                        {src}
+                        <Popconfirm
+                          title="Xác nhận xóa"
+                          onConfirm={deleteServerFile}>
+                          <Button icon={<DeleteOutlined />} type="text" />
+                        </Popconfirm>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+
+            {nMore > 0 && (
+              <div className="w-25 h-25 text-2xl cursor-pointer flex justify-center items-center">
+                +{nMore}
+              </div>
+            )}
+          </ul>
+        </Flex>
       </Flex>
-    </Flex>
+      {contextHolder}
+    </>
   );
 }

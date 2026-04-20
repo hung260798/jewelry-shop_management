@@ -43,7 +43,6 @@ const OrderCRUD: React.FC = () => {
     url: "/orders",
     queryKey: ["get_orders"],
     initParams: { active: "true" },
-    placeholderData: { results: [], amountResults: 0 },
   });
   const [selectedOrder, setSelectedOrder] = useState<WithId<Order>>();
   const [isSelectingProducts, setIsSelectingProducts] =

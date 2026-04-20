@@ -1,4 +1,4 @@
-import { StateAndUpdaters } from "@/utils/types/Others";
+import { Store } from "@/utils/types/Others";
 import { Card } from "antd";
 import React from "react";
 import { create } from "zustand";
@@ -9,7 +9,7 @@ type InfoCardState = {
   collection?: string;
 };
 
-type UseInfoCard = StateAndUpdaters<InfoCardState>;
+type UseInfoCard = Store<InfoCardState>;
 
 export const useInfoCard = create<UseInfoCard>()((set) => ({
   open: false,
@@ -47,8 +47,7 @@ export default function InfoCard() {
           src="product-image-url"
           style={{ height: 200, objectFit: "cover" }}
         />
-      }
-    >
+      }>
       <Card.Meta
         title="Product Name"
         description={

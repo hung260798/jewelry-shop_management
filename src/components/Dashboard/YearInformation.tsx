@@ -41,13 +41,12 @@ const YearInformation = () => {
   }, []);
   return (
     <div>
-      <Divider orientation="left">Year&apos;s Information</Divider>
+      <Divider orientation="left">Thống kê trong năm</Divider>
       <Row
         gutter={[
           { xs: 8, sm: 16, md: 24, lg: 32 },
           { xs: 8, sm: 8, lg: 8, xxl: 8 },
-        ]}
-      >
+        ]}>
         <Col xs={24} lg={12} xxl={6}>
           <Card variant="borderless" style={{ width: "100%" }}>
             <div className="d-flex justify-content-between">

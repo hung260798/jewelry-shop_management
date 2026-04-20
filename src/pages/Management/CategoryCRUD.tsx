@@ -14,7 +14,19 @@ import { Button, Checkbox, Input, InputNumber } from "antd";
 import { ASSET_URL } from "@/utils/constants/URLS";
 import dayjs from "dayjs";
 
-const formItems = [
+type Entity = WithId<Category> & Active;
+
+const imageSizes = [
+  [80, 80],
+  [120, 120],
+];
+
+const coverImageSizes = [
+  [240, 80],
+  [300, 100],
+];
+
+const controls: FormControl[] = [
   {
     label: "Id",
     name: "_id",
@@ -105,7 +117,7 @@ const formItems = [
     label: "Image",
     name: ["files", "imageUrl"],
     component: (
-      <UploadInput>
+      <UploadInput maxCount={1}>
         <Button icon={<UploadOutlined />} />
       </UploadInput>
     ),
@@ -115,7 +127,7 @@ const formItems = [
     label: "Cover Image",
     name: ["files", "coverImageUrl"],
     component: (
-      <UploadInput>
+      <UploadInput maxCount={1}>
         <Button icon={<UploadOutlined />} />
       </UploadInput>
     ),
@@ -123,25 +135,10 @@ const formItems = [
   },
 ];
 
-type Entity = WithId<Category> & Active;
-
-const imageSizes = [
-  [80, 80],
-  [120, 120],
-];
-
-const coverImageSizes = [
-  [240, 80],
-  [300, 100],
-];
-
-const controls: FormControl[] = formItems;
-
 function CategoryCRUD() {
   const queryProps = {
     queryKey: ["get_categories"],
     url: "/categories",
-    // initData: { results: [], amountResults: 0 },
   };
   const useQueryHook = useGetList<Entity>;
 
@@ -158,14 +155,10 @@ function CategoryCRUD() {
       //NO
       {
         title: () => {
+          const isFiltering =
+            searchParams.has("active") || searchParams.has("isDeleted");
           return (
-            <div>
-              {searchParams.get("active") || searchParams.get("isDeleted") ? (
-                <div className="text-danger">No</div>
-              ) : (
-                <div className="secondary">No</div>
-              )}
-            </div>
+            <div className={isFiltering ? "text-danger" : "secondary"}>No</div>
           );
         },
         dataIndex: "_id",
@@ -444,6 +437,7 @@ function CategoryCRUD() {
       loading={isLoading}
       fetchError={error}
       convertToFormValues={converRecordToFormValues}
+      refetch={refetch}
     />
   );
 }

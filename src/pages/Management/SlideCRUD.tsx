@@ -9,10 +9,11 @@ import Search from "antd/es/input/Search";
 import { ColumnsType } from "antd/es/table";
 import { ASSET_URL } from "utils/constants/URLS";
 import { Active, GetMany, WithId } from "utils/types/Entities";
+import { FormControl } from "@/utils/types/Form";
 
 type Slide2 = WithId<Slide> & Active;
 
-export const formFields = [
+export const formFields: FormControl[] = [
   {
     label: "Id",
     name: "_id",
@@ -78,7 +79,6 @@ function SlidesCRUD() {
   } = useMyQuery<GetMany<Slide2>>({
     queryKey: ["get_slides"],
     url: "/slides",
-    placeholderData: { results: [], amountResults: 0 },
   });
 
   //Setting column
@@ -260,7 +260,17 @@ function SlidesCRUD() {
       },
     },
     //URL
-    { title: "URL", dataIndex: "url", key: "url", width: "10%" },
+    {
+      title: "URL",
+      dataIndex: "url",
+      key: "url",
+      width: "10%",
+      render: (url) => (
+        <a href={url} target="_blank" rel="noopener noreferrer">
+          {url}
+        </a>
+      ),
+    },
     //Note
     { title: "Lưu ý", dataIndex: "note", key: "note", width: "10%" },
   ];

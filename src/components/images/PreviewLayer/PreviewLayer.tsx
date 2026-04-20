@@ -1,4 +1,4 @@
-import { usePreviewLayer } from "@/hooks/stores/usePreviewLayer";
+import { usePreviewLayer } from "./usePreviewLayer";
 import { ASSET_URL } from "@/utils/constants/URLS";
 import { appendDomain } from "@/utils/stringUtils";
 import {
@@ -6,9 +6,9 @@ import {
   ArrowRightOutlined,
   CloseOutlined,
 } from "@ant-design/icons";
-import React from "react";
-import styles from "./styles.module.css";
 import { Button } from "antd";
+import React, { useEffect, useRef } from "react";
+import styles from "./styles.module.css";
 
 interface CustomDivProps extends React.HTMLAttributes<HTMLDivElement> {
   customProp?: string;
@@ -31,14 +31,31 @@ function FloatButton({ children, className, shape, ...props }: CustomDivProps) {
 
 export function PreviewLayer() {
   const srcs = usePreviewLayer((s) => s.src);
-  const setSrc = usePreviewLayer((s) => s.setSrc);
   const currentIndex = usePreviewLayer((s) => s.currentIndex);
   const setCurrentIndex = usePreviewLayer((s) => s.setCurrentIndex);
+  const closeLayer = usePreviewLayer((s) => s.closeLayer);
+  const ref = useRef<HTMLDivElement | null>(null);
 
-  const isEmpty = !srcs || (Array.isArray(srcs) && srcs.length === 0);
-  if (isEmpty) {
-    return null;
-  }
+  const isNonEmptyArray = Array.isArray(srcs) && srcs.length > 0;
+  const isShowing =
+    typeof srcs === "string"
+      ? srcs !== ""
+        ? true
+        : false
+      : srcs.length > 0
+        ? true
+        : false;
+
+  useEffect(() => {
+    if (ref.current) {
+      if (!isShowing) {
+        ref.current.blur();
+      } else {
+        ref.current.focus();
+      }
+    }
+  }, [isShowing, ref.current]);
+
   const currentSrc = Array.isArray(srcs)
     ? srcs[(currentIndex ?? 0) % srcs.length]
     : srcs;
@@ -47,14 +64,30 @@ export function PreviewLayer() {
     <>
       <div
         className={`fixed inset-0 z-2050 bg-[rgba(0,0,0,.85)] ${
-          isEmpty ? styles.hide : styles.show
-        } ${styles.mask}`}></div>
+          isShowing ? styles.show : styles.hide
+        } ${styles.mask} ${isShowing ? "block" : "hidden"}`}></div>
       <div
-        className={`fixed inset-0 z-2050 flex justify-center items-center`}
-        onClick={() => {
-          setSrc();
-          setCurrentIndex();
-        }}>
+        className={`fixed inset-0 z-2050 flex justify-center items-center ${isShowing ? "block" : "hidden"}`}
+        tabIndex={0}
+        autoFocus
+        onKeyDown={(event) => {
+          event.stopPropagation();
+          if (event.key === "Escape") {
+            closeLayer();
+            event.currentTarget.blur();
+          } else if (event.key === "ArrowLeft" && isNonEmptyArray) {
+            setCurrentIndex((n) => {
+              if (n === undefined) return 0;
+              return (n - 1 + srcs.length) % srcs.length;
+            });
+          } else if (event.key === "ArrowRight" && isNonEmptyArray) {
+            setCurrentIndex((n) => {
+              if (n === undefined) return 0;
+              return (n + 1) % srcs.length;
+            });
+          }
+        }}
+        ref={ref}>
         <img
           src={appendDomain(currentSrc!, ASSET_URL)}
           alt="image"
@@ -68,8 +101,7 @@ export function PreviewLayer() {
           shape="circle"
           className="top-[50px] right-[50px] bg-[rgba(0,0,0,0.1)]"
           onClick={() => {
-            setSrc();
-            setCurrentIndex();
+            closeLayer();
           }}>
           <CloseOutlined />
         </FloatButton>
@@ -77,10 +109,12 @@ export function PreviewLayer() {
           className="absolute left-[50px] top-[50%] -translate-y-1/2 bg-[rgba(0,0,0,0.1)] text-white"
           onClick={(e) => {
             e.stopPropagation();
-            setCurrentIndex((n) => {
-              if (n === undefined) return 0;
-              return (n - 1 + srcs.length) % srcs.length;
-            });
+            if (isNonEmptyArray) {
+              setCurrentIndex((n) => {
+                if (n === undefined) return 0;
+                return (n - 1 + srcs.length) % srcs.length;
+              });
+            }
           }}>
           <ArrowLeftOutlined />
         </FloatButton>
@@ -88,13 +122,20 @@ export function PreviewLayer() {
           className="absolute right-[50px] top-[50%] -translate-y-1/2 bg-[rgba(0,0,0,0.1)] text-white"
           onClick={(e) => {
             e.stopPropagation();
-            setCurrentIndex((n) => {
-              if (n === undefined) return 0;
-              return (n + 1) % srcs.length;
-            });
+            if (isNonEmptyArray) {
+              setCurrentIndex((n) => {
+                if (n === undefined) return 0;
+                return (n + 1) % srcs.length;
+              });
+            }
           }}>
           <ArrowRightOutlined />
         </FloatButton>
+        {typeof currentIndex === "number" && Array.isArray(srcs) && (
+          <span className="fixed z-10 bottom-[100px] left-1/2 -translate-x-1/2 text-white text-lg text-shadow-blue-400">
+            Ảnh {currentIndex + 1} / {srcs.length}
+          </span>
+        )}
       </div>
     </>
   );

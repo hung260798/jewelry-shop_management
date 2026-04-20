@@ -132,14 +132,12 @@ const MonthlyRevenueInfo = () => {
       <Card
         title={"Doanh thu trong năm"}
         variant="borderless"
-        extra={<DatePicker onChange={handlePickYearRevenue} picker="year" />}
-      >
+        extra={<DatePicker onChange={handlePickYearRevenue} picker="year" />}>
         <div
           className=" px-3 py-3 rounded-0"
           style={{
             backgroundImage: "linear-gradient(90deg,#00369e,#005cfd,#a18dff)",
-          }}
-        >
+          }}>
           <Column className="rounded-4" {...monthlyRevenuesConfig} />
         </div>
       </Card>
@@ -275,14 +273,12 @@ const TopEmployeesInfo = () => {
         // style={{ width: "100%" }}
         extra={
           <DatePicker onChange={handlePickYearTopEmployee} picker="year" />
-        }
-      >
+        }>
         <div
           className="px-3 py-3"
           style={{
             backgroundImage: "linear-gradient(90deg,#435a65,#487d4c,#758831)",
-          }}
-        >
+          }}>
           <Bar {...config2} />
         </div>
       </Card>
@@ -293,7 +289,7 @@ const TopEmployeesInfo = () => {
 const GeneralInformation = () => {
   return (
     <div>
-      <Divider orientation="left">Genaral Information</Divider>
+      <Divider orientation="left">Tổng quát</Divider>
       <Row gutter={[{ xs: 8, sm: 16, md: 24, lg: 32 }, 8]}>
         <MonthlyRevenueInfo />
         <TopEmployeesInfo />

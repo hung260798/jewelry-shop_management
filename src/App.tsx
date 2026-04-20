@@ -14,6 +14,7 @@ import CKEditorPage from "./CKEditor";
 import ErrorBoundary from "./components/ErrorBoundary";
 import MainMenu from "./components/MainMenu";
 import Error from "./components/Placeholders/Error";
+import Experiment from "./Experiment";
 import { useMyPrefetch } from "./hooks/useMyQuery";
 import useWindowWidth from "./hooks/useWidth";
 import { queryClient } from "./libraries/react-query";
@@ -220,6 +221,7 @@ const InnerApp = () => {
               </div>
             </div>
           </div>
+          <Experiment />
           <ErrorBoundary fallback={<Error />}>
             <Layout.Content className="mx-0 my-0 px-2 py-2">
               <Routes>

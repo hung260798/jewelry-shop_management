@@ -15,7 +15,67 @@ interface UseMyQueryProps {
   queryKey?: (string | number)[];
   initParams?: Record<string, string>;
   usePrivateParams?: boolean;
-  placeholderData?: GetMany<unknown> | GetOne<unknown>;
+}
+
+export function urlSearchParamsToRecord(
+  params: URLSearchParams
+): Record<string, string | string[]> {
+  const result: Record<string, string | string[]> = {};
+
+  params.forEach((value, key) => {
+    if (result[key]) {
+      if (Array.isArray(result[key])) {
+        (result[key] as string[]).push(value);
+      } else {
+        result[key] = [result[key] as string, value];
+      }
+    } else {
+      result[key] = value;
+    }
+  });
+
+  return result;
+}
+
+export function urlSearchParamsToArray(
+  params: URLSearchParams
+): [string, string | string[]][] {
+  const result: Record<string, string | string[]> = {};
+
+  params.forEach((value, key) => {
+    if (result[key]) {
+      if (Array.isArray(result[key])) {
+        (result[key] as string[]).push(value);
+      } else {
+        result[key] = [result[key] as string, value];
+      }
+    } else {
+      result[key] = value;
+    }
+  });
+
+  return Object.entries(result).sort((a, b) => a[0].localeCompare(b[0]));
+}
+
+export function compareSearchParamsArray(
+  arr1: [string, string | string[]][],
+  arr2: [string, string | string[]][]
+): boolean {
+  if (arr1.length !== arr2.length) return false;
+  for (let i = 0; i < arr1.length; i++) {
+    const [key1, value1] = arr1[i];
+    const [key2, value2] = arr2[i];
+    if (key1 !== key2) return false;
+    if (Array.isArray(value1) && Array.isArray(value2)) {
+      if (value1.length !== value2.length) return false;
+      for (let j = 0; j < value1.length; j++) {
+        if (value1[j] !== value2[j]) return false;
+      }
+    } else if (value1 !== value2) {
+      return false;
+    }
+  }
+  return true;
 }
 
 interface ReturnType<T> {
@@ -51,7 +111,7 @@ export const sortById = {
   sortOrder: "1",
 };
 
-const defaultQueryObj: Record<string, string> = {
+export const defaultQueryObj: Record<string, string> = {
   ...skipAndLimit,
   ...sortById,
 };
@@ -64,7 +124,7 @@ function addParam(
   if ([undefined, ""].includes(value)) {
     params.delete(name);
   } else {
-    params.set(name, value as string);
+    params.set(name, value!);
   }
 }
 
@@ -88,10 +148,9 @@ export default function useMyQuery<T extends object>(
   );
 
   const usedParams = usePrivateParams ? privateParams : searchParams;
-  const setParamsFn = usePrivateParams ? setPrivateParams : setSearchParams;
-
+  const setParams = usePrivateParams ? setPrivateParams : setSearchParams;
   const query = useQuery({
-    queryKey: [...queryKey, ...usedParams.toString().split("&")],
+    queryKey: [...queryKey, ...urlSearchParamsToArray(usedParams)],
     queryFn: async () => {
       const idNames = ["_id", "id", "searchId"];
       let idValue;
@@ -135,7 +194,7 @@ export default function useMyQuery<T extends object>(
       if (resetSkip) {
         paramClone.set("skip", "0");
       }
-      setParamsFn(paramClone);
+      setParams(paramClone);
     } catch (error: unknown) {
       if (!(error instanceof Error)) {
         message.error("An unexpected error occurred.");

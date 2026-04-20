@@ -4,7 +4,7 @@ import { UploadInput } from "@/components/Inputs/FileUpload";
 import { appendDomain, getSortOrder } from "@/utils/stringUtils";
 import { UploadOutlined } from "@ant-design/icons";
 import { Button, DatePicker, Input, Select, Switch, Tag } from "antd";
-import locale from "antd/es/date-picker/locale/vi_VN";
+import locale from "antd/es/date-picker/locale/en_US";
 import Search from "antd/es/input/Search";
 import { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
@@ -32,7 +32,6 @@ export default function EmployeeCRUD() {
   } = useGetList<Data>({
     url: "/employees",
     queryKey: ["get_employees"],
-    placeholderData: { results: [], amountResults: 0 },
   });
 
   //Setting column
@@ -463,11 +462,22 @@ const formControls: FormControl[] = [
       />
     ),
     className: "order-4 basis-1/2",
-    getValueProps: (value: string) => ({ value: value && dayjs(value) }),
-    // normalize: (value: string) => {
-    //   dayjs(10)
-    //   return value && `${dayjs(value).valueOf()}`;
-    // },
+    getValueProps: (value: string | undefined) => {
+      try {
+        return {
+          value: value ? dayjs(value, { format: "YYYY-MM-DD" }) : undefined,
+        };
+      } catch {
+        return { value: dayjs().format("YYYY-MM-DD") };
+      }
+    },
+    normalize: (value: string | undefined) => {
+      try {
+        return value ? dayjs(value).format("YYYY-MM-DD") : undefined;
+      } catch {
+        return dayjs().format("YYYY-MM-DD");
+      }
+    },
     defaultValue: dayjs(Date(), { format: "YYYY-MM-DD" }),
   },
   {

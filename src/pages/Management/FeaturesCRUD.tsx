@@ -3,6 +3,7 @@ import useMyQuery from "@/hooks/useMyQuery";
 import CRUD from "@/templates/CRUD";
 import { GetManyData } from "@/utils/mutationFn";
 import { appendDomain } from "@/utils/stringUtils";
+import { FormControl } from "@/utils/types/Form";
 import { UploadOutlined } from "@ant-design/icons";
 import { Button, Input, InputNumber, Select, Space, Switch, Tag } from "antd";
 import Search from "antd/es/input/Search";
@@ -10,7 +11,7 @@ import { ColumnsType } from "antd/es/table";
 import { UploadInput } from "components/Inputs/FileUpload";
 import { ASSET_URL } from "utils/constants/URLS";
 
-const formFields = [
+const formFields: FormControl[] = [
   {
     label: "Id",
     name: "_id",

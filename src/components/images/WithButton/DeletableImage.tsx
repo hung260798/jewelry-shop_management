@@ -1,63 +1,64 @@
-import { usePreviewLayer } from "@/hooks/stores/usePreviewLayer";
+import { usePreviewLayer } from "@/components/images/PreviewLayer";
 import { DeleteOutlined, EyeOutlined } from "@ant-design/icons";
-import { ImageProps, Button, Popconfirm } from "antd";
+import { Button, Modal } from "antd";
+import { ComponentPropsWithoutRef } from "react";
 import styles from "./style.module.css";
 
-type Props = ImageProps & {
-  onDelete?: () => void;
+type Props = ComponentPropsWithoutRef<"div"> & {
+  onDelete: () => void;
   listSrc?: string[];
   currentIndex?: number;
+  width: number;
+  height: number;
+  src: string;
 };
 
 export const DeletableImage: React.FC<Props> = ({
   onDelete,
   listSrc,
   currentIndex,
+  width = 120,
+  height = 120,
   ...props
 }: Props) => {
   const setPreviewSrc = usePreviewLayer((s) => s.setSrc);
   const setCurrentIndex = usePreviewLayer((s) => s.setCurrentIndex);
-  const width = props.width || 120;
-  const height = props.height || 120;
 
   return (
-    <div className={`relative w-[${width}px] h-[${height}px] ${styles.root}`}>
-      {/* <LazyFadeImage preview={preview} {...props} /> */}
-      <img loading="lazy" {...props} />
+    <div className={`relative w-[${width}px] h-[${height}px] ${styles.root} `}>
+      <img
+        loading="lazy"
+        {...props}
+        className={`min-h-[100px] object-cover`}
+        onError={(e) => {
+          const img = e.target as HTMLImageElement;
+          img.src = "/placeholder-image.jpg"; // Replace with your fallback image path
+        }}
+      />
       <div
         className={`absolute inset-0 bg-gray-600 flex justify-center items-center ${styles.mask}`}>
         <div className="opacity-100">
           <Button
-            icon={
-              <EyeOutlined
-                className="text-blue font-bold"
-                style={{ fontSize: "20px" }}
-              />
-            }
+            icon={<EyeOutlined className={styles.bttn} />}
             onClick={() => {
-              setPreviewSrc(listSrc ?? props.src);
-              setCurrentIndex(currentIndex);
+              setPreviewSrc(listSrc ?? props.src ?? []);
+              setCurrentIndex(currentIndex ?? -1);
             }}
-            type="default"
+            type="text"
           />
-          {onDelete && (
-            <Popconfirm
-              title="Xóa ảnh này?"
-              onConfirm={() => {
-                onDelete?.();
-              }}>
-              <Button
-                icon={
-                  <DeleteOutlined
-                    className="text-red font-bold"
-                    style={{ fontSize: "20px" }}
-                  />
-                }
-                type="default"
-                style={{ marginLeft: ".3rem" }}
-              />
-            </Popconfirm>
-          )}
+          <Button
+            icon={<DeleteOutlined className={styles.bttn} />}
+            type="text"
+            style={{ marginLeft: ".3rem" }}
+            onClick={() => {
+              Modal.confirm({
+                okText: "Xóa",
+                cancelText: "Hủy",
+                title: "Xóa ảnh?",
+                onOk: () => onDelete(),
+              });
+            }}
+          />
         </div>
       </div>
     </div>
