@@ -68,34 +68,12 @@ import {
   EditorConfig,
   // EditorConfig,
 } from "ckeditor5";
-// import {
-//   CaseChange,
-//   DocumentOutline,
-//   PasteFromOfficeEnhanced,
-//   ExportPdf,
-//   ExportWord,
-//   Footnotes,
-//   ImportWord,
-//   RealTimeCollaborativeComments,
-//   RealTimeCollaborativeEditing,
-//   PresenceList,
-//   Comments,
-//   RealTimeCollaborativeRevisionHistory,
-//   RevisionHistory,
-//   RealTimeCollaborativeTrackChanges,
-//   TrackChanges,
-//   TrackChangesData,
-//   TrackChangesPreview,
-//   SlashCommand,
-//   TableOfContents,
-//   Template,
-// } from "ckeditor5-premium-features";
 
 import "ckeditor5/ckeditor5.css";
 import "ckeditor5-premium-features/ckeditor5-premium-features.css";
 
-import "./App.css";
-import { devLog } from "./utils/logger";
+import "@/App.css";
+import { devLog } from "utils/logger";
 
 // const LICENSE_KEY =
 //   "eyJhbGciOiJFUzI1NiJ9.eyJleHAiOjE3NjYwMTU5OTksImp0aSI6ImMxYTJhODZlLWRiOWQtNDBkMi04ZDRkLTVhNTUzMjBlNTZlZSIsInVzYWdlRW5kcG9pbnQiOiJodHRwczovL3Byb3h5LWV2ZW50LmNrZWRpdG9yLmNvbSIsImRpc3RyaWJ1dGlvbkNoYW5uZWwiOlsiY2xvdWQiLCJkcnVwYWwiLCJzaCJdLCJ3aGl0ZUxhYmVsIjp0cnVlLCJsaWNlbnNlVHlwZSI6InRyaWFsIiwiZmVhdHVyZXMiOlsiKiJdLCJ2YyI6ImZkNDcwZmU0In0.oEH3voXVKvMDQUEI7zQyYwOZ0OyM86myNKDhfWuPUaOmnasedWkKdbEnoMUMZUrPraXbbtZUBTF8Xlxpx7_WVA";
@@ -479,11 +457,13 @@ export default function CKEditorPage() {
       <div className="presence" ref={editorPresenceRef}></div>
       <div
         className="editor-container editor-container_classic-editor editor-container_include-outline editor-container_include-annotations editor-container_include-fullscreen"
-        ref={editorContainerRef}>
+        ref={editorContainerRef}
+      >
         <div className="editor-container__editor-wrapper">
           <div
             className="editor-container__sidebar"
-            ref={editorOutlineRef}></div>
+            ref={editorOutlineRef}
+          ></div>
           <div className="editor-container__editor">
             <div ref={editorRef}>
               {editorConfig && (
@@ -499,17 +479,20 @@ export default function CKEditorPage() {
           </div>
           <div
             className="editor-container__sidebar"
-            ref={editorAnnotationsRef}></div>
+            ref={editorAnnotationsRef}
+          ></div>
         </div>
       </div>
       <div className="revision-history" ref={editorRevisionHistoryRef}>
         <div className="revision-history__wrapper">
           <div
             className="revision-history__editor"
-            ref={editorRevisionHistoryEditorRef}></div>
+            ref={editorRevisionHistoryEditorRef}
+          ></div>
           <div
             className="revision-history__sidebar"
-            ref={editorRevisionHistorySidebarRef}></div>
+            ref={editorRevisionHistorySidebarRef}
+          ></div>
         </div>
       </div>
 
@@ -517,13 +500,15 @@ export default function CKEditorPage() {
         <button
           onClick={() => {
             devLog(editRef.current?.getData());
-          }}>
+          }}
+        >
           get data
         </button>
         <button
           onClick={() => {
             devLog(editRef.current?.setData("<b><i><u>aaaa</u></i></b>"));
-          }}>
+          }}
+        >
           set data
         </button>
       </div>

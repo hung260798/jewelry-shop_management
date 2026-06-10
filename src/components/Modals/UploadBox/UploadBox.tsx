@@ -16,8 +16,8 @@ import {
   UploadFile,
   UploadProps,
 } from "antd";
-import { PreviewLayer } from "@/components/images/PreviewLayer";
-import { DeletableImage } from "components/images/WithButton";
+import { PreviewLayer } from "@/components/Images/PreviewLayer";
+import { DeletableImage } from "@/components/Images/WithButton";
 import { produce } from "immer";
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -53,7 +53,7 @@ export default function FileUploadBox({
   const queryKey =
     useFileUploadBox((state) => state.queryKey) ??
     searchParams.toString().split("&");
-  const payload = useFileUploadBox((s) => s.boxContent);
+  const uploadBoxContent = useFileUploadBox((s) => s.boxContent);
   const setBoxContent = useFileUploadBox((s) => s.setBoxContent);
   const setQueryKey = useFileUploadBox((s) => s.setQueryKey);
   const open = useFileUploadBox((s) => s.open);
@@ -67,30 +67,32 @@ export default function FileUploadBox({
     contextHolder,
   } = usePopupMessage();
 
-  const { collection, id, item } = payload ?? {
-    collection: undefined,
-    id: undefined,
-    item: undefined,
-  };
+  const { collection, item } = uploadBoxContent
+    ? uploadBoxContent
+    : {
+        collection: undefined,
+        item: undefined,
+      };
+  const id = uploadBoxContent?.item?._id;
   const qKey = [`get_${collection}`, ...queryKey];
 
   const [fileFields, setFileFields] = useState<
     ({ currentFileList: UploadFile[] } & FileField)[]
   >(() =>
-    fields.map((item) => ({
-      name: item.name,
-      maxCount: item.maxCount ?? 1,
+    fields.map((field) => ({
+      name: field.name,
+      maxCount: field.maxCount ?? 1,
       currentFileList: [],
-      sizes: item.sizes,
-      fileType: item.fileType,
+      sizes: field.sizes,
+      fileType: field.fileType,
     }))
   );
 
   useEffect(() => {
-    if (!payload) {
+    if (!uploadBoxContent) {
       setFileFields(fields.map((field) => ({ ...field, currentFileList: [] })));
     }
-  }, [payload]);
+  }, [uploadBoxContent]);
 
   const title =
     typeof modalTitle === "function"
@@ -105,7 +107,7 @@ export default function FileUploadBox({
         open={open}
         onOk={async () => {
           setOpen(false);
-          if (!collection || !id || !item) {
+          if (!collection || !item) {
             setBoxContent(null);
             setQueryKey?.([]);
             return;
@@ -212,7 +214,8 @@ export default function FileUploadBox({
         }}
         title={title}
         cancelText="Hủy"
-        okText="Lưu">
+        okText="Lưu"
+      >
         {fields.map((field, i) => {
           const { name } = field;
           const nodeKey = `${name}_${i}`;
@@ -249,9 +252,9 @@ function UploaderWithList({
   onChange,
   showing,
 }: {
-  item?: { _id: string; [k: string]: unknown };
-  collection?: string;
   field: FileField;
+  collection?: string;
+  item?: { _id: string; [k: string]: unknown };
   onChange: (fileList: UploadFile[]) => void;
   showing?: number;
 }) {
@@ -296,16 +299,18 @@ function UploaderWithList({
     setFileList([]);
   }, [boxContent]);
 
-  if (!name || !item || !collection) {
+  if (!name || !collection) {
     return null;
   }
 
-  const serverListLength =
-    item && collection
-      ? Array.isArray(item[field.name])
-        ? (item[field.name] as unknown[]).length
-        : 0
-      : 0;
+  let serverSources =
+    (item?.[field.name] as string | string[] | undefined) ?? [];
+
+  if (typeof serverSources === "string") {
+    serverSources = [serverSources];
+  }
+
+  const serverListLength = serverSources.length;
 
   const nMore = Math.min(
     0,
@@ -315,13 +320,6 @@ function UploaderWithList({
   const sizeStr = sizes
     ? ` (${sizes.map((s) => `${s[0]}x${s[1]}`).join(", ")})`
     : "";
-
-  let serverSources =
-    (item?.[field.name] as string | string[] | undefined) ?? [];
-
-  if (typeof serverSources === "string") {
-    serverSources = [serverSources];
-  }
 
   return (
     <>
@@ -340,7 +338,8 @@ function UploaderWithList({
               setFileList(info.fileList);
               onChange?.(info.fileList);
             }}
-            fileList={fileList}>
+            fileList={fileList}
+          >
             <Button
               icon={<UploadOutlined style={{ fontSize: 24 }} />}
               type="dashed"
@@ -405,7 +404,7 @@ function UploaderWithList({
                     }`;
                     const res1 = await axiosClientJson.patch<{
                       result: unknown;
-                    }>(`/${collection}/${item._id}`, {
+                    }>(`/${collection}/${item?._id}`, {
                       [field.name]: newArray,
                     });
                     const res2 = await axiosClientJson.delete(deleteUrl);
@@ -453,7 +452,8 @@ function UploaderWithList({
                         {src}
                         <Popconfirm
                           title="Xác nhận xóa"
-                          onConfirm={deleteServerFile}>
+                          onConfirm={deleteServerFile}
+                        >
                           <Button icon={<DeleteOutlined />} type="text" />
                         </Popconfirm>
                       </div>

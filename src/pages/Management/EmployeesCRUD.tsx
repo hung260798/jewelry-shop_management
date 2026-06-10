@@ -1,19 +1,23 @@
-import CRUD from "@/templates/CRUD";
+import CRUD from "@/components/CRUD";
 // import { LazyFadeImage } from "@repo/components/src/images";
-import { UploadInput } from "@/components/Inputs/FileUpload";
+import { useModalForm } from "@/components/Forms/ModalForm/useModalForm";
+import useFileUploadBox, {
+  IdAndNameWise,
+} from "@/components/Modals/UploadBox/useFileUploadBox";
 import { appendDomain, getSortOrder } from "@/utils/stringUtils";
+import { FormControl } from "@/utils/types/Form";
 import { UploadOutlined } from "@ant-design/icons";
 import { Button, DatePicker, Input, Select, Switch, Tag } from "antd";
 import locale from "antd/es/date-picker/locale/en_US";
 import Search from "antd/es/input/Search";
 import { ColumnsType } from "antd/es/table";
+import SmartImage from "@/components/Images/Lazy/SmartImage";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
-import { useGetList } from "hooks/useMyQuery";
+import { useGetListQuery } from "hooks/useMyQuery";
+import { useSearchParams } from "react-router-dom";
 import { ASSET_URL } from "utils/constants/URLS";
 import { Active, User, WithId } from "utils/types/Entities";
-import SmartImage from "components/images/Lazy/SmartImage";
-import { FormControl } from "@/utils/types/Form";
 
 const { RangePicker } = DatePicker;
 const dateFormat = "DD/MM/YYYY";
@@ -24,15 +28,12 @@ type Data = WithId<User> & Active & { Locked: boolean };
 const imageSizes: [number, number][] = [[80, 120]];
 
 export default function EmployeeCRUD() {
-  const {
-    query: { data: employeesResponse, isLoading, error, isFetching },
-    searchParams,
-    setSearchParams,
-    searchItems,
-  } = useGetList<Data>({
+  const queryResult = useGetListQuery<Data>({
     url: "/employees",
     queryKey: ["get_employees"],
   });
+
+  const { searchParams, searchItems } = queryResult;
 
   //Setting column
   const renderTitle = (paramKey: string, label: string) => (
@@ -47,9 +48,8 @@ export default function EmployeeCRUD() {
       title: () => {
         return (
           <div
-            className={
-              searchParams.get("Locked") ? "text-danger" : "secondary"
-            }>
+            className={searchParams.get("Locked") ? "text-danger" : "secondary"}
+          >
             No
           </div>
         );
@@ -323,11 +323,6 @@ export default function EmployeeCRUD() {
       },
     },
   ];
-  const { results: dataSource, amountResults } = employeesResponse
-    ? "results" in employeesResponse
-      ? employeesResponse
-      : { results: [employeesResponse.result], amountResults: 1 }
-    : { results: [], amountResults: 0 };
 
   const converRecordToFormValues = (record: Data) => {
     return {
@@ -341,12 +336,12 @@ export default function EmployeeCRUD() {
   return (
     <CRUD
       columns={columns}
-      dataSource={dataSource}
-      totalAmount={amountResults}
-      searchParams={searchParams}
-      setSearchParams={setSearchParams}
+      // dataSource={dataSource}
+      // totalAmount={amountResults}
+      // searchParams={searchParams}
+      // setSearchParams={setSearchParams}
       collectionName={"employees"}
-      loading={isLoading || isFetching}
+      // loading={isLoading || isFetching}
       form={{
         controls: formControls,
         title: "Nhân viên",
@@ -360,11 +355,12 @@ export default function EmployeeCRUD() {
           sizes: imageSizes,
         },
       ]}
-      fetchError={error}
+      // fetchError={error}
       convertToFormValues={converRecordToFormValues}
       uploadModalTitle={(employee) =>
         `${employee?.firstName} ${employee?.lastName}`
       }
+      query={queryResult}
     />
   );
 }
@@ -381,7 +377,7 @@ const formControls: FormControl[] = [
     label: "Email",
     name: "email",
     rules: [{ required: true, message: "Please input Email!" }],
-    component: <Input />,
+    component: <Input placeholder="JohnDoe@gmail.com" />,
     className: "order-2 basis-1/2",
     defaultValue: "",
   },
@@ -389,7 +385,7 @@ const formControls: FormControl[] = [
     label: "Tên",
     name: "firstName",
     rules: [{ required: true, message: "Phải nhập tên!" }],
-    component: <Input />,
+    component: <Input placeholder="Hoàng" />,
     className: "order-1 basis-1/2",
     defaultValue: "",
   },
@@ -397,7 +393,7 @@ const formControls: FormControl[] = [
     label: "Họ đệm",
     name: "lastName",
     rules: [{ required: true, message: "Phải nhập họ!" }],
-    component: <Input />,
+    component: <Input placeholder="Nguyễn Văn" />,
     className: "order-1 basis-1/2",
     defaultValue: "",
   },
@@ -480,13 +476,41 @@ const formControls: FormControl[] = [
     },
     defaultValue: dayjs(Date(), { format: "YYYY-MM-DD" }),
   },
+  // {
+  //   label: "Ảnh hồ sơ",
+  //   name: ["files", "imageUrl"],
+  //   component: (
+  //     <UploadInput maxCount={1}>
+  //       <Button icon={<UploadOutlined />} />
+  //     </UploadInput>
+  //   ),
+  // },
   {
     label: "Ảnh hồ sơ",
-    name: ["files", "imageUrl"],
-    component: (
-      <UploadInput maxCount={1}>
-        <Button icon={<UploadOutlined />} />
-      </UploadInput>
-    ),
+    component: function ImageButton() {
+      const setUploadBoxContent = useFileUploadBox((s) => s.setBoxContent);
+      const setUploaderQueryKey = useFileUploadBox((s) => s.setQueryKey);
+      const setOpenUploadBox = useFileUploadBox((s) => s.setOpen);
+      const record = useModalForm((s) => s.formValues as Data);
+      const [searchParams] = useSearchParams();
+      return (
+        <Button
+          icon={<UploadOutlined />}
+          title="Tải tệp lên"
+          onClick={function () {
+            setUploadBoxContent({
+              collection: "products",
+              item: record as unknown as IdAndNameWise,
+            });
+            const qk: string[][] = [];
+            for (const pair of searchParams?.entries() ?? []) {
+              qk.push(pair);
+            }
+            setUploaderQueryKey?.(qk);
+            setOpenUploadBox(true);
+          }}
+        />
+      );
+    },
   },
 ];

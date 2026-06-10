@@ -22,11 +22,7 @@ const Login = () => {
         refreshToken?: string;
         user?: User;
       }>("/employees/login", account);
-      if (
-        loginResponse.status > 300 ||
-        loginResponse.status < 200 ||
-        "message" in loginResponse.data
-      ) {
+      if (loginResponse.status > 300 || loginResponse.status < 200) {
         message.error("Login unsuccessfully!!");
         return;
       }
@@ -52,13 +48,15 @@ const Login = () => {
     } catch (err: unknown) {
       setAuth(null);
       if (err instanceof AxiosError) {
+        const clientMessage =
+          err.response?.data?.clientMessage || err.response?.data?.message;
         if (err.status === 401) {
-          message.error("Unauthorized", 1.5);
+          message.error(clientMessage || "Không có quyền truy cập", 1.5);
         } else {
-          message.error("Request error");
+          message.error(clientMessage || "Lỗi máy chủ", 1.5);
         }
       } else {
-        message.error("Unknown error", 1.5);
+        message.error("Lỗi không xác định", 1.5);
       }
       devLog(err);
     }
@@ -71,7 +69,8 @@ const Login = () => {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-      }}>
+      }}
+    >
       <div className={`${style.form_box}`}>
         <h2 className={`${style.title}`}>Login</h2>
         <Form
@@ -87,7 +86,8 @@ const Login = () => {
           onFinish={async (values) => {
             await login(values);
           }}
-          autoComplete="off">
+          autoComplete="off"
+        >
           <Form.Item
             label="Email"
             name="email"
@@ -96,7 +96,8 @@ const Login = () => {
               { type: "email", message: "Email không hợp lệ" },
             ]}
             validateTrigger="onBlur"
-            className="mb-5">
+            className="mb-5"
+          >
             <Input />
           </Form.Item>
 
@@ -112,7 +113,8 @@ const Login = () => {
               },
             ]}
             validateTrigger="onBlur"
-            className="mb-5">
+            className="mb-5"
+          >
             <Input.Password />
           </Form.Item>
 

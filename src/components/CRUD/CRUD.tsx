@@ -1,5 +1,4 @@
-import { ModalForm } from "@/components/Forms/ModalForm";
-import { useModalForm } from "@/components/Forms/ModalForm/useModalForm";
+import { ModalForm, useModalForm } from "@/components/Forms/ModalForm";
 import FileUploadBox from "@/components/Modals/UploadBox";
 import { axiosClientJson } from "@/libraries/axiosClient";
 import {
@@ -16,14 +15,18 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button, Flex, Grid, message, Popconfirm, Table } from "antd";
 import { ColumnsType, ColumnType, TableProps } from "antd/es/table";
 import React, { ReactNode, useEffect, useState } from "react";
-import { SetURLSearchParams } from "react-router-dom";
-import { WithId } from "utils/types/Entities";
+import { GetOneOrMany, WithId } from "utils/types/Entities";
 import { FileField, FormControl, FormProps } from "utils/types/Form";
 import cssStyles from "./crud.module.css";
 // import ErrorPage from "@/components/fallbacks/Error";
+import { ModalFormProps } from "@/components/Forms/ModalForm/ModalForm";
 import useFileUploadBox, {
-  IdAndName,
+  IdAndNameWise,
 } from "@/components/Modals/UploadBox/useFileUploadBox";
+import {
+  extractArrayFromGetOneOrMany,
+  MyQueryReturnType,
+} from "@/hooks/useMyQuery";
 import { devLog, getErrorMessage } from "@/utils/logger";
 
 export type CRUDFunctions = {
@@ -38,32 +41,26 @@ export type CRUDFunctions = {
 export interface CRUDProps<T> {
   collectionName: string;
   columns: ColumnsType<T>;
-  dataSource?: T[];
   functions?: CRUDFunctions;
-  dataChangeButtons?: JSX.Element[];
+  filterButtons?: ReactNode;
   fileFields?: FileField[];
   uploadModalTitle?: string | ((record: T) => string);
-  searchParams?: URLSearchParams;
-  setSearchParams?: SetURLSearchParams;
-  totalAmount?: number;
-  refetch?: () => void;
   form?: {
     controls?: FormControl[];
     title?: string;
     submitFn?: (values: unknown) => Promise<void>;
     customComponent?: React.FC<
-      Omit<FormProps, "submitFn" | "formControls" | "title" | "formValues">
+      Omit<FormProps, "submitFn" | "formControls" | "modalTitle" | "formValues">
     >;
+    modalProps?: ModalFormProps["modalProps"];
   };
   convertToFormValues?: (record: T) => unknown;
   functionColumn?: {
-    edit?: (record: T) => ReactNode;
     extraFunctions?: ((record: T) => ReactNode)[];
     override?: (record: T) => ReactNode;
   };
-  loading?: boolean;
   layout?: (...parts: ReactNode[]) => JSX.Element;
-  fetchError?: unknown;
+  query: MyQueryReturnType<GetOneOrMany<T>>;
 }
 
 export const PERPAGE_SIZE = 10;
@@ -76,17 +73,74 @@ export const PERPAGE_SIZE = 10;
 export default function CRUD<DataType extends WithId<object>>(
   props: CRUDProps<DataType>
 ) {
+  const {
+    columns,
+    functions = {},
+    filterButtons: dataChangeButtons = null,
+    fileFields,
+    collectionName,
+    form,
+    convertToFormValues = (d) => d,
+    query: queryResults,
+  } = props;
+
+  const { searchParams, setSearchParams, query } = queryResults ?? {};
+  const {
+    data,
+    isLoading,
+    error: fetchError,
+    isFetching,
+    refetch,
+  } = query ?? {};
+  const { dataSource, amountResults: totalAmount } =
+    extractArrayFromGetOneOrMany(data);
+  const tableLoading = isLoading || isFetching;
+
   const [messageApi, contextHolder] = message.useMessage();
   const screens = Grid.useBreakpoint();
   const queryClient = useQueryClient();
-
-  // const setOpen = useModalForm((s) => s.setOpen);
-  // const setFormValues = useModalForm((s) => s.setFormValues);
   const openModal = useModalForm((s) => s.openModal);
-  const setUploaderBoxContent = useFileUploadBox((s) => s.setBoxContent);
+  const setUploadBoxContent = useFileUploadBox((s) => s.setBoxContent);
   const setUploaderQueryKey = useFileUploadBox((s) => s.setQueryKey);
   const setOpenUploadBox = useFileUploadBox((s) => s.setOpen);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [cachedData, setCachedData] = useState<{
+    dataSource: DataType[];
+    totalAmount: number;
+  }>({
+    dataSource: dataSource,
+    totalAmount: totalAmount,
+  });
+
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const hasSelected = selectedRowKeys.length > 0;
+
+  // Update cachedData only when not loading and dataSource changes
+  useEffect(() => {
+    if (!tableLoading && dataSource && dataSource.length > 0 && totalAmount) {
+      setCachedData({ dataSource, totalAmount });
+    }
+  }, [dataSource, totalAmount, tableLoading]);
+
+  useEffect(() => {
+    if (fetchError) {
+      messageApi.error(getErrorMessage(fetchError));
+      devLog(fetchError);
+    }
+  }, [fetchError]);
+
+  useEffect(() => {
+    try {
+      let skip: string | number | null = searchParams?.get("skip") ?? null;
+      skip = skip ? +skip : 0;
+      setCurrentPage(skip / PERPAGE_SIZE + 1);
+    } catch (err) {
+      console.error(err);
+    }
+  }, [searchParams?.get("skip")]);
+
+  // End of hooks, start of functions
   async function defaultHandleDelete({ _id }: { _id: string }) {
     if (collectionName) {
       try {
@@ -105,57 +159,13 @@ export default function CRUD<DataType extends WithId<object>>(
   async function defaultClearParams() {
     if (setSearchParams && searchParams) {
       setSearchParams(new URLSearchParams("skip=0&limit=10"));
-      // searchParams.set("skip", "0");
-      // searchParams.set("limit", "10");
-      // await refetch();
     }
   }
 
   const {
-    columns,
-    dataSource = [],
-    functions = {},
-    dataChangeButtons = [],
-    fileFields,
-    collectionName,
-    searchParams,
-    setSearchParams,
-    totalAmount = 0,
-    form,
-    refetch,
-    loading: tableLoading,
-    convertToFormValues = (d) => d,
-    fetchError,
-  } = props;
-  const {
     handleDelete = defaultHandleDelete,
     clearParams = defaultClearParams,
   } = functions;
-  const [currentPage, setCurrentPage] = useState(1);
-  const [cachedData, setCachedData] = useState<{
-    dataSource: DataType[];
-    totalAmount: number;
-  }>({
-    dataSource: dataSource,
-    totalAmount: totalAmount,
-  });
-
-  useEffect(() => {
-    try {
-      let skip: string | number | null = searchParams?.get("skip") ?? null;
-      skip = skip ? +skip : 0;
-      setCurrentPage(skip / PERPAGE_SIZE + 1);
-    } catch (err) {
-      console.error(err);
-    }
-  }, [searchParams?.get("skip")]);
-
-  // Update cachedData only when not loading and dataSource changes
-  useEffect(() => {
-    if (!tableLoading && dataSource && dataSource.length > 0 && totalAmount) {
-      setCachedData({ dataSource, totalAmount });
-    }
-  }, [dataSource, totalAmount, tableLoading]);
 
   const handleTableChange: TableProps["onChange"] = (
     pagination,
@@ -196,67 +206,47 @@ export default function CRUD<DataType extends WithId<object>>(
     width: "9rem",
     dataIndex: "_id",
     render: (_id, record) => {
+      const { extraFunctions, override } = props.functionColumn ?? {};
       return (
         <Flex gap={4} wrap>
-          {props.functionColumn?.edit ? (
-            props.functionColumn.edit(record)
+          {override ? (
+            override(record)
           ) : (
-            <Button
-              icon={<EditOutlined />}
-              title="Chỉnh sửa"
-              type="dashed"
-              onClick={() => {
-                // messageApi.open({
-                //   key: "open-detail",
-                //   content: "Đang tải dữ liệu",
-                //   type: "loading",
-                // });
-                // axiosClientJson
-                //   .get<GetOne<DataType>>(`${collectionName}/${_id}`)
-                //   .then((response) => {
-                //     setFormValues(convertToFormValues(response.data.result));
-                //     setOpen(true);
-                //     messageApi.destroy("open-detail");
-                //   })
-                //   .catch((error) => {
-                //     messageApi.open({
-                //       key: "open-detail",
-                //       content: "Không thể tải dữ liệu",
-                //       type: "error",
-                //       duration: 1,
-                //     });
-                //     devLog(error);
-                //   });
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                openModal(convertToFormValues(record) as any, collectionName);
-                // setFormValues(convertToFormValues(record) as any);
-                // setOpen(true);
-              }}
-            />
+            <>
+              <Button
+                icon={<EditOutlined />}
+                title="Chỉnh sửa"
+                type="dashed"
+                onClick={() => {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  openModal(convertToFormValues(record) as any, collectionName);
+                }}
+              />
+              <Popconfirm
+                title="Xác nhận xóa"
+                okType="danger"
+                onConfirm={() => {
+                  handleDelete(record);
+                }}
+                cancelText="Hủy"
+              >
+                <Button
+                  title="Xóa"
+                  type="dashed"
+                  danger
+                  icon={<DeleteOutlined />}
+                />
+              </Popconfirm>
+            </>
           )}
-          <Popconfirm
-            title="Xác nhận xóa"
-            okType="danger"
-            onConfirm={() => {
-              handleDelete(record);
-            }}
-            cancelText="Hủy">
-            <Button
-              title="Xóa"
-              type="dashed"
-              danger
-              icon={<DeleteOutlined />}
-            />
-          </Popconfirm>
           {fileFields && collectionName && (
             <Button
               icon={<UploadOutlined />}
               title="Tải tệp lên"
               onClick={function () {
-                setUploaderBoxContent({
+                setUploadBoxContent({
                   collection: collectionName,
-                  id: record._id,
-                  item: record as unknown as IdAndName,
+                  item: record as unknown as IdAndNameWise,
                 });
                 const qk: string[][] = [];
                 for (const pair of searchParams?.entries() ?? []) {
@@ -267,7 +257,7 @@ export default function CRUD<DataType extends WithId<object>>(
               }}
             />
           )}
-          {props.functionColumn?.extraFunctions?.map((elem) => elem(record))}
+          {extraFunctions?.map((elem) => elem(record))}
         </Flex>
       );
     },
@@ -282,7 +272,8 @@ export default function CRUD<DataType extends WithId<object>>(
               clearParams();
             }}
             icon={<ClearOutlined />}
-            type="text">
+            type="text"
+          >
             Xóa bộ lọc
           </Button>
           {/* Add */}
@@ -290,13 +281,11 @@ export default function CRUD<DataType extends WithId<object>>(
             style={{ width: "150px", height: "40px" }}
             onClick={() => {
               close();
-              // setFormValues(undefined);
-              // setOpen(true);
               openModal(undefined, collectionName);
-              // setFieldsChange(false);
             }}
             icon={<PlusCircleOutlined />}
-            type="text">
+            type="text"
+          >
             Thêm
           </Button>
           {hasSelected && (
@@ -304,14 +293,16 @@ export default function CRUD<DataType extends WithId<object>>(
               title="Xac nhan"
               description="Xoa cac phan tu da chon?"
               icon={<QuestionCircleOutlined style={{ color: "red" }} />}
-              onConfirm={() => deleteSelectedRows()}>
+              onConfirm={() => deleteSelectedRows()}
+            >
               <Button
                 style={{ width: "150px", height: "40px" }}
                 title="delete"
                 type="text"
                 danger
-                icon={<DeleteOutlined />}>
-                Xoa da chon
+                icon={<DeleteOutlined />}
+              >
+                Xóa đã chọn
               </Button>
             </Popconfirm>
           )}
@@ -359,23 +350,32 @@ export default function CRUD<DataType extends WithId<object>>(
 
   const cols = [...columns, functionColumn];
 
-  let formJSX: ReactNode = null;
-  if (form?.customComponent) {
-    const CustomForm = form.customComponent;
-    formJSX = <CustomForm />;
-  } else if (form) {
-    const { controls = [], title = collectionName, submitFn } = form;
-    formJSX = (
-      <ModalForm
-        formControls={controls}
-        submitFn={submitFn}
-        title={title}
-        refetch={refetch}
-        collectionName={collectionName}
-        fileFields={fileFields}
-      />
-    );
-  }
+  const formJSX: ReactNode = form?.customComponent
+    ? (() => {
+        const CustomForm = form.customComponent;
+        return <CustomForm />;
+      })()
+    : form
+      ? (() => {
+          const {
+            controls = [],
+            title = collectionName,
+            submitFn,
+            modalProps,
+          } = form;
+          return (
+            <ModalForm
+              formControls={controls}
+              submitFn={submitFn}
+              modalTitle={title}
+              refetch={refetch}
+              collectionName={collectionName}
+              fileFields={fileFields}
+              modalProps={modalProps ?? {}}
+            />
+          );
+        })()
+      : null;
 
   let isFiltering = false;
   if (searchParams) {
@@ -387,15 +387,6 @@ export default function CRUD<DataType extends WithId<object>>(
     }
   }
 
-  const clearParamBtn = (
-    <Button
-      onClick={() => defaultClearParams()}
-      disabled={!isFiltering}
-      icon={<FilterOutlined />}>
-      Xóa bộ lọc
-    </Button>
-  );
-
   const addBtnJSX = (
     <>
       <Button
@@ -406,36 +397,19 @@ export default function CRUD<DataType extends WithId<object>>(
           openModal(undefined, collectionName);
           // setFieldsChange(false);
         }}
-        icon={<PlusOutlined />}>
+        icon={<PlusOutlined />}
+      >
         Thêm
       </Button>
-      {clearParamBtn}
+      <Button
+        onClick={() => defaultClearParams()}
+        disabled={!isFiltering}
+        icon={<FilterOutlined />}
+      >
+        Xóa bộ lọc
+      </Button>
     </>
   );
-
-  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const onSelectChange = (newSelectedRowKeys: React.Key[]) => {
-    setSelectedRowKeys(newSelectedRowKeys);
-  };
-
-  type TableRowSelection<T extends object = object> =
-    TableProps<T>["rowSelection"];
-
-  const hasSelected = selectedRowKeys.length > 0;
-  const rowSelection: TableRowSelection<DataType> = {
-    selectedRowKeys,
-    onChange: onSelectChange,
-    fixed: true,
-  };
-
-  useEffect(() => {
-    if (fetchError) {
-      messageApi.error(getErrorMessage(fetchError));
-      devLog(fetchError);
-    }
-  }, [fetchError]);
-
-  // End of hooks
 
   const finalDataSource = fetchError
     ? cachedData.dataSource || []
@@ -461,9 +435,16 @@ export default function CRUD<DataType extends WithId<object>>(
         spinning: tableLoading,
         size: "large",
       }}
-      rowSelection={{ ...rowSelection }}
+      rowSelection={{
+        selectedRowKeys,
+        onChange: (newSelectedRowKeys: React.Key[]) => {
+          setSelectedRowKeys(newSelectedRowKeys);
+        },
+        fixed: true,
+      }}
       className={`${cssStyles["custom-header-table"]} shadow-2xl`}
       size={screens.xl ? "middle" : "small"}
+      sticky={{ offsetHeader: 64 }}
     />
   );
 
@@ -486,7 +467,8 @@ export default function CRUD<DataType extends WithId<object>>(
       description="Bạn muốn xóa các bản ghi đã chọn?"
       onConfirm={() => deleteSelectedRows()}
       cancelText="Hủy"
-      okText="Xóa">
+      okText="Xóa"
+    >
       <Button danger disabled={!hasSelected} icon={<DeleteOutlined />}>
         Xóa
       </Button>
@@ -501,7 +483,7 @@ export default function CRUD<DataType extends WithId<object>>(
     selectOperations
   ) => {
     return (
-      <div>
+      <div className="relative">
         {contextHolder}
         <Flex className="my-2 mx-4" gap={4} wrap>
           {addBtn}

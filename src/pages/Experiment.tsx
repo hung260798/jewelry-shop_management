@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { defaultQueryObj } from "./hooks/useMyQuery";
+import { defaultQueryObj } from "../hooks/useMyQuery";
 
 export default function Experiment() {
   const params = new URLSearchParams(defaultQueryObj);

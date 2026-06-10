@@ -1,8 +1,8 @@
 import useMyQuery from "@/hooks/useMyQuery";
-import CRUD from "@/templates/CRUD";
+import CRUD from "@/components/CRUD";
 import { Slide } from "@/utils/types/Entities";
 // import { LazyFadeImage } from "@repo/components/src/images";
-import SmartImage from "@/components/images/Lazy/SmartImage";
+import SmartImage from "@/components/Images/Lazy/SmartImage";
 import { appendDomain } from "@/utils/stringUtils";
 import { Input, InputNumber, Select, Space, Switch, Tag } from "antd";
 import Search from "antd/es/input/Search";
@@ -13,7 +13,7 @@ import { FormControl } from "@/utils/types/Form";
 
 type Slide2 = WithId<Slide> & Active;
 
-export const formFields: FormControl[] = [
+const formFields: FormControl[] = [
   {
     label: "Id",
     name: "_id",
@@ -71,15 +71,16 @@ export const formFields: FormControl[] = [
 ];
 
 function SlidesCRUD() {
-  const {
-    query: { data: slidesData, refetch, isLoading, error },
-    searchParams,
-    setSearchParams,
-    searchItems,
-  } = useMyQuery<GetMany<Slide2>>({
+  const queryResult = useMyQuery<GetMany<Slide2>>({
     queryKey: ["get_slides"],
     url: "/slides",
   });
+
+  const {
+    query: { refetch },
+    searchParams,
+    searchItems,
+  } = queryResult;
 
   //Setting column
   const columns: ColumnsType<Slide2> = [
@@ -275,15 +276,13 @@ function SlidesCRUD() {
     { title: "Lưu ý", dataIndex: "note", key: "note", width: "10%" },
   ];
 
-  const dataSource = slidesData?.results;
-
   return (
     <CRUD<WithId<Slide & Active>>
       columns={columns}
-      dataSource={dataSource}
-      totalAmount={slidesData?.amountResults || 0}
-      searchParams={searchParams}
-      setSearchParams={setSearchParams}
+      // dataSource={dataSource}
+      // totalAmount={slidesData?.amountResults || 0}
+      // searchParams={searchParams}
+      // setSearchParams={setSearchParams}
       collectionName="slides"
       form={{
         controls: formFields,
@@ -298,8 +297,9 @@ function SlidesCRUD() {
           sizes: [[300, 100]],
         },
       ]}
-      loading={isLoading}
-      fetchError={error}
+      // loading={isLoading}
+      // fetchError={error}
+      query={queryResult}
     />
   );
 }

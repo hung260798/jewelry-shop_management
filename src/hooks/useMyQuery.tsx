@@ -1,14 +1,14 @@
 import { axiosClientJson } from "@/libraries/axiosClient";
-import { GetMany, GetOne } from "utils/types/Entities";
 import {
   useQuery,
   useQueryClient,
   UseQueryResult,
 } from "@tanstack/react-query";
 import { message } from "antd";
+import { produce } from "immer";
 import { Dispatch, SetStateAction, useState } from "react";
 import { SetURLSearchParams, useSearchParams } from "react-router-dom";
-import { produce } from "immer";
+import { GetMany, GetOne } from "utils/types/Entities";
 
 interface UseMyQueryProps {
   url: string;
@@ -78,7 +78,7 @@ export function compareSearchParamsArray(
   return true;
 }
 
-interface ReturnType<T> {
+export interface MyQueryReturnType<T> {
   searchParams: URLSearchParams;
   setSearchParams: SetURLSearchParams;
   searchItems: (
@@ -120,17 +120,17 @@ function addParam(
   params: URLSearchParams,
   param: { type: string; value?: string }
 ) {
-  const { type: name, value } = param;
-  if ([undefined, ""].includes(value)) {
-    params.delete(name);
+  const { type, value } = param;
+  if (!value) {
+    params.delete(type);
   } else {
-    params.set(name, value!);
+    params.set(type, value);
   }
 }
 
 export default function useMyQuery<T extends object>(
   props: UseMyQueryProps
-): ReturnType<T> {
+): MyQueryReturnType<T> {
   const {
     url,
     queryKey = [url],
@@ -147,8 +147,54 @@ export default function useMyQuery<T extends object>(
     new URLSearchParams({ ...defaultQueryObj, ...initParams })
   );
 
+  const setPrivateParamsWrapper: SetURLSearchParams = (newParams) => {
+    if (newParams == null) {
+      setPrivateParams(new URLSearchParams());
+      return;
+    }
+    if (typeof newParams === "function") {
+      setPrivateParams((prev) => {
+        const result = newParams(prev);
+        if (result == null) {
+          return new URLSearchParams();
+          // return prev;
+        }
+        return new URLSearchParams(result.toString());
+      });
+    }
+    if (newParams instanceof URLSearchParams) {
+      setPrivateParams(newParams);
+      return;
+    }
+    if (Array.isArray(newParams)) {
+      const params = new URLSearchParams();
+      for (const [key, value] of newParams) {
+        params.append(key, value);
+      }
+      setPrivateParams(params);
+      return;
+    }
+    if (typeof newParams === "object") {
+      const params = new URLSearchParams();
+      for (const key in newParams) {
+        const value = newParams[key];
+        if (Array.isArray(value)) {
+          for (const v of value) {
+            params.append(key, v);
+          }
+        } else if (value !== undefined) {
+          params.set(key, value);
+        }
+      }
+      setPrivateParams(params);
+      return;
+    }
+  };
+
   const usedParams = usePrivateParams ? privateParams : searchParams;
-  const setParams = usePrivateParams ? setPrivateParams : setSearchParams;
+  const setParams = usePrivateParams
+    ? setPrivateParamsWrapper
+    : setSearchParams;
   const query = useQuery({
     queryKey: [...queryKey, ...urlSearchParamsToArray(usedParams)],
     queryFn: async () => {
@@ -168,33 +214,33 @@ export default function useMyQuery<T extends object>(
     },
     retry: false,
     refetchInterval: REFETCH_INTERVAL,
-    // placeholderData: initData,
   });
 
-  const searchForItems: ReturnType<T>["searchItems"] = async (
+  const searchForItems: MyQueryReturnType<T>["searchItems"] = async (
     queries,
-    { replace, resetSkip } = { replace: false, resetSkip: false }
+    options
   ) => {
     try {
-      const paramClone: URLSearchParams = new URLSearchParams(
+      const { replace = false, resetSkip = false } = options || {};
+      const newParams: URLSearchParams = new URLSearchParams(
         replace ? {} : usedParams
       );
-      if (!(queries instanceof URLSearchParams)) {
+      if (queries instanceof URLSearchParams) {
+        for (const [type, value] of queries.entries()) {
+          addParam(newParams, { type, value });
+        }
+      } else {
         if (!Array.isArray(queries)) {
           queries = [queries];
         }
         for (const query of queries) {
-          addParam(paramClone, query);
-        }
-      } else {
-        for (const [type, value] of queries.entries()) {
-          addParam(paramClone, { type, value });
+          addParam(newParams, query);
         }
       }
       if (resetSkip) {
-        paramClone.set("skip", "0");
+        newParams.set("skip", "0");
       }
-      setParams(paramClone);
+      setParams(newParams);
     } catch (error: unknown) {
       if (!(error instanceof Error)) {
         message.error("An unexpected error occurred.");
@@ -210,9 +256,48 @@ export default function useMyQuery<T extends object>(
     }
   };
 
+  // const searchForItems: ReturnType<T>["searchItems"] = async (
+  //   queries,
+  //   { replace, resetSkip } = { replace: false, resetSkip: false }
+  // ) => {
+  //   try {
+  //     const paramClone: URLSearchParams = new URLSearchParams(
+  //       replace ? {} : usedParams
+  //     );
+  //     if (queries instanceof URLSearchParams) {
+  //       for (const [type, value] of queries.entries()) {
+  //         addParam(paramClone, { type, value });
+  //       }
+  //     } else {
+  //       if (!Array.isArray(queries)) {
+  //         queries = [queries];
+  //       }
+  //       for (const query of queries) {
+  //         addParam(paramClone, query);
+  //       }
+  //     }
+  //     if (resetSkip) {
+  //       paramClone.set("skip", "0");
+  //     }
+  //     setParams(paramClone);
+  //   } catch (error: unknown) {
+  //     if (!(error instanceof Error)) {
+  //       message.error("An unexpected error occurred.");
+  //       return;
+  //     }
+  //     if (!("response" in error)) {
+  //       message.error(error.message);
+  //       return;
+  //     }
+  //     message.error(
+  //       (error.response as { data?: { message?: string } })?.data?.message
+  //     );
+  //   }
+  // };
+
   return {
     searchParams: usedParams,
-    setSearchParams: setSearchParams,
+    setSearchParams: setParams,
     searchItems: searchForItems,
     query: query,
     setPrivateParams: setPrivateParams,
@@ -221,7 +306,7 @@ export default function useMyQuery<T extends object>(
 
 export type GetOneOrMany<T> = GetMany<T> | GetOne<T>;
 
-export function useGetList<T>(props: UseMyQueryProps) {
+export function useGetListQuery<T>(props: UseMyQueryProps) {
   const queryReturn = useMyQuery<GetOneOrMany<T>>(props);
   return produce(queryReturn, (queryReturn) => {
     const data = queryReturn.query.data;

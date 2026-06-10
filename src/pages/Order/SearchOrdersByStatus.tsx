@@ -48,14 +48,7 @@ export default function SearchOrdersByStatus() {
       title: "Tổng tiền",
       dataIndex: "total",
       key: "total",
-      render: (text, record) => {
-        const { orderDetails } = record;
-
-        let total = 0;
-        orderDetails.forEach((od) => {
-          total = total + od.quantity * od.product.total;
-        });
-
+      render: (total) => {
         return <strong>{numeral(total).format("0,0$")}</strong>;
       },
     },
@@ -92,7 +85,8 @@ export default function SearchOrdersByStatus() {
         initialValues={{ status: "" }}
         onFinish={onFinish}
         onFinishFailed={onFinishFailed}
-        autoComplete="on">
+        autoComplete="on"
+      >
         <Form.Item label="Trạng thái đơn hàng" name="status">
           <Select options={OrderStatus} />
         </Form.Item>

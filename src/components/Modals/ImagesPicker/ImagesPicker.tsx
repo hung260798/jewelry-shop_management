@@ -1,7 +1,7 @@
-import SelectableImage from "@/components/images/Selectable/SelectableImage";
+import SelectableImage from "@/components/Images/Selectable/SelectableImage";
 import { axiosClientJson } from "@/libraries/axiosClient";
 import { useQuery } from "@tanstack/react-query";
-import { Button, Modal, Image as AntdImg, Pagination } from "antd";
+import { Button, Modal } from "antd";
 import { useState } from "react";
 
 const ImagesPicker = () => {
@@ -56,10 +56,12 @@ const ImagesPickerModal = ({
       height={500}
       width={800}
       style={{ width: "800px" }}
-      className="max-h-[500px]">
+      className="max-h-[500px]"
+    >
       <div
         className="grid grid-cols-3 gap-4 mx-auto w-fit"
-        style={{ height: "500px", overflow: "auto" }}>
+        style={{ height: "500px", overflow: "auto" }}
+      >
         {(images?.files || []).map((image) => (
           <SelectableImage
             src={image}

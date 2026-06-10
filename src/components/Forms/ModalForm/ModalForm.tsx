@@ -1,32 +1,28 @@
 import { axiosClientJson } from "@/libraries/axiosClient";
-// import { upload } from "@/utils/mutationFn";
-// import { excludeDomain } from "@/utils/stringUtils";
-import { Form, message, Modal } from "antd";
-import { useEffect, useRef } from "react";
-import { QueryFilters, useQueryClient } from "@tanstack/react-query";
-import { devLog } from "@/utils/logger";
-import { useScreen } from "@/hooks/useWidth";
-import { FormProps } from "@/utils/types/Form";
-import { ModalProps } from "antd";
 import { useModalForm } from "@/components/Forms/ModalForm/useModalForm";
-import { getErrorMessage } from "@/utils/logger";
-import _ from "lodash";
-import { useSearchParams } from "react-router-dom";
-import { hasKeyOfType, hasShape, isRecord } from "@/utils/typeUtils";
 import {
   compareSearchParamsArray,
   defaultQueryObj,
   urlSearchParamsToArray,
 } from "@/hooks/useMyQuery";
+import { useScreen } from "@/hooks/useWidth";
+import { devLog, getErrorMessage } from "@/utils/logger";
+import { FormProps } from "@/utils/types/Form";
+import { hasKeyOfType, hasShape, isRecord } from "@/utils/typeUtils";
+import { QueryFilters, useQueryClient } from "@tanstack/react-query";
+import { Form, message, Modal, ModalProps } from "antd";
+import _ from "lodash";
+import { useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 
-type ModalFormProps = Omit<FormProps, "formValues"> & {
+export type ModalFormProps = Omit<FormProps, "formValues"> & {
   modalProps?: ModalProps;
 };
 
 export const ModalForm = ({
   submitFn,
   formControls,
-  title = "Form",
+  modalTitle: title = "Form",
   modalProps = {},
   collectionName,
   // fileFields,
@@ -37,6 +33,7 @@ export const ModalForm = ({
   const [messageApi, contextHolder] = message.useMessage();
   const { formValues, open, closeModal, formKey } = useModalForm((s) => s);
   const [searchParams] = useSearchParams();
+  const httpMethod = formValues ? "patch" : "post";
 
   const queryClient = useQueryClient();
   const fieldsChanged = useRef<Record<string, unknown>>({});
@@ -260,6 +257,8 @@ export const ModalForm = ({
     closeModalAndCleanUp();
   };
 
+  const { width, ...restModalProps } = modalProps;
+
   return (
     <Modal
       onCancel={() => {
@@ -272,7 +271,7 @@ export const ModalForm = ({
       cancelText="Hủy"
       open={open && formKey === collectionName}
       title={title}
-      width={isSmallScreen ? "100%" : "1000px"}
+      width={isSmallScreen ? "100%" : (width ?? 800)}
       modalRender={(dom) => (
         <Form
           form={form}
@@ -286,11 +285,13 @@ export const ModalForm = ({
           onFinishFailed={(err) => {
             messageApi.error("Lỗi submit");
             devLog(err);
-          }}>
+          }}
+        >
           {dom}
         </Form>
       )}
-      {...modalProps}>
+      {...restModalProps}
+    >
       {contextHolder}
       <div className="px-6 pt-2 pb-4">
         {formControls.map((item, index) => {
@@ -303,12 +304,17 @@ export const ModalForm = ({
             getValueProps,
             getValueFromEvent,
             normalize,
+            method,
           } = item;
-          let { rules } = item;
-          if (!rules) {
-            rules = [];
-          } else if (!Array.isArray(rules)) {
-            rules = formValues ? rules.update : rules.add;
+
+          if (method && method !== httpMethod) {
+            return null;
+          }
+
+          if (!item.rules) {
+            item.rules = [];
+          } else if (!Array.isArray(item.rules)) {
+            item.rules = formValues ? item.rules.update : item.rules.add;
           }
           const css = isSmallScreen ? { marginBottom: ".35rem" } : {};
           return (
@@ -319,13 +325,21 @@ export const ModalForm = ({
               label={label}
               labelCol={{ span: 6 }}
               wrapperCol={{ span: 18 }}
-              className={`${className}`}
+              className={className || ""}
               getValueProps={getValueProps}
               getValueFromEvent={getValueFromEvent}
               normalize={normalize}
-              rules={rules}
-              style={css}>
-              {component}
+              rules={item.rules}
+              style={css}
+            >
+              {typeof component === "function" ? (
+                (() => {
+                  const Component = component as React.FC<unknown>;
+                  return <Component />;
+                })()
+              ) : (
+                <>{component}</>
+              )}
             </Form.Item>
           );
         })}

@@ -1,15 +1,20 @@
+import {
+  getCardControlsFromRecord,
+  ModalCard,
+  useModalCard,
+} from "@/components/Forms/ModalCard";
+import SearchBox, { SearchBoxOptions } from "@/components/Inputs/Searchbox";
 import { List } from "antd";
-import SearchBox, {
-  useSearchAll,
-  SearchBoxOptions,
-} from "components/Inputs/Searchbox";
-import { Link } from "react-router-dom";
+import useSearchAll from "./useSearchAll";
 
 type ResultArray = ReturnType<typeof useSearchAll>["data"];
 type ResultItem = ResultArray extends Array<infer T> ? T : never;
 
 export default function AppSearch() {
-  const renderResults: SearchBoxOptions<ResultItem>["renderList"] = (
+  const openModal = useModalCard((s) => s.openModal);
+  const cardValues = useModalCard((s) => s.cardValues);
+
+  const renderResults: SearchBoxOptions<ResultItem>["renderListFn"] = (
     items,
     context
   ) => {
@@ -33,16 +38,11 @@ export default function AppSearch() {
     }
     return (
       <List
-        className="w-full overflow-y-auto min-h-[8rem] max-h-[20rem] bg-white rounded-lg shadow-md p-2"
+        className="w-full overflow-y-auto min-h-32 max-h-80 bg-white rounded-lg shadow-md p-2"
         bordered
       >
         {items.map((item) => {
-          const {
-            key,
-            value: arr,
-            toString,
-            collection: collectionName,
-          } = item;
+          const { key, value: arr, toString } = item;
           return (
             arr.length > 0 && (
               <List.Item key={key} className="mb-2">
@@ -63,13 +63,17 @@ export default function AppSearch() {
                           key={index}
                           className="overflow-clip text-sm text-gray-600 hover:bg-gray-100 rounded-md px-2"
                         >
-                          <Link
-                            to={`/management/${collectionName}?searchId=${item._id}`}
-                            style={{ textDecoration: "none" }}
-                            onClick={() => context?.clickItem?.()}
+                          <button
+                            type="button"
+                            className="w-full text-left"
+                            onClick={() => {
+                              openModal(item, "search-all");
+                              context?.clickItem?.();
+                              context?.clearTerm?.();
+                            }}
                           >
                             {toString(item)}
-                          </Link>
+                          </button>
                         </List.Item>
                       );
                     })}
@@ -82,14 +86,25 @@ export default function AppSearch() {
       </List>
     );
   };
-  // return null;
+
+  const controls = cardValues
+    ? getCardControlsFromRecord(cardValues as Record<string, unknown>)
+    : [];
+
   return (
-    <SearchBox
-      useSearch={useSearchAll}
-      renderList={renderResults}
-      searchProps={{
-        size: "large",
-      }}
-    />
+    <>
+      <SearchBox
+        searchHook={useSearchAll}
+        renderListFn={renderResults}
+        searchProps={{
+          size: "large",
+        }}
+      />
+      <ModalCard
+        collectionName="search"
+        title="Record details"
+        cardControls={controls}
+      />
+    </>
   );
 }

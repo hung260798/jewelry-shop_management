@@ -3,7 +3,7 @@ import MyCkeditorFormInput from "@/components/Inputs/MyCkeditorFormInput";
 import useMyQuery, { GetOneOrMany } from "@/hooks/useMyQuery";
 import useWindowWidth from "@/hooks/useWidth";
 import { axiosClientJson } from "@/libraries/axiosClient";
-import CRUD, { CRUDProps } from "@/templates/CRUD";
+import CRUD, { CRUDProps } from "@/components/CRUD";
 import { ASSET_URL } from "@/utils/constants/URLS";
 import { GetManyData } from "@/utils/mutationFn";
 import {
@@ -14,7 +14,12 @@ import {
   WithId,
 } from "@/utils/types/Entities";
 import { FormControl } from "@/utils/types/Form";
-import { ClearOutlined, SearchOutlined } from "@ant-design/icons";
+import {
+  CheckOutlined,
+  ClearOutlined,
+  SearchOutlined,
+  UploadOutlined,
+} from "@ant-design/icons";
 import { useQuery } from "@tanstack/react-query";
 import {
   Button,
@@ -34,14 +39,17 @@ import Search from "antd/es/input/Search";
 import { ColumnType } from "antd/es/table";
 import "ckeditor5-premium-features/ckeditor5-premium-features.css";
 import "ckeditor5/ckeditor5.css";
-import SmartImage from "components/images/Lazy/SmartImage";
+import SmartImage from "@/components/Images/Lazy/SmartImage";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
-import { GetMany, GetOne } from "utils/types/Entities";
 // import { devLog } from "@/utils/logger";
 import { DataSelect, DataSelectProps } from "@/components/Inputs/Select";
 import { appendDomain, getSortOrder } from "@/utils/stringUtils";
 import React from "react";
+import { useFileUploadBox } from "@/components/Modals/UploadBox";
+import { useSearchParams } from "react-router-dom";
+import { useModalForm } from "@/components/Forms/ModalForm";
+import { IdAndNameWise } from "@/components/Modals/UploadBox/useFileUploadBox";
 
 interface CustomSelectProps {
   value?: string;
@@ -257,6 +265,35 @@ const formControls: FormControl[] = [
     flex: "basis-[364px] grow-0",
     defaultValue: "",
   },
+  {
+    label: "Hình ảnh",
+    component: function ImageButton() {
+      const setUploadBoxContent = useFileUploadBox((s) => s.setBoxContent);
+      const setUploaderQueryKey = useFileUploadBox((s) => s.setQueryKey);
+      const setOpenUploadBox = useFileUploadBox((s) => s.setOpen);
+      const record = useModalForm((s) => s.formValues as Product);
+      const [searchParams] = useSearchParams();
+      return (
+        <Button
+          icon={<UploadOutlined />}
+          title="Tải tệp lên"
+          onClick={function () {
+            setUploadBoxContent({
+              collection: "products",
+              item: record as unknown as IdAndNameWise,
+            });
+            const qk: string[][] = [];
+            for (const pair of searchParams?.entries() ?? []) {
+              qk.push(pair);
+            }
+            setUploaderQueryKey?.(qk);
+            setOpenUploadBox(true);
+          }}
+        />
+      );
+    },
+    method: "patch",
+  },
 ];
 
 dayjs.extend(customParseFormat);
@@ -267,15 +304,12 @@ const IMG_SIZES: [number, number][] = [[200, 200]];
 const dateFormat = "DD/MM/YYYY";
 
 export default function ProductCRUD() {
-  const {
-    query: { data: productsData, refetch, isLoading: loadingProd, error },
-    searchParams,
-    setSearchParams,
-    searchItems,
-  } = useMyQuery<GetOneOrMany<Product>>({
+  const queryResult = useMyQuery<GetOneOrMany<Product>>({
     url: "/products",
     queryKey: ["get_products"],
   });
+
+  const { searchParams, searchItems } = queryResult;
 
   //GET CATEGORIES
   const { data: categoriesData, isLoading: loadingCat } = useQuery({
@@ -303,14 +337,7 @@ export default function ProductCRUD() {
   const columns: Col[] = [
     // NO
     {
-      title: () => {
-        return searchParams.get("active") || searchParams.get("isDeleted") ? (
-          <div className="text-danger">No</div>
-        ) : (
-          <div className="secondary">No</div>
-        );
-      },
-      // title: "No",
+      title: () => <div className="secondary">No</div>,
       dataIndex: "id",
       key: "id",
       render: (text: string, record: Product, index: number) => {
@@ -343,7 +370,7 @@ export default function ProductCRUD() {
         return (
           <Search
             allowClear
-            placeholder="input search text"
+            placeholder="Nhẫn kim cương"
             onSearch={(e) => {
               searchItems(
                 [
@@ -367,22 +394,17 @@ export default function ProductCRUD() {
     {
       title: (
         <div
-          className={
-            searchParams.get("active") || searchParams.get("isDeleted")
-              ? "text-danger"
-              : "secondary"
-          }>
+          className={searchParams.get("active") ? "text-danger" : "secondary"}
+        >
           Trạng thái
         </div>
       ),
       dataIndex: "active",
       key: "active",
-      render: (text: string, record: Product) => {
-        let content = <Tag color="green">ACTIVE</Tag>;
-        if (record.active === false && !record.isDeleted) {
-          content = <Tag color="gold">INACTIVE</Tag>;
-        } else if (record.isDeleted) {
-          content = <Tag color="red">DELETED</Tag>;
+      render: (active: string) => {
+        let content = <Tag color="green">Đang hoạt động</Tag>;
+        if (!active) {
+          content = <Tag color="gold">Tạm ẩn</Tag>;
         }
         return content;
       },
@@ -391,13 +413,10 @@ export default function ProductCRUD() {
           <Select
             allowClear
             onClear={() => {
-              searchItems([
-                { type: "active", value: "" },
-                { type: "isDeleted", value: "" },
-              ]);
+              searchItems([{ type: "active", value: "" }]);
             }}
             style={{ width: "125px" }}
-            placeholder="Select "
+            placeholder="Chọn trạng thái"
             optionFilterProp="children"
             showSearch
             onChange={(e) => {
@@ -405,11 +424,63 @@ export default function ProductCRUD() {
                 searchItems([{ type: "active", value: "true" }], {
                   replace: true,
                 });
-              } else if (e === "unActive") {
+              } else if (e === "inActive") {
                 searchItems([{ type: "active", value: "false" }], {
                   replace: true,
                 });
-              } else if (e === "isDeleted") {
+              }
+            }}
+            filterOption={(input, option) =>
+              (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+            }
+            options={[
+              {
+                value: "active",
+                label: "Hoạt động",
+              },
+              {
+                value: "inActive",
+                label: "Tạm ẩn",
+              },
+            ]}
+          />
+        );
+      },
+      width: "120px",
+      responsive: ["xl"],
+    },
+    // Is Deleted
+    {
+      title: (
+        <div
+          className={
+            searchParams.get("isDeleted") ? "text-danger" : "secondary"
+          }
+        >
+          Đã xóa?
+        </div>
+      ),
+      dataIndex: "isDeleted",
+      key: "isDeleted",
+      render: (isDeleted: boolean) => {
+        return (
+          <Flex justify={"center"} align={"center"}>
+            {isDeleted ? <CheckOutlined /> : null}
+          </Flex>
+        );
+      },
+      filterDropdown: () => {
+        return (
+          <Select
+            allowClear
+            onClear={() => {
+              searchItems([{ type: "isDeleted", value: "" }]);
+            }}
+            placeholder="Chọn trạng thái"
+            optionFilterProp="children"
+            showSearch
+            onChange={(e) => {
+              if (e === "isDeleted") {
                 searchItems(
                   {
                     type: "isDeleted",
@@ -424,22 +495,18 @@ export default function ProductCRUD() {
             }
             options={[
               {
-                value: "active",
-                label: "Active",
-              },
-              {
-                value: "unActive",
-                label: "Unactive",
+                value: "nonDeleted",
+                label: "Chưa xóa",
               },
               {
                 value: "isDeleted",
-                label: "Deleted",
+                label: "Đã xóa",
               },
             ]}
           />
         );
       },
-      width: "120px",
+      width: "100px",
       responsive: ["xl"],
     },
     // ImageUrl
@@ -523,10 +590,14 @@ export default function ProductCRUD() {
     {
       width: "100px",
       title: () => {
-        return searchParams.get("supplierId[]") ? (
-          <div className="text-danger">Nhà cung cấp</div>
-        ) : (
-          <div className="secondary">Nhà cung cấp</div>
+        return (
+          <div
+            className={
+              searchParams.get("supplierId[]") ? "text-danger" : "secondary"
+            }
+          >
+            Nhà cung cấp
+          </div>
         );
       },
       dataIndex: "supplierId",
@@ -543,11 +614,11 @@ export default function ProductCRUD() {
             allowClear
             style={{ width: "125px" }}
             placeholder="Chọn nhà cung cấp"
-            onChange={(e: string) => {
+            onChange={(val: string) => {
               searchItems(
                 {
                   type: "supplierId[]",
-                  value: e,
+                  value: val,
                 },
                 { resetSkip: true }
               );
@@ -575,6 +646,7 @@ export default function ProductCRUD() {
         );
       },
     },
+    // Price
     {
       width: "120px",
       title: () => {
@@ -623,16 +695,18 @@ export default function ProductCRUD() {
               ];
               searchItems(valueSearch, { resetSkip: true });
             }}
-            className=" px-2 py-2 h-fit">
+          >
             <Space
               direction={width > 896 ? "horizontal" : "vertical"}
-              size={"small"}>
+              size={"small"}
+            >
               <Form.Item
                 // hasFeedback
-                label="from"
-                name="fromPrice">
+                label="Giá từ"
+                name="fromPrice"
+              >
                 <InputNumber<string | number>
-                  placeholder="Enter From"
+                  placeholder="100.000"
                   min={1}
                   className="w-28"
                   formatter={(value) =>
@@ -643,9 +717,9 @@ export default function ProductCRUD() {
                   }
                 />
               </Form.Item>
-              <Form.Item label="to" name="toPrice">
+              <Form.Item label="đến" name="toPrice">
                 <InputNumber<string | number>
-                  placeholder="Enter to"
+                  placeholder="100.000.000"
                   min={1}
                   className="w-28"
                   formatter={(value) =>
@@ -693,6 +767,108 @@ export default function ProductCRUD() {
         );
       },
     },
+    // Sold
+    {
+      width: "100px",
+      title: () => {
+        return (
+          <div
+            className={
+              searchParams.get("fromStock") || searchParams.get("toStock")
+                ? "text-danger"
+                : "secondary"
+            }
+          >
+            Doanh số
+          </div>
+        );
+      },
+      dataIndex: "sold",
+      key: "sold",
+      filterDropdown: () => {
+        return (
+          <Form
+            name="infoStock"
+            onFinish={(e) => {
+              searchItems(
+                [
+                  { type: "fromSold", value: e.fromStock },
+                  { type: "toSold", value: e.toStock },
+                ],
+                { resetSkip: true }
+              );
+            }}
+            className=" px-2 py-2 h-12"
+          >
+            <Space>
+              <Form.Item
+                // hasFeedback
+                label="Từ"
+                name="fromSold"
+              >
+                <InputNumber<string | number>
+                  placeholder="Enter From"
+                  min={1}
+                  className="w-28"
+                  formatter={(value) =>
+                    `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ".")
+                  }
+                  parser={(value) =>
+                    value!.replace(/\s?d|(\.*)/g, "").replace(/\./g, "")
+                  }
+                />
+              </Form.Item>
+              <Form.Item label="đến" name="toSold">
+                <InputNumber<string | number>
+                  placeholder="Enter to"
+                  min={1}
+                  className="w-28"
+                  formatter={(value) =>
+                    `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ".")
+                  }
+                  parser={(value) =>
+                    value!.replace(/\s?d|(\.*)/g, "").replace(/\./g, "")
+                  }
+                />
+              </Form.Item>
+              <span>
+                <Form.Item>
+                  <Button
+                    type="dashed"
+                    htmlType="submit"
+                    icon={<SearchOutlined />}
+                  />
+                </Form.Item>
+              </span>
+              <span>
+                {searchParams.get("fromSold") || searchParams.get("toSold") ? (
+                  <Form.Item>
+                    <Button
+                      type="dashed"
+                      onClick={() => {
+                        searchItems(
+                          [
+                            { type: "fromSold", value: "" },
+                            { type: "toSold", value: "" },
+                          ],
+                          { resetSkip: true }
+                        );
+                      }}
+                      icon={<ClearOutlined />}
+                    />
+                  </Form.Item>
+                ) : (
+                  ""
+                )}
+              </span>
+            </Space>
+          </Form>
+        );
+      },
+      sorter: true,
+      sortOrder: getSortOrder(searchParams.toString(), "sold"),
+    },
+    // Stock
     {
       width: "100px",
       title: () => {
@@ -717,12 +893,14 @@ export default function ProductCRUD() {
                 { resetSkip: true }
               );
             }}
-            className=" px-2 py-2 h-12">
+            className=" px-2 py-2 h-12"
+          >
             <Space>
               <Form.Item
                 // hasFeedback
-                label="from"
-                name="fromStock">
+                label="Từ"
+                name="fromStock"
+              >
                 <InputNumber<string | number>
                   placeholder="Enter From"
                   min={1}
@@ -735,7 +913,7 @@ export default function ProductCRUD() {
                   }
                 />
               </Form.Item>
-              <Form.Item label="to" name="toStock">
+              <Form.Item label="đến" name="toStock">
                 <InputNumber<string | number>
                   placeholder="Enter to"
                   min={1}
@@ -786,6 +964,7 @@ export default function ProductCRUD() {
       sorter: true,
       sortOrder: getSortOrder(searchParams.toString(), "stock"),
     },
+    // Discount
     {
       width: "90px",
       title: () => {
@@ -802,24 +981,29 @@ export default function ProductCRUD() {
         return (
           <Form
             name="infoDiscount"
-            onFinish={(e) => {
+            onFinish={(values) => {
               const valueSearch = [
-                { type: "fromDiscount", value: e.fromDiscount },
-                { type: "toDiscount", value: e.toDiscount },
+                { type: "fromDiscount", value: values.fromDiscount },
+                { type: "toDiscount", value: values.toDiscount },
               ];
               valueSearch.map((item) => searchItems(item));
             }}
-            className=" px-2 py-2 h-12">
+            className=" px-2 py-2 h-12"
+          >
             <Space>
-              <Form.Item label="from" name="fromDiscount">
-                <InputNumber
+              <Form.Item label="Từ" name="fromDiscount">
+                <InputNumber<number>
                   placeholder="Enter From"
                   min={1}
                   className="w-28"
                 />
               </Form.Item>
-              <Form.Item label="to" name="toDiscount">
-                <InputNumber placeholder="Enter to" min={1} className="w-28" />
+              <Form.Item label="đến" name="toDiscount">
+                <InputNumber<number>
+                  placeholder="Enter to"
+                  min={1}
+                  className="w-28"
+                />
               </Form.Item>
               <span>
                 <Form.Item>
@@ -859,12 +1043,24 @@ export default function ProductCRUD() {
       sorter: true,
       sortOrder: getSortOrder(searchParams.toString(), "discount"),
     },
-    // {
-    //   title: "Lưu ý",
-    //   dataIndex: "note",
-    //   key: "note",
-    //   width: "100px",
-    // },
+    // Note
+    {
+      title: "Lưu ý",
+      dataIndex: "note",
+      key: "note",
+      width: "100px",
+    },
+    // Average Rating
+    {
+      title: "Đánh giá",
+      dataIndex: "averageRate",
+      key: "averageRate",
+      width: "100px",
+      render: (averageRating: number) => {
+        return averageRating ? averageRating.toFixed(1) : "0.0";
+      },
+    },
+    // CreatedDate
     {
       title: (
         <div
@@ -873,7 +1069,8 @@ export default function ProductCRUD() {
             searchParams.get("createdDateTo")
               ? "text-danger"
               : "secondary"
-          }>
+          }
+        >
           Tạo vào lúc
         </div>
       ),
@@ -915,6 +1112,7 @@ export default function ProductCRUD() {
         );
       },
     },
+    // CreatedBy
     {
       title: "Tạo bởi",
       dataIndex: "createdBy",
@@ -926,53 +1124,104 @@ export default function ProductCRUD() {
         return createdBy || "";
       },
     },
+    // UpdatedDate
+    {
+      title: (
+        <div
+          className={
+            searchParams.get("createdDateFrom") ||
+            searchParams.get("createdDateTo")
+              ? "text-danger"
+              : "secondary"
+          }
+        >
+          Chỉnh sửa gần nhất
+        </div>
+      ),
+      dataIndex: "updatedDate",
+      key: "updatedDate",
+      width: "160px",
+      sorter: true,
+      sortOrder: getSortOrder(searchParams.toString(), "updatedDate"),
+      render: (updatedDate: string) => {
+        return (
+          <div>
+            <div>{dayjs(updatedDate).format("DD/MM/YYYY")}</div>
+            <div>{dayjs(updatedDate).format("HH:mm")}</div>
+          </div>
+        );
+      },
+      filterDropdown: () => {
+        return (
+          <div style={{ padding: 8 }}>
+            <DatePicker.RangePicker
+              allowClear
+              defaultValue={[
+                dayjs("01/01/1900", dateFormat),
+                dayjs("01/01/2023", dateFormat),
+              ]}
+              format={dateFormat}
+              onChange={async (e) => {
+                const searchValues: { type: string; value?: string }[] = [
+                  { type: "updatedDateFrom", value: undefined },
+                  { type: "updatedDateTo", value: undefined },
+                ];
+                const data = e?.map((date) => dayjs(date).format("YYYY/MM/DD"));
+                if (data) {
+                  searchValues[0] = {
+                    type: "updatedDateFrom",
+                    value: data[0],
+                  };
+                  searchValues[1] = { type: "updatedDateTo", value: data[1] };
+                }
+                searchItems(searchValues, { resetSkip: true });
+              }}
+            />
+          </div>
+        );
+      },
+    },
     // functionColumn,
   ];
 
-  let dataSource = productsData
-    ? ((productsData as GetMany<Product>).results ??
-      (productsData as GetOne<Product>).result)
-    : [];
-  const totalAmount = productsData
-    ? ((productsData as GetMany<Product>).amountResults ?? 1)
-    : 0;
-
-  if (dataSource && !Array.isArray(dataSource)) {
-    dataSource = [dataSource];
-  }
-  const paramActive = searchParams.get("active");
-  const paramIsDeleted = searchParams.get("isDeleted");
-  const extraButtons = [
-    <Button
-      key={1}
-      style={{ width: "13em" }}
-      onClick={async () => {
-        searchItems([
-          { type: "active", value: paramActive === null ? "true" : "" },
-        ]);
-      }}>
-      {paramActive === null ? "Ẩn" : "Hiện"} không hoạt động
-    </Button>,
-    <Button
-      key={2}
-      style={{ width: "8em" }}
-      onClick={async () => {
-        searchItems([
-          { type: "isDeleted", value: paramIsDeleted === null ? "false" : "" },
-          { type: "skip", value: "0" },
-        ]);
-      }}>
-      {paramIsDeleted === null ? "Ẩn" : "Hiện"} đã xóa
-    </Button>,
-  ];
-
+  const activeParam = searchParams.get("active");
+  const isDeletedParam = searchParams.get("isDeleted");
+  const showingInActive = !activeParam || activeParam == "false";
+  const showingDeleted = !isDeletedParam || isDeletedParam == "true";
+  const filterButtons = (
+    <>
+      <Button
+        key={1}
+        style={{ width: "13em" }}
+        onClick={async () => {
+          searchItems([
+            { type: "active", value: showingInActive ? "true" : "" },
+            { type: "skip", value: "0" },
+          ]);
+        }}
+      >
+        {showingInActive ? "Ẩn" : "Hiện"} không hoạt động
+      </Button>
+      <Button
+        key={2}
+        style={{ width: "8em" }}
+        onClick={async () => {
+          searchItems([
+            {
+              type: "isDeleted",
+              value: showingDeleted ? "false" : "",
+            },
+            { type: "skip", value: "0" },
+          ]);
+        }}
+      >
+        {showingDeleted ? "Ẩn" : "Hiện"} đã xóa
+      </Button>
+    </>
+  );
   const crudProps: CRUDProps<Product> = {
     columns: columns,
-    dataSource: dataSource,
-    totalAmount: totalAmount,
     collectionName: "products",
-    searchParams: searchParams,
-    setSearchParams: setSearchParams,
     fileFields: [
       {
         name: "imageUrl",
@@ -989,8 +1238,8 @@ export default function ProductCRUD() {
         sizes: IMG_SIZES,
       },
     ],
-    dataChangeButtons: extraButtons,
-    refetch: () => refetch(),
+    // filterButtons: filterButtons,
+    // refetch: () => refetch(),
     form: {
       controls: formControls,
       title: "Sản phẩm",
@@ -1006,7 +1255,7 @@ export default function ProductCRUD() {
         <div>
           <Flex className="my-2 mx-4" wrap gap={3}>
             {addBtn}
-            {extraButtons}
+            {filterButtons}
             {selectOperations}
           </Flex>
           {tablePart}
@@ -1015,8 +1264,9 @@ export default function ProductCRUD() {
         </div>
       );
     },
-    loading: loadingProd,
-    fetchError: error,
+    // loading: loadingProd,
+    // fetchError: error,
+    query: queryResult,
   };
 
   return <CRUD {...crudProps} />;

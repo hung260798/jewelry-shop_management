@@ -1,4 +1,4 @@
-import { useUser } from "@/hooks/useAuthStore";
+import { useUser } from "@/hooks/stores/useAuthStore";
 import { API_URL } from "@/utils/constants/URLS";
 import { UserOutlined } from "@ant-design/icons";
 import { Button, Divider, List, Skeleton } from "antd";
@@ -52,21 +52,24 @@ const Conversation = ({ conver }: { conver: ConverAttemp[] }) => {
         overflow: "auto",
         padding: "0 16px",
         border: "1px solid rgba(140, 140, 140, 0.35)",
-      }}>
+      }}
+    >
       <InfiniteScroll
         dataLength={data.length}
         next={loadMoreData}
         hasMore={data.length < 50}
         loader={<Skeleton avatar paragraph={{ rows: 1 }} active />}
         endMessage={<Divider plain>It is all, nothing more 🤐</Divider>}
-        scrollableTarget="scrollableDiv">
+        scrollableTarget="scrollableDiv"
+      >
         <List
           dataSource={data}
           renderItem={(item) => (
             <List.Item key={item.email}>
               <Button
                 className="text-start"
-                style={{ width: "250px", height: "auto" }}>
+                style={{ width: "250px", height: "auto" }}
+              >
                 <List.Item.Meta
                   // avatar={<Avatar src={item.picture.large} />}
                   avatar={<UserOutlined />}

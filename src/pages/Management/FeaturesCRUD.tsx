@@ -1,6 +1,6 @@
-import SmartImage from "@/components/images/Lazy/SmartImage";
+import SmartImage from "@/components/Images/Lazy/SmartImage";
 import useMyQuery from "@/hooks/useMyQuery";
-import CRUD from "@/templates/CRUD";
+import CRUD from "@/components/CRUD";
 import { GetManyData } from "@/utils/mutationFn";
 import { appendDomain } from "@/utils/stringUtils";
 import { FormControl } from "@/utils/types/Form";
@@ -77,15 +77,16 @@ interface Feature {
 const imageUrlSizes: [number, number][] = [[80, 80]];
 
 function FeaturesCRUD() {
-  const {
-    query: { data: featuresData, refetch, isLoading, error },
-    searchItems,
-    searchParams,
-    setSearchParams,
-  } = useMyQuery<GetManyData<Feature>>({
+  const queryResult = useMyQuery<GetManyData<Feature>>({
     queryKey: ["get_features"],
     url: "/features",
   });
+
+  const {
+    query: { refetch },
+    searchItems,
+    searchParams,
+  } = queryResult;
 
   //Setting column
   const columns: ColumnsType<Feature> = [
@@ -260,24 +261,23 @@ function FeaturesCRUD() {
     //Note
     { title: "Note", dataIndex: "note", key: "note", width: "10%" },
   ];
-  const dataSource = featuresData?.results || [];
 
   return (
     <CRUD<Feature>
       {...{
         columns,
-        dataSource,
-        totalAmount: featuresData?.amountResults || 0,
-        searchParams,
-        setSearchParams,
+        // dataSource,
+        // totalAmount: featuresData?.amountResults || 0,
+        // searchParams,
+        // setSearchParams,
         collectionName: "features",
         // FormFn,
         form: {
           controls: formFields,
           title: "Tính năng",
         },
-        loading: isLoading,
-        fetchError: error,
+        // loading: isLoading,
+        // fetchError: error,
         fileFields: [
           {
             name: "imageUrl",
@@ -287,6 +287,7 @@ function FeaturesCRUD() {
             sizes: imageUrlSizes,
           },
         ],
+        query: queryResult,
       }}
     />
   );

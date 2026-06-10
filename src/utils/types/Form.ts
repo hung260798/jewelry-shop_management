@@ -7,27 +7,30 @@ export type FormProps = {
   formValues: unknown;
   submitFn?: (values: unknown) => Promise<void>;
   formControls: FormControl[];
-  title: string;
-  refetch?: () => void | Promise<void>;
+  modalTitle: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  refetch?: () => any | Promise<any>;
   collectionName?: string;
   fileFields?: FileField[];
 };
 
-export interface FormControl {
+type PickFormItemProps =
+  | "getValueProps"
+  | "getValueFromEvent"
+  | "normalize"
+  | "valuePropName";
+
+export interface FormControl extends Pick<FormItemProps, PickFormItemProps> {
   name?: string | string[];
   label: string;
-  component: ReactNode;
-  valuePropName?: string;
+  component: ReactNode | React.FC<unknown>;
   className?: string;
   rules?:
     | FormItemProps["rules"]
     | Record<"add" | "update", FormItemProps["rules"]>;
   flex?: string;
   defaultValue?: unknown;
-  getValueProps?: (value: any) => Record<string, unknown>;
-  getValueFromEvent?: (...args: any[]) => any;
-  onSubmit?: (v: any) => any;
-  normalize?: FormItemProps["normalize"];
+  method?: "post" | "patch";
 }
 
 export interface FileField {
@@ -47,5 +50,8 @@ export interface FileField {
    * file's type
    */
   fileType?: string;
+  /**
+   * Optional array of allowed file sizes in bytes (e.g., [1048576] for 1MB)
+   */
   sizes?: [number, number][];
 }

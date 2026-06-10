@@ -1,4 +1,4 @@
-import LazyFadeImage from "@/components/images/Lazy";
+import LazyFadeImage from "@/components/Images/Lazy";
 import useWindowWidth from "@/hooks/useWidth";
 import { ASSET_URL } from "@/utils/constants/URLS";
 import { devLog } from "@/utils/logger";
@@ -89,7 +89,8 @@ const Information = () => {
           align="start"
           className="pt-[100px]"
           gap={80}
-          justify="space-between">
+          justify="space-between"
+        >
           <div className="basis-2/3">
             <h4 className="text-2xl font-bold bg-amber-200">
               Thông tin tài khoản
@@ -97,7 +98,8 @@ const Information = () => {
             <Flex gap={20}>
               <Space
                 direction="vertical"
-                className={`flex flex-col items-center`}>
+                className={`flex flex-col items-center`}
+              >
                 <LazyFadeImage
                   src={
                     avatarSrc ?? appendDomain(user?.imageUrl || "", ASSET_URL)
@@ -119,14 +121,16 @@ const Information = () => {
                     });
                   }}
                   showUploadList={false}
-                  maxCount={1}>
+                  maxCount={1}
+                >
                   <Button>Thay ảnh đại diện</Button>
                 </Upload>
               </Space>
               <Flex gap={20} vertical={true} className="grow">
                 <Space
                   direction="vertical"
-                  style={{ minWidth: isLargeScreen ? "30rem" : "5rem" }}>
+                  style={{ minWidth: isLargeScreen ? "30rem" : "5rem" }}
+                >
                   <Form
                     form={form}
                     labelWrap
@@ -159,17 +163,20 @@ const Information = () => {
                       devLog("finish failed:", error);
                       message.error("Submit thất bại", 1.5);
                     }}
-                    colon={false}>
+                    colon={false}
+                  >
                     <Form.Item
                       label="Tên"
                       name="firstName"
-                      rules={[{ required: true, message: "Nhap ten cua ban" }]}>
+                      rules={[{ required: true, message: "Nhap ten cua ban" }]}
+                    >
                       <Input size="large" />
                     </Form.Item>
                     <Form.Item
                       label="Họ"
                       name="lastName"
-                      rules={[{ required: true, message: "Nhap ho cua ban" }]}>
+                      rules={[{ required: true, message: "Nhap ho cua ban" }]}
+                    >
                       <Input size="large" />
                     </Form.Item>
                     <Form.Item
@@ -177,7 +184,8 @@ const Information = () => {
                       name="email"
                       rules={[
                         { required: true, message: "Nhap dia chi email" },
-                      ]}>
+                      ]}
+                    >
                       <Input size="large" />
                     </Form.Item>
                     <Form.Item
@@ -185,19 +193,22 @@ const Information = () => {
                       name="phoneNumber"
                       rules={[
                         { required: true, message: "Nhap so dien thoai" },
-                      ]}>
+                      ]}
+                    >
                       <Input size="large" />
                     </Form.Item>
                     <Form.Item
                       label="Địa chỉ"
                       name="address"
-                      rules={[{ required: true, message: "Nhap dia chi nha" }]}>
+                      rules={[{ required: true, message: "Nhap dia chi nha" }]}
+                    >
                       <Input size="large" />
                     </Form.Item>
                     <Form.Item
                       label="Ngày sinh"
                       name="birthday"
-                      rules={[{ required: true, message: "Nhap ngay sinh" }]}>
+                      rules={[{ required: true, message: "Nhap ngay sinh" }]}
+                    >
                       <DatePicker size="large" />
                     </Form.Item>
                     <Form.Item label="Giới tính" name="gender">
@@ -222,7 +233,8 @@ const Information = () => {
                                 : undefined,
                             });
                           }
-                        }}>
+                        }}
+                      >
                         Khôi phục
                       </Button>
                       <Button type="primary" htmlType="submit" size="large">
@@ -256,7 +268,8 @@ const Information = () => {
                 }}
                 onFinishFailed={function (error: unknown) {
                   devLog("finish failed:", error);
-                }}>
+                }}
+              >
                 <Form.Item label="Mật khẩu cũ" name="oldPassword">
                   <Input.Password size="large" />
                 </Form.Item>

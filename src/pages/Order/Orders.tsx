@@ -1,10 +1,11 @@
 import { useModalForm } from "@/components/Forms/ModalForm/useModalForm";
 import { axiosClientJson } from "@/libraries/axiosClient";
-import CRUD from "@/templates/CRUD";
+import CRUD from "@/components/CRUD";
 import { devLog } from "@/utils/logger";
 import { GetManyData } from "@/utils/mutationFn";
 import { capitalizeFirstLetter } from "@/utils/stringUtils";
-import { CheckOutlined, EyeOutlined } from "@ant-design/icons";
+import { CheckOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Button,
   Card,
@@ -14,6 +15,7 @@ import {
   Input,
   message,
   Modal,
+  Popconfirm,
   Row,
   Select,
   Space,
@@ -34,20 +36,20 @@ import { Order, OrderLine, WithId } from "utils/types/Entities";
 dayjs.extend(customParseFormat);
 
 const OrderCRUD: React.FC = () => {
-  const {
-    searchParams,
-    setSearchParams,
-    searchItems,
-    query: { data: ordersData, isFetching, refetch, isLoading, error },
-  } = useMyQuery<GetManyData<WithId<Order>>>({
+  const queryResults = useMyQuery<GetManyData<WithId<Order>>>({
     url: "/orders",
     queryKey: ["get_orders"],
     initParams: { active: "true" },
   });
+  const {
+    searchItems,
+    query: { refetch },
+  } = queryResults;
   const [selectedOrder, setSelectedOrder] = useState<WithId<Order>>();
   const [isSelectingProducts, setIsSelectingProducts] =
     useState<boolean>(false);
   const [messageApi, contextHolder] = message.useMessage();
+  const queryClient = useQueryClient();
 
   //Setting column
   const columns: ColumnsType<WithId<Order>> = [
@@ -235,24 +237,21 @@ const OrderCRUD: React.FC = () => {
     },
     {
       title: "Tổng tiền",
-      dataIndex: "totalMoney",
-      key: "totalMoney",
-      render: (text, record) => {
-        const { orderDetails } = record;
-        let total = 0;
-        orderDetails?.forEach((od) => {
-          const sum = od.quantity * od.product?.total;
-          total = total + sum;
-        });
+      dataIndex: "total",
+      key: "total",
+      render: (total) => {
         return (
           <strong>
-            {total.toLocaleString("vi-VN", {
-              style: "currency",
-              currency: "VND",
-            })}
+            {typeof +total !== "number"
+              ? 0
+              : (+total).toLocaleString("vi-VN", {
+                  style: "currency",
+                  currency: "VND",
+                })}
           </strong>
         );
       },
+      sorter: true,
     },
   ];
 
@@ -275,17 +274,39 @@ const OrderCRUD: React.FC = () => {
       <CRUD
         collectionName="orders"
         columns={columns}
-        searchParams={searchParams}
-        setSearchParams={setSearchParams}
-        dataSource={ordersData?.results || []}
-        totalAmount={ordersData?.amountResults || 0}
-        loading={isLoading || isFetching}
+        query={queryResults}
+        // searchParams={searchParams}
+        // setSearchParams={setSearchParams}
+        // dataSource={ordersData?.results || []}
+        // totalAmount={ordersData?.amountResults || 0}
+        // loading={isLoading || isFetching}
         form={{
           customComponent: OrderDetailModal,
         }}
         functionColumn={{
-          edit: (record) => {
-            return (
+          // edit: (record) => {
+          //   return (
+          //     <Button
+          //       icon={<EyeOutlined />}
+          //       title="Xem"
+          //       type="dashed"
+          //       onClick={() => {
+          //         setFormValues({
+          //           selectedOrder: record,
+          //           functions: {
+          //             setIsSelectingProducts,
+          //             refetch,
+          //           },
+          //         });
+          //         // setTitle("orders");
+          //         setSelectedOrder(record);
+          //         setOpen(true);
+          //       }}
+          //     />
+          //   );
+          // },
+          override: (record) => (
+            <>
               <Button
                 icon={<EyeOutlined />}
                 title="Xem"
@@ -303,8 +324,36 @@ const OrderCRUD: React.FC = () => {
                   setOpen(true);
                 }}
               />
-            );
-          },
+              <Popconfirm
+                title="Xác nhận xóa"
+                okType="danger"
+                onConfirm={() => {
+                  async function defaultHandleDelete({ _id }: { _id: string }) {
+                    try {
+                      await axiosClientJson.delete(`/orders/${_id}`);
+                      messageApi.success("Delete success", 1);
+                      await queryClient.invalidateQueries({
+                        queryKey: [`get_orders`],
+                      });
+                    } catch (error) {
+                      const errorName =
+                        error instanceof Error ? error.name : "Unknown error";
+                      messageApi.error(`Delete fail: ${errorName}`, 1);
+                    }
+                  }
+                  defaultHandleDelete(record);
+                }}
+                cancelText="Hủy"
+              >
+                <Button
+                  title="Xóa"
+                  type="dashed"
+                  danger
+                  icon={<DeleteOutlined />}
+                />
+              </Popconfirm>
+            </>
+          ),
           extraFunctions: [
             (order) =>
               order.status === "WAITING" && (
@@ -338,11 +387,12 @@ const OrderCRUD: React.FC = () => {
                       .finally(() => {
                         refetch();
                       });
-                  }}></Button>
+                  }}
+                ></Button>
               ),
           ],
         }}
-        fetchError={error}
+        // fetchError={error}
       />
       <ProductDrawer
         isSelectingProducts={isSelectingProducts}
@@ -391,7 +441,7 @@ function OrderDetailModal() {
     <div>
       {contextHolder}
       <Modal
-        width={"100%"}
+        width={"1000px"}
         onCancel={() => {
           setLocalOrder(undefined);
           setOpen(false);
@@ -433,7 +483,8 @@ function OrderDetailModal() {
         open={open}
         okText="OK"
         title="Đơn hàng"
-        cancelText="Hủy">
+        cancelText="Hủy"
+      >
         <Card title="Chi tiết đơn hàng">
           <Descriptions bordered column={1}>
             <Descriptions.Item label="Trạng thái đơn hàng">
@@ -584,7 +635,8 @@ function OrderDetailModal() {
                             duration: 1,
                           });
                         }
-                      }}>
+                      }}
+                    >
                       +
                     </button>
                     <div className="border px-4 py-2 text-center align-self-center justify-content-center ">
@@ -633,7 +685,8 @@ function OrderDetailModal() {
                             duration: 1,
                           });
                         }
-                      }}>
+                      }}
+                    >
                       -
                     </button>
                   </div>
@@ -718,7 +771,8 @@ function OrderDetailModal() {
                           }}
                           disabled={["COMPLETED", "CANCELED"].includes(
                             status.toUpperCase()
-                          )}>
+                          )}
+                        >
                           Xóa
                         </Button>
                       </div>
@@ -733,7 +787,8 @@ function OrderDetailModal() {
             onClick={() => {
               functions?.setIsSelectingProducts?.(true);
             }}
-            disabled={["COMPLETED", "CANCELED"].includes(status.toUpperCase())}>
+            disabled={["COMPLETED", "CANCELED"].includes(status.toUpperCase())}
+          >
             Thêm sản phẩm
           </Button>
         </Card>

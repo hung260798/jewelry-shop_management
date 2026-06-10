@@ -1,5 +1,5 @@
-import { extractArrayFromGetOneOrMany, useGetList } from "@/hooks/useMyQuery";
-import CRUD from "@/templates/CRUD";
+import { useGetListQuery } from "@/hooks/useMyQuery";
+import CRUD from "@/components/CRUD";
 import * as Types from "utils/types/Entities";
 import { Checkbox, Input, Select, Space, Tag } from "antd";
 import Search from "antd/es/input/Search";
@@ -74,15 +74,16 @@ export const formItems: FormControl[] = [
 type Supplier = Types.WithId<Types.Supplier> & Types.Active;
 
 function SupplierCRUD() {
-  const {
-    query: { data: suppliersData, refetch, error, isLoading },
-    searchParams,
-    setSearchParams,
-    searchItems,
-  } = useGetList<Supplier>({
+  const queryResult = useGetListQuery<Supplier>({
     queryKey: ["get_suppliers"],
     url: "/suppliers",
   });
+
+  const {
+    query: { refetch },
+    searchParams,
+    searchItems,
+  } = queryResult;
 
   //Setting column
   const columns: ColumnsType<Supplier> = [
@@ -182,7 +183,8 @@ function SupplierCRUD() {
       title: () => {
         return (
           <div
-            className={searchParams.has("name") ? "text-danger" : "secondary"}>
+            className={searchParams.has("name") ? "text-danger" : "secondary"}
+          >
             Tên nhà cung cấp
           </div>
         );
@@ -217,7 +219,8 @@ function SupplierCRUD() {
       title: () => {
         return (
           <div
-            className={searchParams.has("email") ? "text-danger" : "secondary"}>
+            className={searchParams.has("email") ? "text-danger" : "secondary"}
+          >
             Email
           </div>
         );
@@ -248,7 +251,8 @@ function SupplierCRUD() {
         <div
           className={
             searchParams.has("phoneNumber") ? "text-danger" : "secondary"
-          }>
+          }
+        >
           Điện thoại
         </div>
       ),
@@ -277,7 +281,8 @@ function SupplierCRUD() {
           <div
             className={
               searchParams.get("address") ? "text-danger" : "secondary"
-            }>
+            }
+          >
             Địa chỉ nhà cung cấp
           </div>
         );
@@ -305,23 +310,23 @@ function SupplierCRUD() {
     //Note
     { title: "Ghi chú", dataIndex: "note", key: "note", width: "10%" },
   ];
-  const { dataSource, amountResults } =
-    extractArrayFromGetOneOrMany(suppliersData);
 
   return (
     <CRUD<Supplier>
       columns={columns}
-      dataSource={dataSource}
-      totalAmount={amountResults}
+      // dataSource={dataSource}
+      // totalAmount={amountResults}
       collectionName="suppliers"
-      searchParams={searchParams}
-      setSearchParams={setSearchParams}
+      // searchParams={searchParams}
+      // setSearchParams={setSearchParams}
       form={{
         controls: formItems,
         title: "Supplier",
+        modalProps: { width: "700px" },
       }}
-      fetchError={error}
-      loading={isLoading}
+      // fetchError={error}
+      // loading={isLoading}
+      query={queryResult}
     />
   );
 }

@@ -94,6 +94,7 @@
     "@types/node": "^24.12.0",
     "@types/numeral": "^2.0.5",
     "baseline-browser-mapping": "^2.10.11",
+    "eslint-config-react-app": "^7.0.1",
     "eslint-plugin-react": "^7.37.5",
     "globals": "^16.5.0",
     "typescript-eslint": "^8.57.2",

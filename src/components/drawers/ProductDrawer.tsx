@@ -1,8 +1,10 @@
 import useMyQuery from "@/hooks/useMyQuery";
 import { axiosClientJson } from "@/libraries/axiosClient";
 import { Order, Product, WithId } from "utils/types/Entities";
-import { Button, Card, Drawer, message, Pagination, Spin } from "antd";
+import { Button, Card, Drawer, Input, message, Pagination, Spin } from "antd";
 import { GetMany } from "utils/types/Entities";
+import { SearchOutlined } from "@ant-design/icons";
+import { useEffect, useRef, useState } from "react";
 
 const ProductDrawer = (props: {
   isSelectingProducts: boolean;
@@ -16,8 +18,15 @@ const ProductDrawer = (props: {
     searchParams,
   } = useMyQuery<GetMany<WithId<Product>>>({
     url: "/products",
-    queryKey: [`get_products_o`],
+    queryKey: [`get_products_drawer`],
     usePrivateParams: true,
+    initParams: {
+      limit: "10",
+      skip: "0",
+      sortBy: "_id",
+      sortOrder: "desc",
+      fieldsIncluded: "name,price",
+    },
   });
   const { results: products, amountResults: amountProducts } = data ?? {
     results: [],
@@ -29,6 +38,49 @@ const ProductDrawer = (props: {
     selectedOrder,
     refetch,
   } = props;
+
+  const [searchValue, setSearchValue] = useState("");
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    // Clear the previous timeout
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Set a new timeout for the debounced search
+    debounceTimerRef.current = setTimeout(() => {
+      searchItems([
+        { type: "productName", value: searchValue },
+        { type: "skip", value: "0" },
+      ]);
+    }, 500);
+
+    // Cleanup
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [searchValue]);
+
+  const [productsCache, setProductsCache] = useState<WithId<Product>[]>([]);
+  useEffect(() => {
+    if (products && products.length > 0) {
+      setProductsCache(products);
+    }
+  }, [products]);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchValue(e.target.value);
+  };
+
+  const limit = +(searchParams.get("limit") ?? "10");
+  const skip = +(searchParams.get("skip") ?? "0");
+  const currentPage = 1 + skip / limit;
+  const onPageChange = (page: number, pageSize: number) => {
+    searchItems([{ type: "skip", value: "" + (page - 1) * pageSize }]);
+  };
 
   if (!selectedOrder) return null;
 
@@ -60,29 +112,6 @@ const ProductDrawer = (props: {
     );
   };
 
-  const renderProductItem = (
-    product: WithId<Product>
-    // index: number,
-    // array: WithId<Product>[]
-  ) => (
-    <Card key={product._id}>
-      <strong className="px-2">{product.name}</strong>
-      <Button className="px-2" onClick={() => onAddProduct(product)}>
-        <span>Thêm</span>
-      </Button>
-    </Card>
-  );
-
-  const productListUI =
-    isLoading || isFetching ? <Spin /> : products?.map(renderProductItem);
-
-  const limit = +(searchParams.get("limit") ?? "10");
-  const skip = +(searchParams.get("skip") ?? "0");
-  const currentPage = 1 + skip / limit;
-  const onPageChange = (page: number, pageSize: number = limit) => {
-    searchItems({ type: "skip", value: "" + (page - 1) * pageSize });
-  };
-
   return (
     <Drawer
       width={"40%"}
@@ -91,14 +120,32 @@ const ProductDrawer = (props: {
       onClose={() => {
         setAddProducts(false);
       }}
-      placement="right">
-      <div>
-        {productListUI}
-        <Pagination
-          current={currentPage}
-          onChange={onPageChange}
-          total={amountProducts}></Pagination>
+      placement="right"
+    >
+      <div className="mb-4">
+        <Input
+          placeholder="Tìm kiếm sản phẩm theo tên..."
+          prefix={<SearchOutlined />}
+          onChange={handleSearchChange}
+          allowClear
+        />
       </div>
+      <Spin spinning={isLoading || isFetching}>
+        {productsCache?.map((product: WithId<Product>) => (
+          <Card key={product._id}>
+            <strong className="px-2">{product.name}</strong>
+            <Button className="px-2" onClick={() => onAddProduct(product)}>
+              <span>Thêm</span>
+            </Button>
+          </Card>
+        ))}
+      </Spin>
+      <Pagination
+        current={currentPage}
+        onChange={onPageChange}
+        total={amountProducts}
+        pageSize={limit}
+      ></Pagination>
     </Drawer>
   );
 };

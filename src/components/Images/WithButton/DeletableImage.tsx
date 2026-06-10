@@ -1,4 +1,4 @@
-import { usePreviewLayer } from "@/components/images/PreviewLayer";
+import { usePreviewLayer } from "@/components/Images/PreviewLayer";
 import { DeleteOutlined, EyeOutlined } from "@ant-design/icons";
 import { Button, Modal } from "antd";
 import { ComponentPropsWithoutRef } from "react";
@@ -36,7 +36,8 @@ export const DeletableImage: React.FC<Props> = ({
         }}
       />
       <div
-        className={`absolute inset-0 bg-gray-600 flex justify-center items-center ${styles.mask}`}>
+        className={`absolute inset-0 bg-gray-600 flex justify-center items-center ${styles.mask}`}
+      >
         <div className="opacity-100">
           <Button
             icon={<EyeOutlined className={styles.bttn} />}

@@ -1,6 +1,6 @@
-import SmartImage from "@/components/images/Lazy/SmartImage";
-import { useGetList } from "@/hooks/useMyQuery";
-import CRUD from "@/templates/CRUD";
+import SmartImage from "@/components/Images/Lazy/SmartImage";
+import { useGetListQuery } from "@/hooks/useMyQuery";
+import CRUD from "@/components/CRUD";
 import { appendDomain, getSortOrder } from "@/utils/stringUtils";
 import { Active, Category, WithId } from "@/utils/types/Entities";
 import { FormControl } from "@/utils/types/Form";
@@ -136,18 +136,16 @@ const controls: FormControl[] = [
 ];
 
 function CategoryCRUD() {
-  const queryProps = {
+  const queryResults = useGetListQuery<Entity>({
     queryKey: ["get_categories"],
     url: "/categories",
-  };
-  const useQueryHook = useGetList<Entity>;
+  });
 
   const {
-    query: { data: categoriesData, refetch, isLoading, error },
+    query: { refetch },
     searchItems,
     searchParams,
-    setSearchParams,
-  } = useQueryHook(queryProps);
+  } = queryResults;
 
   //Setting column
   const columns = useMemo(() => {
@@ -164,13 +162,31 @@ function CategoryCRUD() {
         dataIndex: "_id",
         key: "id",
         render: (text: string, record, index) => {
+          return <Space>{index + 1}</Space>;
+        },
+        // width: "3%",
+        responsive: ["xl"],
+      },
+      // State
+      {
+        title: () => {
+          const isFiltering =
+            searchParams.has("active") || searchParams.has("isDeleted");
           return (
-            <Space>
-              {index + 1}{" "}
-              {record.active === true && !record.isDeleted && (
+            <div className={isFiltering ? "text-danger" : "secondary"}>
+              Trạng thái
+            </div>
+          );
+        },
+        dataIndex: "active",
+        key: "status",
+        render: (active: boolean, record) => {
+          return (
+            <Space style={{ width: "100%" }}>
+              {active === true && !record.isDeleted && (
                 <Tag color="green">ACTIVE</Tag>
               )}
-              {record.active === false && !record.isDeleted && (
+              {active === false && !record.isDeleted && (
                 <Tag color="yellow">INACTIVE</Tag>
               )}
               {record.isDeleted === true && <Tag color="red">DELETED</Tag>}
@@ -248,14 +264,15 @@ function CategoryCRUD() {
             />
           );
         },
-        width: "11%",
+        // width: "10%",
         responsive: ["xl"],
       },
       //Name
       {
         title: (
           <div
-            className={searchParams.get("name") ? "text-danger" : "secondary"}>
+            className={searchParams.get("name") ? "text-danger" : "secondary"}
+          >
             Tên danh mục
           </div>
         ),
@@ -277,10 +294,11 @@ function CategoryCRUD() {
             </div>
           );
         },
+        // width: "10%",
       },
       //IMAGE
       {
-        width: "200px",
+        width: "100px",
         title: "Ảnh danh mục",
         key: "imageUrl",
         dataIndex: "imageUrl",
@@ -327,13 +345,13 @@ function CategoryCRUD() {
       },
       //Desciption
       {
-        title: () => {
-          return searchParams.get("description") ? (
-            <div className="text-danger">Mô tả</div>
-          ) : (
-            <div className="secondary">Mô tả</div>
-          );
-        },
+        title: () => (
+          <div
+            className={searchParams.has("description") ? "danger" : "secondary"}
+          >
+            Mô tả
+          </div>
+        ),
         dataIndex: "description",
         key: "description",
         sorter: true,
@@ -356,6 +374,14 @@ function CategoryCRUD() {
           );
         },
       },
+      // Thứ tự xuất hiện
+      {
+        title: () => <div>Thứ tự xuất hiện</div>,
+        dataIndex: "sortOrder",
+        key: "sortOrder",
+        sorter: true,
+        sortOrder: getSortOrder(searchParams.toString(), "sortOrder"),
+      },
       //Note
       {
         title: "Lưu ý",
@@ -363,7 +389,7 @@ function CategoryCRUD() {
         key: "note",
         sorter: true,
         sortOrder: getSortOrder(searchParams.toString(), "note"),
-        width: "10%",
+        // width: "8%",
       },
       {
         title: "Chỉnh sửa lần cuối",
@@ -371,7 +397,7 @@ function CategoryCRUD() {
         key: "updatedDate",
         sorter: true,
         sortOrder: getSortOrder(searchParams.toString(), "updatedDate"),
-        width: "150px",
+        // width: "150px",
         render: (updatedDate: string) => {
           const d = dayjs(updatedDate);
           return (
@@ -384,17 +410,6 @@ function CategoryCRUD() {
       },
     ] as ColumnsType<WithId<Category> & Active>;
   }, [searchItems, searchParams]);
-
-  const dataSource = categoriesData
-    ? "results" in categoriesData
-      ? categoriesData.results
-      : [categoriesData.result]
-    : [];
-  const totalAmount = categoriesData
-    ? "results" in categoriesData
-      ? categoriesData.amountResults
-      : 1
-    : 0;
 
   const converRecordToFormValues = (record: Entity) => {
     return {
@@ -409,10 +424,7 @@ function CategoryCRUD() {
   return (
     <CRUD
       columns={columns}
-      dataSource={dataSource}
-      totalAmount={totalAmount}
-      searchParams={searchParams}
-      setSearchParams={setSearchParams}
+      query={queryResults}
       collectionName="categories"
       form={{
         title: "Danh mục sản phẩm",
@@ -434,10 +446,7 @@ function CategoryCRUD() {
           sizes: coverImageSizes as [number, number][],
         },
       ]}
-      loading={isLoading}
-      fetchError={error}
       convertToFormValues={converRecordToFormValues}
-      refetch={refetch}
     />
   );
 }

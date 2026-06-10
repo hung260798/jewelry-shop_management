@@ -10,11 +10,11 @@ import React, { memo, useEffect, useState } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { ASSET_URL } from "utils/constants/URLS";
 import "./App.css";
-import CKEditorPage from "./CKEditor";
+import CKEditorPage from "./pages/CKEditor";
 import ErrorBoundary from "./components/ErrorBoundary";
 import MainMenu from "./components/MainMenu";
 import Error from "./components/Placeholders/Error";
-import Experiment from "./Experiment";
+import Experiment from "./pages/Experiment";
 import { useMyPrefetch } from "./hooks/useMyQuery";
 import useWindowWidth from "./hooks/useWidth";
 import { queryClient } from "./libraries/react-query";
@@ -56,7 +56,7 @@ const InnerApp = () => {
   const authUser = useUser();
   const loading = useAuthStore((s) => s.loading);
   const setLoading = useAuthStore((s) => s.setLoading);
-  const isSmallScreen = windowWidth < 768;
+  const isSmallScreen = windowWidth < 640;
 
   useEffect(() => {
     if (authUser) {
@@ -68,11 +68,11 @@ const InnerApp = () => {
   }, [authUser]);
 
   const [collapsed, setCollapsed] = useState(false);
-  useEffect(() => {
-    if (isSmallScreen && !collapsed) {
-      setCollapsed(true);
-    }
-  }, [isSmallScreen]);
+  // useEffect(() => {
+  //   if (isSmallScreen && !collapsed) {
+  //     setCollapsed(true);
+  //   }
+  // }, [isSmallScreen]);
 
   // const {
   //   token: { colorBgContainer },
@@ -122,19 +122,20 @@ const InnerApp = () => {
             zIndex: 1000,
           }}
           breakpoint="lg"
-          onCollapse={(value) => setCollapsed(value)}
-          width={300}>
+          onCollapse={(collapsed) => setCollapsed(collapsed)}
+          width={isSmallScreen ? "100%" : 300}
+        >
           <Flex
             style={{
               position: "sticky",
               top: 0,
               zIndex: 1001,
               // display: collapsed ? "none" : "flex",
-              display: "flex",
               backgroundColor: "#001529",
-              width: collapsed ? 100 : 300,
+              width: "100%",
             }}
-            justify="center">
+            justify="center"
+          >
             <div
               style={{
                 // height: 32,
@@ -144,8 +145,14 @@ const InnerApp = () => {
                 color: "#fff",
                 fontSize: "1.1rem",
                 padding: "0 10px",
-              }}>
-              {!collapsed ? (
+              }}
+            >
+              {collapsed ? (
+                <Avatar
+                  src={appendDomain(authUser.imageUrl || "", ASSET_URL)}
+                  size={44}
+                />
+              ) : (
                 <>
                   <Space>
                     <Avatar
@@ -155,11 +162,6 @@ const InnerApp = () => {
                     {`${authUser.firstName} ${authUser.lastName}`}
                   </Space>
                 </>
-              ) : (
-                <Avatar
-                  src={appendDomain(authUser.imageUrl || "", ASSET_URL)}
-                  size={44}
-                />
               )}
             </div>
             {isSmallScreen && (
@@ -177,7 +179,8 @@ const InnerApp = () => {
                     width: 64,
                     height: 64,
                     color: "#fff",
-                  }}>
+                  }}
+                >
                   {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
                 </Button>
               </Flex>
@@ -192,12 +195,14 @@ const InnerApp = () => {
             overflow: "hidden",
             marginLeft: isSmallScreen ? 0 : collapsed ? "100px" : "300px",
           }}
-          className={"mainLayout"}>
+          className={"mainLayout"}
+        >
           <div
             style={{
               padding: 0,
               background: "transparent",
-            }}>
+            }}
+          >
             <div className="flex items-center">
               <div>
                 <Button
@@ -208,7 +213,8 @@ const InnerApp = () => {
                     fontSize: "16px",
                     width: 64,
                     height: 64,
-                  }}>
+                  }}
+                >
                   {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
                 </Button>
               </div>
@@ -221,7 +227,6 @@ const InnerApp = () => {
               </div>
             </div>
           </div>
-          <Experiment />
           <ErrorBoundary fallback={<Error />}>
             <Layout.Content className="mx-0 my-0 px-2 py-2">
               <Routes>
@@ -260,6 +265,7 @@ const InnerApp = () => {
                 <Route path="/account/information" element={<Information />} />
                 <Route path="/general-update" element={<UpdatePage />} />
                 <Route path="/ckeditor" element={<CKEditorPage />} />
+                <Route path="/experiment" element={<Experiment />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
               {/* <div className="w-72">

@@ -1,14 +1,14 @@
-import CRUD from "@/templates/CRUD";
+import CRUD from "@/components/CRUD";
 import { appendDomain, getSortOrder } from "@/utils/stringUtils";
 import { FormControl } from "@/utils/types/Form";
 import { DatePicker, Input, Select, Space, Switch, Tag } from "antd";
 import locale from "antd/es/date-picker/locale/en_US";
 import Search from "antd/es/input/Search";
 import { ColumnsType } from "antd/es/table";
-import SmartImage from "components/images/Lazy/SmartImage";
+import SmartImage from "@/components/Images/Lazy/SmartImage";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
-import { useGetList } from "hooks/useMyQuery";
+import { useGetListQuery } from "hooks/useMyQuery";
 import { ASSET_URL } from "utils/constants/URLS";
 import { Active, Customer, WithId } from "utils/types/Entities";
 
@@ -128,12 +128,9 @@ export default function CustomerCRUD() {
   };
   // const queryHook = useMyQuery<GetManyData<CustomerWithId>>;
   // const queryHook = useGetList<CustomerWithId>;
-  const {
-    searchItems,
-    searchParams,
-    setSearchParams,
-    query: { data: customersData, isLoading, refetch, error },
-  } = useGetList<CustomerWithId>(queryProps);
+  const queryResult = useGetListQuery<CustomerWithId>(queryProps);
+
+  const { searchItems, searchParams } = queryResult;
 
   const renderTitle = (paramKey: string, label: string) => (
     <div className={searchParams.get(paramKey) ? "text-danger" : "secondary"}>
@@ -242,54 +239,6 @@ export default function CustomerCRUD() {
       },
       responsive: ["md"],
     },
-    //First Name
-    {
-      title: () => renderTitle("firstName", "Tên khách hàng"),
-      dataIndex: "firstName",
-      key: "firstName",
-      sorter: true,
-      sortOrder: getSortOrder(searchParams.toString(), "firstName"),
-      filterDropdown: () => {
-        return (
-          <div style={{ padding: 8 }}>
-            <Search
-              allowClear
-              placeholder="Enter first name"
-              onSearch={(e) => {
-                const searchValue = { type: "firstName", value: e };
-                searchItems(searchValue, { resetSkip: true });
-              }}
-              style={{ width: 200 }}
-            />
-          </div>
-        );
-      },
-      width: 160,
-    },
-    //Last Name
-    {
-      title: () => renderTitle("lastName", "Họ đệm"),
-      dataIndex: "lastName",
-      key: "lastName",
-      sorter: true,
-      sortOrder: getSortOrder(searchParams.toString(), "lastName"),
-      filterDropdown: () => {
-        return (
-          <div style={{ padding: 8 }}>
-            <Search
-              allowClear
-              onSearch={(e) => {
-                const searchValue = { type: "lastName", value: e };
-                searchItems(searchValue, { resetSkip: true });
-              }}
-              placeholder="Enter last name"
-              style={{ width: 200 }}
-            />
-          </div>
-        );
-      },
-      width: 160,
-    },
     //Email
     {
       title: () => renderTitle("email", "Email"),
@@ -338,28 +287,53 @@ export default function CustomerCRUD() {
       responsive: ["lg"],
       width: 120,
     },
-    //Address
+    //First Name
     {
-      title: () => renderTitle("address", "Địa chỉ"),
-      dataIndex: "address",
-      key: "address",
+      title: () => renderTitle("firstName", "Tên khách hàng"),
+      dataIndex: "firstName",
+      key: "firstName",
+      sorter: true,
+      sortOrder: getSortOrder(searchParams.toString(), "firstName"),
+      filterDropdown: () => {
+        return (
+          <div style={{ padding: 8 }}>
+            <Search
+              allowClear
+              placeholder="Enter first name"
+              onSearch={(e) => {
+                const searchValue = { type: "firstName", value: e };
+                searchItems(searchValue, { resetSkip: true });
+              }}
+              style={{ width: 200 }}
+            />
+          </div>
+        );
+      },
+      width: 160,
+    },
+    //Last Name
+    {
+      title: () => renderTitle("lastName", "Họ đệm"),
+      dataIndex: "lastName",
+      key: "lastName",
+      sorter: true,
+      sortOrder: getSortOrder(searchParams.toString(), "lastName"),
       filterDropdown: () => {
         return (
           <div style={{ padding: 8 }}>
             <Search
               allowClear
               onSearch={(e) => {
-                const searchValue = { type: "address", value: e };
+                const searchValue = { type: "lastName", value: e };
                 searchItems(searchValue, { resetSkip: true });
               }}
-              placeholder="Enter address"
+              placeholder="Enter last name"
               style={{ width: 200 }}
             />
           </div>
         );
       },
-      responsive: ["xl"],
-      width: 180,
+      width: 160,
     },
     //Birthday
     {
@@ -412,6 +386,29 @@ export default function CustomerCRUD() {
       responsive: ["lg"],
       width: 80,
     },
+    //Address
+    {
+      title: () => renderTitle("address", "Địa chỉ"),
+      dataIndex: "address",
+      key: "address",
+      filterDropdown: () => {
+        return (
+          <div style={{ padding: 8 }}>
+            <Search
+              allowClear
+              onSearch={(e) => {
+                const searchValue = { type: "address", value: e };
+                searchItems(searchValue, { resetSkip: true });
+              }}
+              placeholder="Enter address"
+              style={{ width: 200 }}
+            />
+          </div>
+        );
+      },
+      responsive: ["xl"],
+      width: 180,
+    },
     //Note
     // {
     //   title: "Ghi chú",
@@ -420,6 +417,7 @@ export default function CustomerCRUD() {
     //   width: 100,
     //   responsive: ["xl"],
     // },
+    // Created date
     {
       title: (
         <div
@@ -428,7 +426,8 @@ export default function CustomerCRUD() {
             searchParams.get("createdDateTo")
               ? "text-danger"
               : "secondary"
-          }>
+          }
+        >
           Ngày đăng ký
         </div>
       ),
@@ -469,29 +468,25 @@ export default function CustomerCRUD() {
       sorter: true,
       sortOrder: getSortOrder(searchParams.toString(), "createdDate"),
     },
+    // Số đơn hàng
+    {
+      title: () => renderTitle("orderCount", "Số đơn hàng"),
+      dataIndex: "orderCount",
+      key: "orderCount",
+      sorter: true,
+      sortOrder: getSortOrder(searchParams.toString(), "orderCount"),
+      width: 100,
+      responsive: ["xl"],
+      render: (orderCount) => {
+        return <span>{orderCount ?? 0}</span>;
+      },
+    },
   ];
-
-  const dataSource = customersData
-    ? "results" in customersData
-      ? customersData?.results
-      : [customersData.result]
-    : [];
-
-  const totalAmount = customersData
-    ? "results" in customersData
-      ? customersData.amountResults
-      : 1
-    : 0;
 
   return (
     <CRUD
-      dataSource={dataSource}
       columns={columns}
-      searchParams={searchParams}
-      setSearchParams={setSearchParams}
-      refetch={refetch}
       collectionName="customers"
-      loading={isLoading}
       form={{ controls: formItems, title: "Khách hàng" }}
       fileFields={[
         {
@@ -502,8 +497,7 @@ export default function CustomerCRUD() {
           sizes: [[100, 150]],
         },
       ]}
-      fetchError={error}
-      totalAmount={totalAmount}
+      query={queryResult}
     />
   );
 }

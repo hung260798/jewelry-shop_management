@@ -27,31 +27,36 @@ function setAuthHeader(config: InternalAxiosRequestConfig) {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleUnauthorizedError(error: any) {
-  if (error.response) {
-    if (error?.response?.status !== 401) {
+  // // console.table(error);
+  if (typeof error !== "object" || error === null) {
+    return Promise.reject(error);
+  }
+  if (error?.response) {
+    if (error.response?.status !== 401) {
       return Promise.reject(error);
     }
-    const errorMsg = error?.response?.data?.message;
-    if (
-      errorMsg === "refreshToken is not a valid Token" ||
-      errorMsg === "refreshToken and id's not match!"
-    ) {
+    // If Status === 401, Unauthorized:
+    // // const errorMsg: string | undefined = error?.response?.data?.message;
+    const url: string | undefined = error?.config?.url;
+    // If the request is refresh token request and it failed, stop
+    if (url && url.includes("/refreshToken")) {
       localStorage.clear();
       message.info("Please login !!!", 1.5);
       window.location.href = "/";
       return;
     }
+    // If it's not a refresh token request:
     const originalConfig = error.config;
     if (!originalConfig.sent) {
       originalConfig.sent = true;
       try {
-        // Trường hợp không có token thì chuyển sang trang LOGIN
+        // No access token, user not login yet
         const token = window.localStorage.getItem("token");
         if (!token) {
-          // message.error("Account's not found", 1.5);
           window.location.href = "/";
           return Promise.reject(error);
         }
+        // Have expired token, logged in
         const refreshToken = window.localStorage.getItem("refreshToken");
         if (!refreshToken) {
           return Promise.reject(error);
@@ -59,10 +64,14 @@ async function handleUnauthorizedError(error: any) {
         const response = await axiosClientJson.post("/employees/refreshToken", {
           refreshToken: refreshToken,
         });
-        window.localStorage.setItem("token", response.data.token);
+        const newAccessToken = response.data?.token;
+        if (!newAccessToken) {
+          return Promise.reject(error);
+        }
+        window.localStorage.setItem("token", newAccessToken);
         originalConfig.headers = {
           ...originalConfig.headers,
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${newAccessToken}`,
         };
         // message.info("System reload", 1.5);
         return axiosClientJson(originalConfig);

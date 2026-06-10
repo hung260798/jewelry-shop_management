@@ -19,24 +19,24 @@ const YearInformation = () => {
 
   const [orderTotal, setOrderTotal] = useState<{ total: valueType }>();
   const [totalUser, setTotalUser] = useState<valueType>();
-  const [listOrders, setListOrders] = useState<valueType>();
-  const [productsActive, setProductsActive] = useState<valueType>();
+  const [ordersCount, setOrdersCount] = useState<valueType>();
+  const [productsActiveCount, setProductsActiveCount] = useState<valueType>();
   useEffect(() => {
-    axios.get(`${API_URL}/questions/23`).then((res) => {
+    axiosClientJson.get(`${API_URL}/questions/23`).then((res) => {
       setOrderTotal(res.data);
     });
-    axios.get(`${API_URL}/customers`).then((res) => {
+    axiosClientJson.get(`${API_URL}/customers`).then((res) => {
       setTotalUser(res.data.amountResults);
     });
 
     axios.get(`${API_URL}/products?active=true`).then((res) => {
-      setProductsActive(res.data.amountResults);
+      setProductsActiveCount(res.data.amountResults);
     });
   }, [API_URL]);
 
   useEffect(() => {
-    axiosClientJson.get(`/orders`).then((res) => {
-      setListOrders(res.data.amountResults);
+    axiosClientJson.get(`/orders?fields[]=_id`).then((res) => {
+      setOrdersCount(res.data.amountResults);
     });
   }, []);
   return (
@@ -46,7 +46,8 @@ const YearInformation = () => {
         gutter={[
           { xs: 8, sm: 16, md: 24, lg: 32 },
           { xs: 8, sm: 8, lg: 8, xxl: 8 },
-        ]}>
+        ]}
+      >
         <Col xs={24} lg={12} xxl={6}>
           <Card variant="borderless" style={{ width: "100%" }}>
             <div className="d-flex justify-content-between">
@@ -79,7 +80,7 @@ const YearInformation = () => {
                 <Space>
                   <Statistic
                     title="Order's total"
-                    value={listOrders}
+                    value={ordersCount}
                     formatter={formatter}
                     style={{ fontWeight: "bold" }}
                   />
@@ -125,7 +126,7 @@ const YearInformation = () => {
                 <Space>
                   <Statistic
                     title="Product's active"
-                    value={productsActive}
+                    value={productsActiveCount}
                     formatter={formatter}
                     style={{ fontWeight: "bold" }}
                   />

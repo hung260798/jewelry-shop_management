@@ -16,7 +16,9 @@ const Address = () => {
   useEffect(() => {
     const fetchLocation = async () => {
       try {
-        const response = await axiosClientJson.get<GetMany<Order>>(`/orders`);
+        const response = await axiosClientJson.get<GetMany<Order>>(
+          `/orders?fields[]=position`
+        );
         if (!Array.isArray(response?.data?.results)) {
           return;
         }

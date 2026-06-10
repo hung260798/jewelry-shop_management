@@ -1,8 +1,13 @@
-import SmartImage from "@/components/images/Lazy/SmartImage";
+import {
+  getCardControlsFromRecord,
+  ModalCard,
+  useModalCard,
+} from "@/components/Forms/ModalCard";
+import SmartImage from "@/components/Images/Lazy/SmartImage";
 import { UploadInput } from "@/components/Inputs/FileUpload";
-import { useGetList } from "@/hooks/useMyQuery";
+import { useGetListQuery } from "@/hooks/useMyQuery";
 import { axiosClientJson } from "@/libraries/axiosClient";
-import CRUD from "@/templates/CRUD";
+import CRUD from "@/components/CRUD";
 import { ASSET_URL } from "@/utils/constants/URLS";
 import { devLog } from "@/utils/logger";
 import { appendDomain, getSortOrder } from "@/utils/stringUtils";
@@ -15,10 +20,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Flex, Input, List, Modal, Switch, Tag } from "antd";
 import { ColumnsType } from "antd/es/table";
 import { AxiosResponse } from "axios";
-import SearchBox, {
-  useSearchProducts,
-} from "components/Inputs/Searchbox/index";
-import { memo, useEffect, useMemo, useState } from "react";
+import SearchBox, { useSearchProducts } from "components/Inputs/Searchbox";
+import { memo, useEffect, useState } from "react";
 import {
   Active,
   Collection as Collection0,
@@ -36,183 +39,167 @@ const MemoSearchBox = memo(SearchBox);
 const imageSmallSizes: [number, number][] = [[200, 200]];
 
 export default function CollectionCRUD() {
-  const {
-    query: { data: collectionsData, isLoading, error, isFetching },
-    searchParams,
-    setSearchParams,
-    searchItems,
-  } = useGetList<DataRecord>({
+  const queryResult = useGetListQuery<DataRecord>({
     url: "/collections",
     queryKey: ["get_collections"],
   });
-  const columns: ColumnsType<DataRecord> = useMemo<
-    ColumnsType<DataRecord>
-  >(() => {
-    return [
-      {
-        title: "No",
-        key: "no",
-        render(value, record, index) {
-          return index + 1;
-        },
+
+  const { searchParams, searchItems } = queryResult;
+  const columns: ColumnsType<DataRecord> = [
+    {
+      title: "No",
+      key: "no",
+      dataIndex: "_id",
+      render(_id, r, index) {
+        return index + 1;
       },
-      {
-        title: (
-          <div
-            className={searchParams.get("name") ? "text-danger" : "secondary"}>
-            Tên bộ sưu tập
-          </div>
-        ),
-        dataIndex: "name",
-        sorter: true,
-        sortOrder: getSortOrder(searchParams.toString(), "name"),
-        filterDropdown: () => {
-          return (
-            <Input.Search
-              allowClear
-              placeholder="input search text"
-              onSearch={(e) => {
-                searchItems(
-                  [
-                    {
-                      type: "name",
-                      value: e,
-                    },
-                  ],
-                  { resetSkip: true }
-                );
-              }}
-              defaultValue={searchParams.get("name") ?? ""}
-              style={{ width: 200 }}
-            />
-          );
-        },
+    },
+    {
+      title: (
+        <div className={searchParams.get("name") ? "text-danger" : "secondary"}>
+          Tên bộ sưu tập
+        </div>
+      ),
+      dataIndex: "name",
+      sorter: true,
+      sortOrder: getSortOrder(searchParams.toString(), "name"),
+      filterDropdown: () => {
+        return (
+          <Input.Search
+            allowClear
+            placeholder="bst 123 ..."
+            onSearch={(e) => {
+              searchItems(
+                [
+                  {
+                    type: "name",
+                    value: e,
+                  },
+                ],
+                { resetSkip: true }
+              );
+            }}
+            defaultValue={searchParams.get("name") ?? ""}
+            style={{ width: 200 }}
+          />
+        );
       },
-      {
-        title: (
-          <div
-            className={
-              searchParams.get("description") ? "text-danger" : "secondary"
-            }>
-            Mô tả
-          </div>
-        ),
-        dataIndex: "description",
-        sorter: true,
-        sortOrder: getSortOrder(searchParams.toString(), "description"),
-        filterDropdown: () => {
-          return (
-            <Input.Search
-              allowClear
-              placeholder="input search text"
-              onSearch={(e) => {
-                searchItems(
-                  [
-                    {
-                      type: "description",
-                      value: e,
-                    },
-                  ],
-                  { resetSkip: true }
-                );
-              }}
-              defaultValue={searchParams.get("description") ?? ""}
-              style={{ width: 200 }}
-            />
-          );
-        },
+    },
+    {
+      title: (
+        <div
+          className={
+            searchParams.get("description") ? "text-danger" : "secondary"
+          }
+        >
+          Mô tả
+        </div>
+      ),
+      dataIndex: "description",
+      // sorter: true,
+      sortOrder: getSortOrder(searchParams.toString(), "description"),
+      filterDropdown: () => {
+        return (
+          <Input.Search
+            allowClear
+            placeholder="input search text"
+            onSearch={(e) => {
+              searchItems(
+                [
+                  {
+                    type: "description",
+                    value: e,
+                  },
+                ],
+                { resetSkip: true }
+              );
+            }}
+            defaultValue={searchParams.get("description") ?? ""}
+            style={{ width: 200 }}
+          />
+        );
       },
-      {
-        title: "Ngày tạo",
-        dataIndex: "createdDate",
-        sorter: true,
-        sortOrder: getSortOrder(searchParams.toString(), "createdDate"),
-        render(date: string | undefined) {
-          if (!date) return "";
-          const d: Date = new Date(date);
-          return (
-            <>
-              <span>{d.toLocaleDateString()}</span>
-              <br />
-              <span>{d.toLocaleTimeString()}</span>
-            </>
-          );
-        },
+    },
+    {
+      title: "Ngày tạo",
+      dataIndex: "createdDate",
+      sorter: true,
+      sortOrder: getSortOrder(searchParams.toString(), "createdDate"),
+      render(date: string | undefined) {
+        if (!date) return "";
+        const d: Date = new Date(date);
+        return (
+          <>
+            <span>{d.toLocaleDateString()}</span>
+            <br />
+            <span>{d.toLocaleTimeString()}</span>
+          </>
+        );
       },
-      {
-        title: "Chỉnh sửa lần cuối",
-        dataIndex: "modifiedDate",
-        sorter: true,
-        sortOrder: getSortOrder(searchParams.toString(), "modifiedDate"),
-        render(date: string | undefined) {
-          if (!date) return "";
-          const d: Date = new Date(date);
-          return (
-            <>
-              <span>{d.toLocaleDateString()}</span>
-              <br />
-              <span>{d.toLocaleTimeString()}</span>
-            </>
-          );
-        },
+    },
+    {
+      title: "Chỉnh sửa lần cuối",
+      dataIndex: "modifiedDate",
+      // sorter: true,
+      sortOrder: getSortOrder(searchParams.toString(), "modifiedDate"),
+      render(date: string | undefined) {
+        if (!date) return "";
+        const d: Date = new Date(date);
+        return (
+          <>
+            <span>{d.toLocaleDateString()}</span>
+            <br />
+            <span>{d.toLocaleTimeString()}</span>
+          </>
+        );
       },
-      {
-        dataIndex: "status",
-        key: "status",
-        title: "Trạng thái",
-        render: (status: string | undefined) => {
-          return (
-            <Tag color="blue">{status ? status.toUpperCase() : "INACTIVE"}</Tag>
-          );
-        },
-        sorter: true,
+    },
+    {
+      dataIndex: "status",
+      key: "status",
+      title: "Trạng thái",
+      render: (status: string | undefined) => {
+        return (
+          <Tag color="blue">{status ? status.toUpperCase() : "INACTIVE"}</Tag>
+        );
       },
-      {
-        title: "Ảnh  BST",
-        dataIndex: "image",
-        render(src: string) {
-          if (typeof src !== "string") return null;
-          return (
-            <SmartImage
-              src={appendDomain(src, ASSET_URL)}
-              width={200}
-              height={200}
-              smallSizes={imageSmallSizes}
-              // preview={true}
-            />
-          );
-        },
-        width: 240,
+      // sorter: true,
+    },
+    {
+      title: "Ảnh  BST",
+      dataIndex: "image",
+      render(src: string) {
+        if (typeof src !== "string") return null;
+        return (
+          <SmartImage
+            src={appendDomain(src, ASSET_URL)}
+            width={200}
+            height={200}
+            smallSizes={imageSmallSizes}
+            // preview={true}
+          />
+        );
       },
-      {
-        title: "Ảnh bìa BST",
-        dataIndex: "coverImage",
-        render(src: string) {
-          if (typeof src !== "string") return null;
-          return (
-            <SmartImage
-              src={appendDomain(src, ASSET_URL)}
-              width={350}
-              height={100}
-              smallSizes={[[350, 100]]}
-              style={{ width: "350px", height: "100px" }}
-            />
-          );
-        },
-        width: 240,
+      width: 240,
+    },
+    {
+      title: "Ảnh bìa BST",
+      dataIndex: "coverImage",
+      render(src: string) {
+        if (typeof src !== "string") return null;
+        return (
+          <SmartImage
+            src={appendDomain(src, ASSET_URL)}
+            width={350}
+            height={100}
+            smallSizes={[[350, 100]]}
+            style={{ width: "350px", height: "100px" }}
+          />
+        );
       },
-    ];
-  }, [searchItems, searchParams]);
-  const dataSource = collectionsData
-    ? "results" in collectionsData
-      ? collectionsData.results
-      : [collectionsData.result]
-    : [];
-  const totalAmount = collectionsData
-    ? "results" in collectionsData
-      ? collectionsData.amountResults
-      : 1
-    : 0;
+      width: 240,
+    },
+  ];
   const [showProductList, setShowProductList] = useState<DataRecord | null>(
     null
   );
@@ -231,14 +218,11 @@ export default function CollectionCRUD() {
     <>
       <CRUD<DataRecord>
         columns={columns}
-        dataSource={dataSource}
-        totalAmount={totalAmount}
-        searchParams={searchParams}
-        setSearchParams={setSearchParams}
         collectionName="collections"
         form={{
           title: "Bộ sưu tập",
           controls: formControls,
+          modalProps: { width: "600px" },
         }}
         fileFields={[
           {
@@ -267,9 +251,8 @@ export default function CollectionCRUD() {
             ),
           ],
         }}
-        loading={isLoading || isFetching}
-        fetchError={error}
         convertToFormValues={converRecordToFormValues}
+        query={queryResult}
       />
       <AddProductBox
         isOpen={showProductList}
@@ -340,11 +323,13 @@ function AddProductBox({
   refetch?: () => void;
 }) {
   const queryClient = useQueryClient();
+  const openModal = useModalCard((s) => s.openModal);
+  const cardValues = useModalCard((s) => s.cardValues);
   const modalProps = {
-    open: collection !== null,
+    open: collection != null,
     onOk: async () => {
       try {
-        if (collection !== null) {
+        if (collection != null) {
           await axiosClientJson.patch(`/collections/${collection._id}`, {
             products: added,
           });
@@ -392,98 +377,133 @@ function AddProductBox({
   }, [collection, response]);
 
   return (
-    <Modal
-      {...modalProps}
-      className="relative"
-      width={"60rem"}
-      height={"45rem"}>
-      <Flex className="relative min-h-52 h-full w-full flex-col" gap={"1rem"}>
-        <div>
-          BST: <strong>{collection?.name}</strong>
-        </div>
-        <MemoSearchBox
-          useSearch={useSearchProducts}
-          renderItem={(item, context) => {
-            const product = item as Product;
-            const isExisted = added.some((p) => p._id === product._id);
-            return (
-              <Flex
-                className="px-3 w-full text-[0.8rem]"
-                justify="space-between"
-                align="center">
-                <Flex align="center">
-                  <SmartImage
-                    src={appendDomain(product.imageUrl, ASSET_URL)}
-                    width={"2rem"}
-                    height={"2rem"}
-                  />
-                  {product.name}
-                </Flex>
-                <Button
-                  onClick={() => {
-                    setAdded((prev) => {
-                      const currentProducts = prev as Product[];
-                      const newArr = [...currentProducts, product];
-                      return [
-                        ...new Map(newArr.map((p) => [p._id, p])).values(),
-                      ];
-                    });
-                    context?.clearTerm?.();
-                  }}
-                  size="small"
-                  className="text-[.8rem]"
-                  icon={<PlusOutlined />}
-                  disabled={isExisted}>
-                  {isExisted ? "Đã thêm" : "Thêm"}
-                </Button>
-              </Flex>
-            );
-          }}
-        />
-        <div className="max-h-64 overflow-auto">
-          <h6>Sản phẩm hiện tại:</h6>
-          <List size="small">
-            {added.map((item) => {
-              const { _id } = item;
+    <>
+      <Modal
+        {...modalProps}
+        className="relative"
+        width={"60rem"}
+        height={"40rem"}
+      >
+        <Flex className="relative min-h-52 h-full w-full flex-col" gap={"1rem"}>
+          <div>
+            BST: <strong>{collection?.name}</strong>
+          </div>
+          <MemoSearchBox
+            searchHook={useSearchProducts}
+            renderItemFn={(item, context) => {
+              const product = item as Product;
+              const isExisted = added.some((p) => p._id === product._id);
               return (
-                <List.Item key={_id} className="text-[.8rem]">
-                  <Flex
-                    justify="space-between"
-                    align="center"
-                    className="w-full">
-                    <Flex align="center">
-                      <SmartImage
-                        src={appendDomain(item.imageUrl, ASSET_URL)}
-                        width={"2rem"}
-                        height={"2rem"}
-                      />
-                      {item.name}
-                    </Flex>
-                    <Button
+                <Flex
+                  className="px-3 w-full text-[0.8rem]"
+                  justify="space-between"
+                  align="center"
+                >
+                  <Flex align="center">
+                    <SmartImage
+                      src={appendDomain(product.imageUrl, ASSET_URL)}
+                      width={"2rem"}
+                      height={"2rem"}
+                    />
+                    {/* {product.name} */}
+                    <button
+                      type="button"
+                      className="w-full text-left"
                       onClick={() => {
-                        setAdded((prev) => {
-                          const i = prev.findIndex((elem) => elem._id === _id);
-                          if (i >= 0) {
-                            const newArr = prev.slice();
-                            newArr.splice(i, 1);
-                            return newArr;
-                          }
-                          return prev;
-                        });
+                        openModal(item, "search-product");
+                        context?.clickItem?.();
+                        context?.clearTerm?.();
                       }}
-                      size="small"
-                      icon={<DeleteOutlined />}
-                      danger
-                      type="dashed">
-                      Xóa
-                    </Button>
+                    >
+                      {product.name}
+                    </button>
                   </Flex>
-                </List.Item>
+                  <Button
+                    onClick={() => {
+                      setAdded((prev) => {
+                        const currentProducts = prev as Product[];
+                        const newArr = [...currentProducts, product];
+                        return [
+                          ...new Map(newArr.map((p) => [p._id, p])).values(),
+                        ];
+                      });
+                      context?.clearTerm?.();
+                    }}
+                    size="small"
+                    className="text-[.8rem]"
+                    icon={<PlusOutlined />}
+                    disabled={isExisted}
+                  >
+                    {isExisted ? "Đã thêm" : "Thêm"}
+                  </Button>
+                </Flex>
               );
-            })}
-          </List>
-        </div>
-      </Flex>
-    </Modal>
+            }}
+          />
+          <div className="max-h-80 overflow-auto">
+            <h6>Sản phẩm hiện tại:</h6>
+            <List size="small">
+              {added.map((item) => {
+                const { _id } = item;
+                return (
+                  <List.Item key={_id} className="text-[.8rem]">
+                    <Flex
+                      justify="space-between"
+                      align="center"
+                      className="w-full"
+                    >
+                      <Flex align="center">
+                        <SmartImage
+                          src={appendDomain(item.imageUrl, ASSET_URL)}
+                          width={"2rem"}
+                          height={"2rem"}
+                        />
+                        <button
+                          type="button"
+                          className="w-full text-left"
+                          onClick={() => {
+                            openModal(item, "search-product");
+                          }}
+                        >
+                          {item.name}
+                        </button>
+                      </Flex>
+                      <Button
+                        onClick={() => {
+                          setAdded((prev) => {
+                            const i = prev.findIndex(
+                              (elem) => elem._id === _id
+                            );
+                            if (i >= 0) {
+                              const newArr = prev.slice();
+                              newArr.splice(i, 1);
+                              return newArr;
+                            }
+                            return prev;
+                          });
+                        }}
+                        size="small"
+                        icon={<DeleteOutlined />}
+                        danger
+                        type="dashed"
+                      >
+                        Xóa
+                      </Button>
+                    </Flex>
+                  </List.Item>
+                );
+              })}
+            </List>
+          </div>
+        </Flex>
+      </Modal>
+      <ModalCard
+        cardControls={getCardControlsFromRecord(
+          (cardValues ?? {}) as Record<string, unknown>
+        )}
+        collectionName="products"
+        key={"search-product"}
+      />
+    </>
   );
 }
