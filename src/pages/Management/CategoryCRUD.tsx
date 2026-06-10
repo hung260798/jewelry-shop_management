@@ -1,5 +1,8 @@
 import SmartImage from "@/components/Images/Lazy/SmartImage";
-import { useGetListQuery } from "@/hooks/useMyQuery";
+import {
+  useGetListQuery,
+  extractArrayFromGetOneOrMany,
+} from "@/hooks/useMyQuery";
 import CRUD from "@/components/CRUD";
 import { appendDomain, getSortOrder } from "@/utils/stringUtils";
 import { Active, Category, WithId } from "@/utils/types/Entities";
@@ -7,7 +10,7 @@ import { FormControl } from "@/utils/types/Form";
 import { Select, Space, Tag } from "antd";
 import Search from "antd/es/input/Search";
 import { ColumnsType } from "antd/es/table";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { UploadInput } from "@/components/Inputs/FileUpload";
 import { UploadOutlined } from "@ant-design/icons";
 import { Button, Checkbox, Input, InputNumber } from "antd";
@@ -21,12 +24,17 @@ const imageSizes = [
   [120, 120],
 ];
 
+type CategoryOption = {
+  value: string;
+  label: string;
+};
+
 const coverImageSizes = [
   [240, 80],
   [300, 100],
 ];
 
-const controls: FormControl[] = [
+const getControls = (categoryOptions: CategoryOption[]): FormControl[] => [
   {
     label: "Id",
     name: "_id",
@@ -56,6 +64,24 @@ const controls: FormControl[] = [
   //   rules: [{ required: true, message: "Please input coverImageUrl!" }],
   //   component: <Input />,
   // },
+  {
+    label: "Danh mục cha",
+    name: "parentCategory",
+    component: (
+      <Select
+        allowClear
+        showSearch
+        placeholder="Select parent category"
+        optionFilterProp="label"
+        filterOption={(input, option) =>
+          (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+        }
+        options={categoryOptions}
+      />
+    ),
+    className: "basis-full",
+    defaultValue: "",
+  },
   {
     label: "Promotion",
     name: "promotionPosition",
@@ -136,10 +162,26 @@ const controls: FormControl[] = [
 ];
 
 function CategoryCRUD() {
+  const [categoryOptions, setCategoryOptions] = useState<CategoryOption[]>([]);
+
   const queryResults = useGetListQuery<Entity>({
     queryKey: ["get_categories"],
     url: "/categories",
   });
+
+  // Build category options for the parent category select
+  useEffect(() => {
+    const { dataSource } = extractArrayFromGetOneOrMany(
+      queryResults.query.data
+    );
+    const options: CategoryOption[] = (dataSource as Entity[])
+      .filter((cat: Entity) => !cat.isDeleted)
+      .map((cat: Entity) => ({
+        value: cat._id,
+        label: cat.name,
+      }));
+    setCategoryOptions(options);
+  }, [queryResults.query.data]);
 
   const {
     query: { refetch },
@@ -315,6 +357,7 @@ function CategoryCRUD() {
                   className="object-fill"
                   width={150}
                   height={150}
+                  fallback="/placeholder-image.jpg"
                 />
               )}
             </div>
@@ -337,6 +380,7 @@ function CategoryCRUD() {
                   smallSizes={coverImageSizes as [number, number][]}
                   alt="coverImage"
                   className="object-fill"
+                  fallback="/placeholder-image.jpg"
                 />
               )}
             </div>
@@ -382,6 +426,22 @@ function CategoryCRUD() {
         sorter: true,
         sortOrder: getSortOrder(searchParams.toString(), "sortOrder"),
       },
+      // Parent Category
+      {
+        title: "Danh mục cha",
+        dataIndex: ["parentCategory", "name"],
+        key: "parentCategory",
+        render: (text: string, record: Entity) => {
+          if (!record.parentCategory) {
+            return <span className="text-gray-400">-</span>;
+          }
+          const parentCategoryName =
+            typeof record.parentCategory === "object"
+              ? record.parentCategory.name
+              : record.parentCategory;
+          return <span>{parentCategoryName}</span>;
+        },
+      },
       //Note
       {
         title: "Lưu ý",
@@ -420,6 +480,8 @@ function CategoryCRUD() {
       },
     };
   };
+
+  const controls = getControls(categoryOptions);
 
   return (
     <CRUD

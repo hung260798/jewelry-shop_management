@@ -188,6 +188,7 @@ function SlidesCRUD() {
                 style={{ height: 100 }}
                 // smallSizes={[]}
                 // alt={imageUrl}
+                fallback="/placeholder-image.jpg"
                 preview={{
                   destroyOnHidden: true,
                   src: appendDomain(imageUrl, ASSET_URL),

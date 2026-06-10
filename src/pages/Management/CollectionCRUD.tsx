@@ -176,6 +176,7 @@ export default function CollectionCRUD() {
             width={200}
             height={200}
             smallSizes={imageSmallSizes}
+            fallback="/placeholder-image.jpg"
             // preview={true}
           />
         );
@@ -194,6 +195,7 @@ export default function CollectionCRUD() {
             height={100}
             smallSizes={[[350, 100]]}
             style={{ width: "350px", height: "100px" }}
+            fallback="/placeholder-image.jpg"
           />
         );
       },
@@ -404,6 +406,7 @@ function AddProductBox({
                       src={appendDomain(product.imageUrl, ASSET_URL)}
                       width={"2rem"}
                       height={"2rem"}
+                      fallback="/placeholder-image.jpg"
                     />
                     {/* {product.name} */}
                     <button
@@ -457,6 +460,7 @@ function AddProductBox({
                           src={appendDomain(item.imageUrl, ASSET_URL)}
                           width={"2rem"}
                           height={"2rem"}
+                          fallback="/placeholder-image.jpg"
                         />
                         <button
                           type="button"

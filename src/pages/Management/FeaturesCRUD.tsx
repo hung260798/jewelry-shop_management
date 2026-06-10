@@ -189,6 +189,7 @@ function FeaturesCRUD() {
                 smallSizes={imageUrlSizes}
                 // style={{ height: 60 }}
                 alt="record.imageUrl"
+                fallback="/placeholder-image.jpg"
               />
             )}
           </div>

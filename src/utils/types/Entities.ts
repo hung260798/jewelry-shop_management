@@ -15,6 +15,7 @@ interface Category {
   coverImageUrl: string;
   note: string;
   description: string;
+  parentCategory?: WithId<Category> | string;
 }
 
 interface Supplier {

@@ -525,6 +525,7 @@ export default function ProductCRUD() {
                 smallSizes={IMG_SIZES}
                 width={80}
                 height={80}
+                fallback="/placeholder-image.jpg"
               />
             </Image.PreviewGroup>
           </div>
