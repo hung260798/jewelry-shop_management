@@ -10,6 +10,8 @@ import {
   Flex,
   Tag,
   Image as AntImage,
+  Divider,
+  Card,
 } from "antd";
 import {
   DeleteOutlined,
@@ -17,9 +19,9 @@ import {
   FileOutlined,
   FileImageOutlined,
   FileTextOutlined,
-  //   FileVideoOutlined,
   FileZipOutlined,
   ReloadOutlined,
+  FolderOutlined,
 } from "@ant-design/icons";
 import { useGCSFiles } from "@/hooks/useGCSFiles";
 import { axiosClientJson } from "@/libraries/axiosClient";
@@ -154,6 +156,7 @@ export default function FileManagerCRUD({
       title: "Xem trước",
       key: "preview",
       width: 80,
+      align: "center" as const,
       render: (_, record) => {
         if (record.type === "image") {
           return (
@@ -161,11 +164,16 @@ export default function FileManagerCRUD({
               src={record.url}
               alt={record.name}
               preview
+              className="file-preview-image"
               style={{ width: 60, height: 60, objectFit: "cover" }}
             />
           );
         }
-        return getFileIcon(record.type, 32);
+        return (
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            {getFileIcon(record.type, 32)}
+          </div>
+        );
       },
     },
     {
@@ -173,7 +181,9 @@ export default function FileManagerCRUD({
       dataIndex: "name",
       key: "name",
       render: (text: string) => (
-        <div style={{ wordBreak: "break-all", maxWidth: "300px" }}>{text}</div>
+        <div className="file-name-cell" title={text}>
+          {text}
+        </div>
       ),
     },
     {
@@ -188,13 +198,18 @@ export default function FileManagerCRUD({
           archive: "purple",
           other: "default",
         };
-        return <Tag color={colorMap[record.type]}>{record.extension}</Tag>;
+        return (
+          <Tag color={colorMap[record.type]} className="file-type-tag">
+            {record.extension}
+          </Tag>
+        );
       },
     },
     {
       title: "Hành động",
       key: "actions",
-      width: 150,
+      width: 120,
+      align: "center" as const,
       render: (_, record) => (
         <Space size="small">
           <Button
@@ -203,6 +218,7 @@ export default function FileManagerCRUD({
             size="small"
             onClick={() => handleDownload(record.name)}
             title="Tải xuống"
+            className="file-action-button"
           />
           <Popconfirm
             title="Xóa tệp"
@@ -218,6 +234,7 @@ export default function FileManagerCRUD({
               icon={<DeleteOutlined />}
               size="small"
               title="Xóa"
+              className="file-action-button"
             />
           </Popconfirm>
         </Space>
@@ -231,14 +248,52 @@ export default function FileManagerCRUD({
   };
 
   if (error) {
-    return <Empty description="Lỗi khi tải tệp" style={{ marginTop: 50 }} />;
+    return (
+      <div className="file-manager-container">
+        <div className="file-manager-header">
+          <h2>
+            <FolderOutlined />
+            Quản lý tệp
+          </h2>
+        </div>
+        <div className="file-manager-content">
+          <Empty description="Lỗi khi tải tệp" style={{ marginTop: 50 }} />
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div style={{ padding: "24px" }}>
-      <Flex justify="space-between" align="center" style={{ marginBottom: 16 }}>
-        <h2>Quản lý tệp</h2>
-        <Space>
+    <div className="file-manager-container">
+      {/* Header */}
+      <div className="file-manager-header">
+        <h2>
+          <FolderOutlined />
+          Quản lý tệp
+        </h2>
+        {tableData.length > 0 && (
+          <div className="file-manager-stats">
+            <div className="file-manager-stat-item">
+              <span className="file-manager-stat-label">Tổng tệp</span>
+              <span className="file-manager-stat-value">
+                {tableData.length}
+              </span>
+            </div>
+            {selectedRowKeys.length > 0 && (
+              <div className="file-manager-stat-item">
+                <span className="file-manager-stat-label">Đã chọn</span>
+                <span className="file-manager-stat-value">
+                  {selectedRowKeys.length}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Toolbar */}
+      <div className="file-manager-toolbar">
+        <div className="file-manager-toolbar-actions">
           {selectedRowKeys.length > 0 && (
             <Popconfirm
               title="Xóa nhiều tệp"
@@ -254,38 +309,63 @@ export default function FileManagerCRUD({
             </Popconfirm>
           )}
           <Button
+            type="primary"
             icon={<ReloadOutlined />}
             onClick={() => refetch()}
             loading={isLoading}
           >
             Làm mới
           </Button>
-        </Space>
-      </Flex>
+        </div>
+      </div>
 
-      <Spin spinning={isLoading}>
-        <Table<FileRecord>
-          columns={columns}
-          dataSource={tableData}
-          pagination={false}
-          rowSelection={rowSelection}
-          scroll={{ x: 800 }}
-          locale={{
-            emptyText: isLoading ? "Đang tải..." : "Không tìm thấy tệp",
-          }}
-        />
-      </Spin>
+      {/* Content */}
+      <div className="file-manager-content">
+        <Spin spinning={isLoading}>
+          {tableData.length === 0 && !isLoading ? (
+            <Empty
+              description="Không tìm thấy tệp"
+              className="file-manager-empty"
+            />
+          ) : (
+            <div className="file-manager-table-wrapper">
+              <Table<FileRecord>
+                columns={columns}
+                dataSource={tableData}
+                pagination={false}
+                rowSelection={rowSelection}
+                scroll={{ x: 800 }}
+                size="middle"
+                bordered
+              />
+            </div>
+          )}
+        </Spin>
 
-      {/* Pagination Controls */}
-      <Flex justify="center" gap="middle" style={{ marginTop: 24 }}>
-        <Button disabled={!currentPageToken} onClick={goToPreviousPage}>
-          Trước
-        </Button>
-        <span>{`Trang ${currentPageToken ? "N" : "1"}`}</span>
-        <Button disabled={!hasMore} onClick={goToNextPage}>
-          Tiếp
-        </Button>
-      </Flex>
+        {/* Pagination Controls */}
+        {tableData.length > 0 && (
+          <div className="file-manager-pagination">
+            <Button
+              disabled={!currentPageToken}
+              onClick={goToPreviousPage}
+              size="large"
+            >
+              ← Trước
+            </Button>
+            <span className="file-manager-pagination-info">
+              {currentPageToken ? "Trang N" : "Trang 1"}
+            </span>
+            <Button
+              disabled={!hasMore}
+              onClick={goToNextPage}
+              size="large"
+              type={hasMore ? "primary" : "default"}
+            >
+              Tiếp →
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
