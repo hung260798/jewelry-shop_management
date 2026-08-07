@@ -95,6 +95,7 @@ export default function FileManagerCRUD({
     goToNextPage,
     goToPreviousPage,
     refetch,
+    tokenStack,
   } = useGCSFiles({ type, limit: 20 });
 
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
@@ -353,7 +354,7 @@ export default function FileManagerCRUD({
               ← Trước
             </Button>
             <span className="file-manager-pagination-info">
-              {currentPageToken ? "Trang N" : "Trang 1"}
+              {currentPageToken ? `Trang ${tokenStack.length}` : "Trang 1"}
             </span>
             <Button
               disabled={!hasMore}

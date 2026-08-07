@@ -19,6 +19,7 @@ interface UseGCSFilesReturn {
   goToNextPage: () => void;
   goToPreviousPage: () => void;
   refetch: () => Promise<any>;
+  tokenStack: (string | null)[];
 }
 
 /**
@@ -75,5 +76,6 @@ export function useGCSFiles(
     goToNextPage,
     goToPreviousPage,
     refetch: () => query.refetch().then((result) => result.data),
+    tokenStack,
   };
 }
