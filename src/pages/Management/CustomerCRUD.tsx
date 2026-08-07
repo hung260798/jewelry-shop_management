@@ -123,7 +123,7 @@ type CustomerWithId = WithId<Customer> & Active & { Locked: boolean };
 export default function CustomerCRUD() {
   const queryProps = {
     url: "/customers",
-    queryKey: ["get_customers"],
+    queryKey: ["customers"],
     // initData: { results: [], amountResults: 0 },
   };
   // const queryHook = useMyQuery<GetManyData<CustomerWithId>>;
@@ -187,8 +187,10 @@ export default function CustomerCRUD() {
                 optionFilterProp="children"
                 showSearch
                 onChange={(e) => {
-                  const searchValue = { type: "Locked", value: e };
-                  searchItems(searchValue, { resetSkip: true });
+                  searchItems([
+                    { type: "Locked", value: e },
+                    { type: "skip", value: "0" },
+                  ]);
                 }}
                 filterOption={(input, option) =>
                   (option?.label ?? "")
@@ -252,8 +254,10 @@ export default function CustomerCRUD() {
             <Search
               allowClear
               onSearch={(e) => {
-                const searchValue = { type: "email", value: e };
-                searchItems(searchValue, { resetSkip: true });
+                searchItems([
+                  { type: "email", value: e },
+                  { type: "skip", value: "0" },
+                ]);
               }}
               placeholder="Enter email"
               style={{ width: 200 }}
@@ -275,7 +279,7 @@ export default function CustomerCRUD() {
             <Search
               onSearch={(e) => {
                 const searchValue = { type: "phoneNumber", value: e };
-                searchItems(searchValue, { resetSkip: true });
+                searchItems([searchValue, { type: "skip", value: "0" }]);
               }}
               allowClear
               placeholder="Enter phone number"
@@ -302,7 +306,7 @@ export default function CustomerCRUD() {
               placeholder="Enter first name"
               onSearch={(e) => {
                 const searchValue = { type: "firstName", value: e };
-                searchItems(searchValue, { resetSkip: true });
+                searchItems([searchValue, { type: "skip", value: "0" }]);
               }}
               style={{ width: 200 }}
             />
@@ -325,7 +329,7 @@ export default function CustomerCRUD() {
               allowClear
               onSearch={(e) => {
                 const searchValue = { type: "lastName", value: e };
-                searchItems(searchValue, { resetSkip: true });
+                searchItems([searchValue, { type: "skip", value: "0" }]);
               }}
               placeholder="Enter last name"
               style={{ width: 200 }}
@@ -377,7 +381,7 @@ export default function CustomerCRUD() {
                   searchValues[0] = { type: "birthdayFrom", value: data[0] };
                   searchValues[1] = { type: "birthdayTo", value: data[1] };
                 }
-                searchItems(searchValues, { resetSkip: true });
+                searchItems([...searchValues, { type: "skip", value: "0" }]);
               }}
             />
           </div>
@@ -398,7 +402,7 @@ export default function CustomerCRUD() {
               allowClear
               onSearch={(e) => {
                 const searchValue = { type: "address", value: e };
-                searchItems(searchValue, { resetSkip: true });
+                searchItems([searchValue, { type: "skip", value: "0" }]);
               }}
               placeholder="Enter address"
               style={{ width: 200 }}
@@ -459,7 +463,7 @@ export default function CustomerCRUD() {
                   searchValues[0] = { type: "createdDateFrom", value: data[0] };
                   searchValues[1] = { type: "createdDateTo", value: data[1] };
                 }
-                searchItems(searchValues, { resetSkip: true });
+                searchItems([...searchValues, { type: "skip", value: "0" }]);
               }}
             />
           </div>
@@ -498,6 +502,9 @@ export default function CustomerCRUD() {
         },
       ]}
       query={queryResult}
+      uploadModalTitle={(customer) =>
+        `${customer?.firstName} ${customer?.lastName}`
+      }
     />
   );
 }

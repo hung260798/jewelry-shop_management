@@ -40,7 +40,7 @@ const ImagesPickerModal = ({
     queryKey: ["images"],
     queryFn: async () => {
       try {
-        const response = await axiosClientJson.get(`/gcs/list/images-only`);
+        const response = await axiosClientJson.get(`/gcs?type=image`);
         return response.data;
       } catch (error) {
         console.error("Error fetching images:", error);

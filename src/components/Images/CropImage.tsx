@@ -64,7 +64,7 @@ export default function AvatarUpload() {
       >
         <div>
           <PlusOutlined />
-          <div style={{ marginTop: 8 }}>Upload</div>
+          <div className="mt-2">Upload</div>
         </div>
       </Upload>
     </ImgCrop>

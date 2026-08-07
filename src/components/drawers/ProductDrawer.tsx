@@ -18,7 +18,7 @@ const ProductDrawer = (props: {
     searchParams,
   } = useMyQuery<GetMany<WithId<Product>>>({
     url: "/products",
-    queryKey: [`get_products_drawer`],
+    queryKey: [`products_drawer`],
     usePrivateParams: true,
     initParams: {
       limit: "10",

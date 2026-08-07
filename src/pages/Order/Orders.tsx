@@ -1,6 +1,7 @@
-import { useModalForm } from "@/components/Forms/ModalForm/useModalForm";
-import { axiosClientJson } from "@/libraries/axiosClient";
 import CRUD from "@/components/CRUD";
+import { useModalForm } from "@/components/Forms/ModalForm/useModalForm";
+import usePopupMessage from "@/hooks/usePopupMessage";
+import { axiosClientJson } from "@/libraries/axiosClient";
 import { devLog } from "@/utils/logger";
 import { GetManyData } from "@/utils/mutationFn";
 import { capitalizeFirstLetter } from "@/utils/stringUtils";
@@ -38,7 +39,7 @@ dayjs.extend(customParseFormat);
 const OrderCRUD: React.FC = () => {
   const queryResults = useMyQuery<GetManyData<WithId<Order>>>({
     url: "/orders",
-    queryKey: ["get_orders"],
+    queryKey: ["orders"],
     initParams: { active: "true" },
   });
   const {
@@ -48,7 +49,7 @@ const OrderCRUD: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState<WithId<Order>>();
   const [isSelectingProducts, setIsSelectingProducts] =
     useState<boolean>(false);
-  const [messageApi, contextHolder] = message.useMessage();
+  const [messageApi] = usePopupMessage() || [];
   const queryClient = useQueryClient();
 
   //Setting column
@@ -62,7 +63,7 @@ const OrderCRUD: React.FC = () => {
       },
       filterDropdown: () => {
         return (
-          <div style={{ padding: 8 }}>
+          <div className="p-2">
             <Input.Search
               allowClear
               placeholder="Enter Order Id"
@@ -121,7 +122,7 @@ const OrderCRUD: React.FC = () => {
       },
       filterDropdown: () => {
         return (
-          <div style={{ width: "150px" }}>
+          <div className="w-37.5">
             <Search
               allowClear
               style={{ width: "100%" }}
@@ -186,7 +187,7 @@ const OrderCRUD: React.FC = () => {
       },
       filterDropdown: () => {
         return (
-          <div style={{ width: "150px" }}>
+          <div className="w-37.5">
             <Select
               allowClear
               showSearch
@@ -270,7 +271,6 @@ const OrderCRUD: React.FC = () => {
   // return null;
   return (
     <>
-      {contextHolder}
       <CRUD
         collectionName="orders"
         columns={columns}
@@ -284,33 +284,12 @@ const OrderCRUD: React.FC = () => {
           customComponent: OrderDetailModal,
         }}
         functionColumn={{
-          // edit: (record) => {
-          //   return (
-          //     <Button
-          //       icon={<EyeOutlined />}
-          //       title="Xem"
-          //       type="dashed"
-          //       onClick={() => {
-          //         setFormValues({
-          //           selectedOrder: record,
-          //           functions: {
-          //             setIsSelectingProducts,
-          //             refetch,
-          //           },
-          //         });
-          //         // setTitle("orders");
-          //         setSelectedOrder(record);
-          //         setOpen(true);
-          //       }}
-          //     />
-          //   );
-          // },
           override: (record) => (
             <>
               <Button
                 icon={<EyeOutlined />}
                 title="Xem"
-                type="dashed"
+                // type="dashed"
                 onClick={() => {
                   setFormValues({
                     selectedOrder: record,
@@ -328,17 +307,17 @@ const OrderCRUD: React.FC = () => {
                 title="Xác nhận xóa"
                 okType="danger"
                 onConfirm={() => {
-                  async function defaultHandleDelete({ _id }: { _id: string }) {
+                  async function defaultHandleDelete({ _id }: WithId<Order>) {
                     try {
                       await axiosClientJson.delete(`/orders/${_id}`);
-                      messageApi.success("Delete success", 1);
+                      messageApi?.success("Delete success", 1);
                       await queryClient.invalidateQueries({
-                        queryKey: [`get_orders`],
+                        queryKey: [`orders`],
                       });
                     } catch (error) {
                       const errorName =
                         error instanceof Error ? error.name : "Unknown error";
-                      messageApi.error(`Delete fail: ${errorName}`, 1);
+                      messageApi?.error(`Delete fail: ${errorName}`, 1);
                     }
                   }
                   defaultHandleDelete(record);
@@ -347,7 +326,7 @@ const OrderCRUD: React.FC = () => {
               >
                 <Button
                   title="Xóa"
-                  type="dashed"
+                  // type="dashed"
                   danger
                   icon={<DeleteOutlined />}
                 />
@@ -360,7 +339,7 @@ const OrderCRUD: React.FC = () => {
                 <Button
                   icon={<CheckOutlined />}
                   onClick={() => {
-                    messageApi.open({
+                    messageApi?.open({
                       key: "confirmOrder",
                       type: "loading",
                       content: "Đang xác nhận đơn hàng",
@@ -368,7 +347,7 @@ const OrderCRUD: React.FC = () => {
                     axiosClientJson
                       .patch(`/orders/${order._id}`, { status: "ECONFIRMED" })
                       .then(() => {
-                        messageApi.open({
+                        messageApi?.open({
                           key: "confirmOrder",
                           type: "success",
                           content: "Đã xác nhận đơn hàng",
@@ -377,7 +356,7 @@ const OrderCRUD: React.FC = () => {
                       })
                       .catch((reason) => {
                         devLog(reason);
-                        messageApi.open({
+                        messageApi?.open({
                           key: "confirmOrder",
                           type: "error",
                           content: "Xác nhận đơn hàng bị lỗi",
@@ -706,7 +685,7 @@ function OrderDetailModal() {
                 key: "product.price",
                 render: (text, record) => {
                   return (
-                    <div style={{ textAlign: "right" }}>
+                    <div className="text-right">
                       {numeral(record?.product?.price).format("0,0$")}
                     </div>
                   );
@@ -718,7 +697,7 @@ function OrderDetailModal() {
                 key: "product.discount",
                 render: (text, record) => {
                   return (
-                    <div style={{ textAlign: "right" }}>
+                    <div className="text-right">
                       {numeral(record?.product?.discount).format("0,0")}%
                     </div>
                   );

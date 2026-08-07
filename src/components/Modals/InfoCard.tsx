@@ -45,9 +45,10 @@ export default function InfoCard() {
         <img
           alt="product"
           src="product-image-url"
-          style={{ height: 200, objectFit: "cover" }}
+          className="h-52 object-cover"
         />
-      }>
+      }
+    >
       <Card.Meta
         title="Product Name"
         description={

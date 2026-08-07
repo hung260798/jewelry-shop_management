@@ -9,13 +9,14 @@ import {
   PlusCircleOutlined,
   PlusOutlined,
   QuestionCircleOutlined,
+  ReloadOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
 import { useQueryClient } from "@tanstack/react-query";
-import { Button, Flex, Grid, message, Popconfirm, Table } from "antd";
+import { Button, Empty, Flex, Grid, Popconfirm, Table } from "antd";
 import { ColumnsType, ColumnType, TableProps } from "antd/es/table";
 import React, { ReactNode, useEffect, useState } from "react";
-import { GetOneOrMany, WithId } from "utils/types/Entities";
+import { GetOneOrMany, IdWise, WithId } from "utils/types/Entities";
 import { FileField, FormControl, FormProps } from "utils/types/Form";
 import cssStyles from "./crud.module.css";
 // import ErrorPage from "@/components/fallbacks/Error";
@@ -27,13 +28,11 @@ import {
   extractArrayFromGetOneOrMany,
   MyQueryReturnType,
 } from "@/hooks/useMyQuery";
+import usePopupMessage from "@/hooks/usePopupMessage";
 import { devLog, getErrorMessage } from "@/utils/logger";
 
 export type CRUDFunctions = {
-  handleDelete?: (record: {
-    _id: string;
-    [k: string]: unknown;
-  }) => void | Promise<void>;
+  handleDelete?: (record: IdWise) => void | Promise<void>;
   handlePageChange?: (current: number, pageSize: number) => void;
   clearParams?: () => void;
 };
@@ -54,7 +53,7 @@ export interface CRUDProps<T> {
     >;
     modalProps?: ModalFormProps["modalProps"];
   };
-  convertToFormValues?: (record: T) => unknown;
+  createFormValues?: (record: T) => unknown;
   functionColumn?: {
     extraFunctions?: ((record: T) => ReactNode)[];
     override?: (record: T) => ReactNode;
@@ -64,6 +63,18 @@ export interface CRUDProps<T> {
 }
 
 export const PERPAGE_SIZE = 10;
+
+const collectionTitleMap: Record<string, string> = {
+  categories: "Danh mục",
+  collections: "Bộ sưu tập",
+  customers: "Khách hàng",
+  employees: "Nhân viên",
+  features: "Tính năng",
+  orders: "Đơn hàng",
+  products: "Sản phẩm",
+  slides: "Slides",
+  suppliers: "Nguồn cung",
+};
 
 /**
  * A reusable CRUD (Create, Read, Update, Delete) component for managing data in a table format.
@@ -80,7 +91,7 @@ export default function CRUD<DataType extends WithId<object>>(
     fileFields,
     collectionName,
     form,
-    convertToFormValues = (d) => d,
+    createFormValues = (record) => record,
     query: queryResults,
   } = props;
 
@@ -96,7 +107,7 @@ export default function CRUD<DataType extends WithId<object>>(
     extractArrayFromGetOneOrMany(data);
   const tableLoading = isLoading || isFetching;
 
-  const [messageApi, contextHolder] = message.useMessage();
+  const [messageApi, , key] = usePopupMessage() || [];
   const screens = Grid.useBreakpoint();
   const queryClient = useQueryClient();
   const openModal = useModalForm((s) => s.openModal);
@@ -115,6 +126,7 @@ export default function CRUD<DataType extends WithId<object>>(
 
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const hasSelected = selectedRowKeys.length > 0;
+  const title = collectionTitleMap[collectionName] ?? collectionName;
 
   // Update cachedData only when not loading and dataSource changes
   useEffect(() => {
@@ -125,7 +137,14 @@ export default function CRUD<DataType extends WithId<object>>(
 
   useEffect(() => {
     if (fetchError) {
-      messageApi.error(getErrorMessage(fetchError));
+      if (messageApi && key) {
+        messageApi.open({
+          content: getErrorMessage(fetchError),
+          key,
+          type: "error",
+        });
+      }
+      // or: messageApi?.error(getErrorMessage(fetchError));
       devLog(fetchError);
     }
   }, [fetchError]);
@@ -141,17 +160,17 @@ export default function CRUD<DataType extends WithId<object>>(
   }, [searchParams?.get("skip")]);
 
   // End of hooks, start of functions
-  async function defaultHandleDelete({ _id }: { _id: string }) {
+  async function defaultHandleDelete({ _id }: IdWise) {
     if (collectionName) {
       try {
         await axiosClientJson.delete(`/${collectionName}/${_id}`);
-        messageApi.success("Delete success", 1);
+        messageApi?.success("Delete success", 1);
         await queryClient.invalidateQueries({
-          queryKey: [`get_${collectionName}`],
+          queryKey: [`${collectionName}`],
         });
       } catch (error) {
         const errorName = error instanceof Error ? error.name : "Unknown error";
-        messageApi.error(`Delete fail: ${errorName}`, 1);
+        messageApi?.error(`Delete fail: ${errorName}`, 1);
       }
     }
   }
@@ -175,11 +194,7 @@ export default function CRUD<DataType extends WithId<object>>(
     if (!searchParams || !setSearchParams) return;
     const params = new URLSearchParams(searchParams);
     const { current, pageSize } = pagination;
-    if (
-      typeof current === "number" &&
-      typeof pageSize === "number" &&
-      current !== currentPage
-    ) {
+    if (typeof current === "number" && typeof pageSize === "number") {
       setCurrentPage(current);
       params.set("skip", `${pageSize * (current - 1)}`);
       params.set("limit", `${pageSize}`);
@@ -208,7 +223,7 @@ export default function CRUD<DataType extends WithId<object>>(
     render: (_id, record) => {
       const { extraFunctions, override } = props.functionColumn ?? {};
       return (
-        <Flex gap={4} wrap>
+        <Flex gap={8} wrap className={cssStyles.rowActions}>
           {override ? (
             override(record)
           ) : (
@@ -216,10 +231,15 @@ export default function CRUD<DataType extends WithId<object>>(
               <Button
                 icon={<EditOutlined />}
                 title="Chỉnh sửa"
-                type="dashed"
+                type="text"
+                className={cssStyles.iconButton}
                 onClick={() => {
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  openModal(convertToFormValues(record) as any, collectionName);
+                  openModal(
+                    createFormValues(record) as any,
+                    collectionName,
+                    queryResults.queryKey
+                  );
                 }}
               />
               <Popconfirm
@@ -232,8 +252,9 @@ export default function CRUD<DataType extends WithId<object>>(
               >
                 <Button
                   title="Xóa"
-                  type="dashed"
+                  type="text"
                   danger
+                  className={cssStyles.iconButton}
                   icon={<DeleteOutlined />}
                 />
               </Popconfirm>
@@ -243,16 +264,20 @@ export default function CRUD<DataType extends WithId<object>>(
             <Button
               icon={<UploadOutlined />}
               title="Tải tệp lên"
+              type="text"
+              className={cssStyles.iconButton}
               onClick={function () {
                 setUploadBoxContent({
                   collection: collectionName,
                   item: record as unknown as IdAndNameWise,
                 });
-                const qk: string[][] = [];
-                for (const pair of searchParams?.entries() ?? []) {
-                  qk.push(pair);
-                }
-                setUploaderQueryKey?.(qk);
+                // const queryKey: string[][] = [];
+                // for (const pair of searchParams?.entries() ?? []) {
+                //   queryKey.push(pair);
+                // }
+                setUploaderQueryKey?.([
+                  Object.fromEntries(searchParams?.entries() ?? []),
+                ]);
                 setOpenUploadBox(true);
               }}
             />
@@ -281,7 +306,7 @@ export default function CRUD<DataType extends WithId<object>>(
             style={{ width: "150px", height: "40px" }}
             onClick={() => {
               close();
-              openModal(undefined, collectionName);
+              openModal(undefined, collectionName, queryResults.queryKey);
             }}
             icon={<PlusCircleOutlined />}
             type="text"
@@ -332,23 +357,21 @@ export default function CRUD<DataType extends WithId<object>>(
         }
       });
       if (failureCount) {
-        messageApi.warning(
+        messageApi?.warning(
           `${failureCount} delete failed, ${
             selectedRowKeys.length - failureCount
           } success`
         );
       } else {
-        messageApi.success(`All delete success`);
+        messageApi?.success(`All delete success`);
       }
       if (successCount) {
-        queryClient.invalidateQueries({ queryKey: [`get_${collectionName}`] });
+        queryClient.invalidateQueries({ queryKey: [`${collectionName}`] });
       }
     } catch (error) {
-      messageApi.error((error as Error).message);
+      messageApi?.error((error as Error).message);
     }
   }
-
-  const cols = [...columns, functionColumn];
 
   const formJSX: ReactNode = form?.customComponent
     ? (() => {
@@ -357,17 +380,16 @@ export default function CRUD<DataType extends WithId<object>>(
       })()
     : form
       ? (() => {
-          const {
-            controls = [],
-            title = collectionName,
-            submitFn,
-            modalProps,
-          } = form;
+          const { controls = [], submitFn, modalProps } = form;
           return (
             <ModalForm
               formControls={controls}
               submitFn={submitFn}
-              modalTitle={title}
+              modalTitle={
+                (props.uploadModalTitle as (
+                  formValues: unknown
+                ) => string | string) || collectionName
+              }
               refetch={refetch}
               collectionName={collectionName}
               fileFields={fileFields}
@@ -391,10 +413,11 @@ export default function CRUD<DataType extends WithId<object>>(
     <>
       <Button
         type="primary"
+        className={cssStyles.primaryAction}
         onClick={() => {
           // setFormValues(undefined);
           // setOpen(true);
-          openModal(undefined, collectionName);
+          openModal(undefined, collectionName, queryResults.queryKey);
           // setFieldsChange(false);
         }}
         icon={<PlusOutlined />}
@@ -405,8 +428,19 @@ export default function CRUD<DataType extends WithId<object>>(
         onClick={() => defaultClearParams()}
         disabled={!isFiltering}
         icon={<FilterOutlined />}
+        className={cssStyles.secondaryAction}
       >
         Xóa bộ lọc
+      </Button>
+      <Button
+        onClick={() => {
+          query.refetch();
+        }}
+        icon={<ReloadOutlined />}
+        className={cssStyles.secondaryAction}
+        disabled={isLoading || isFetching}
+      >
+        Làm mới
       </Button>
     </>
   );
@@ -419,8 +453,7 @@ export default function CRUD<DataType extends WithId<object>>(
 
   const tableJSX = (
     <Table<DataType>
-      bordered
-      columns={cols}
+      columns={[...columns, functionColumn]}
       dataSource={finalDataSource}
       rowKey={"_id"}
       pagination={{
@@ -435,6 +468,18 @@ export default function CRUD<DataType extends WithId<object>>(
         spinning: tableLoading,
         size: "large",
       }}
+      locale={{
+        emptyText: (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={
+              isFiltering
+                ? "Không có dữ liệu phù hợp với bộ lọc"
+                : "Chưa có dữ liệu"
+            }
+          />
+        ),
+      }}
       rowSelection={{
         selectedRowKeys,
         onChange: (newSelectedRowKeys: React.Key[]) => {
@@ -442,7 +487,7 @@ export default function CRUD<DataType extends WithId<object>>(
         },
         fixed: true,
       }}
-      className={`${cssStyles["custom-header-table"]} shadow-2xl`}
+      className={cssStyles.crudTable}
       size={screens.xl ? "middle" : "small"}
       sticky={{ offsetHeader: 64 }}
     />
@@ -469,8 +514,13 @@ export default function CRUD<DataType extends WithId<object>>(
       cancelText="Hủy"
       okText="Xóa"
     >
-      <Button danger disabled={!hasSelected} icon={<DeleteOutlined />}>
-        Xóa
+      <Button
+        danger
+        disabled={!hasSelected}
+        icon={<DeleteOutlined />}
+        className={cssStyles.dangerAction}
+      >
+        Xóa đã chọn
       </Button>
     </Popconfirm>
   );
@@ -483,14 +533,32 @@ export default function CRUD<DataType extends WithId<object>>(
     selectOperations
   ) => {
     return (
-      <div className="relative">
-        {contextHolder}
-        <Flex className="my-2 mx-4" gap={4} wrap>
-          {addBtn}
-          {dataChangeButtons}
-          {selectOperations}
-        </Flex>
-        {tablePart}
+      <div className={cssStyles.crudPage}>
+        <div className={cssStyles.crudPanel}>
+          <Flex
+            className={cssStyles.toolbar}
+            justify="space-between"
+            align="center"
+            gap={12}
+            wrap
+          >
+            <div className={cssStyles.heading}>
+              <h1>{title}</h1>
+              <span>
+                {tableLoading
+                  ? "Đang cập nhật dữ liệu"
+                  : `${totalAmount ?? 0} bản ghi`}
+                {hasSelected ? `, ${selectedRowKeys.length} đã chọn` : ""}
+              </span>
+            </div>
+            <Flex className={cssStyles.toolbarActions} gap={8} wrap>
+              {addBtn}
+              {dataChangeButtons}
+              {selectOperations}
+            </Flex>
+          </Flex>
+          <div className={cssStyles.tableSurface}>{tablePart}</div>
+        </div>
         {formRender}
         {fileUploadPart}
       </div>

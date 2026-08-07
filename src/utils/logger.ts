@@ -20,23 +20,22 @@ export function getErrorMessage(error: unknown) {
     } else {
       errorMsg = "Unknown error";
     }
-  } else {
-    if (error instanceof AxiosError) {
-      switch (error.status) {
-        case 400: {
-          errorMsg = "Yêu cầu không hợp lệ";
-          break;
-        }
-        case 500: {
-          errorMsg = "Lỗi hệ thống";
-          break;
-        }
-        default:
-          errorMsg = "Lỗi mạng";
+  } else if (error instanceof AxiosError) {
+    switch (error.status) {
+      case 400: {
+        errorMsg = "Yêu cầu không hợp lệ";
+        break;
       }
-    } else {
-      errorMsg = "Lỗi không xác định";
+      case 500: {
+        errorMsg = "Lỗi hệ thống";
+        break;
+      }
+      default:
+        errorMsg = "Lỗi mạng";
     }
+  } else {
+    errorMsg = "Lỗi không xác định";
   }
+
   return errorMsg;
 }

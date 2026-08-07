@@ -6,26 +6,9 @@ import {
   Product as Product0,
   WithId,
 } from "utils/types/Entities";
+import { SearchBoxOptions } from "./Searchbox";
 
 type Product = WithId<Product0>;
-type Element = JSX.Element;
-
-type Context = {
-  clearTerm?: () => void;
-  clickItem?: () => void;
-};
-
-export interface SearchBoxOptions<T extends object = { _id: string }> {
-  searchHook: () => {
-    data: T[];
-    error: unknown;
-    isLoading: boolean;
-    onSearch: (word: string) => void;
-    loadMore?: (pageSize?: number) => void;
-  };
-  renderItemFn?: (item: T, context: Context) => Element;
-  renderListFn?: (items: T[], context?: Context) => Element;
-}
 
 export const useSearchProducts: SearchBoxOptions["searchHook"] = () => {
   const [searchParams, setSearchParams] = useState<Record<string, string>>({
@@ -48,7 +31,7 @@ export const useSearchProducts: SearchBoxOptions["searchHook"] = () => {
         return undefined;
       }
     },
-    queryKey: ["get_products", searchParams],
+    queryKey: ["products", searchParams],
   });
   const onSearch = async (name: string) => {
     if (name.trim() !== "") {

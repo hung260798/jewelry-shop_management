@@ -161,7 +161,8 @@ const MainMenu = ({ user }: { user: AuthUser }) => {
 
   return (
     <Menu
-      theme="dark"
+      theme="light"
+      className="appSiderMenu"
       mode="inline"
       defaultSelectedKeys={["dashboard/home"]}
       selectedKeys={[selectedKey]} // Select the appropriate key based on the URL

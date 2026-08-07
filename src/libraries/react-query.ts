@@ -10,9 +10,9 @@ import { AxiosError } from "axios";
 const queryConfig: DefaultOptions = {
   queries: {
     useErrorBoundary: false,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
     retry: false,
-    staleTime: 1000 * 60 * 3, // 3 mins
+    staleTime: 1000 * 60 * 2, //
   },
 };
 
@@ -33,3 +33,12 @@ export type MutationConfig<MutationFnType extends (...args: any) => any> =
     AxiosError,
     Parameters<MutationFnType>[0]
   >;
+
+// TypeScript only:
+declare global {
+  interface Window {
+    __TANSTACK_QUERY_CLIENT__: import("@tanstack/query-core").QueryClient;
+  }
+}
+
+window.__TANSTACK_QUERY_CLIENT__ = queryClient;

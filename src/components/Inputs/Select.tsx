@@ -4,13 +4,16 @@ import { AxiosResponse } from "axios";
 import { useState } from "react";
 
 export interface DataSelectProps<T = unknown> {
-  options?: T[];
+  // // options?: T[];
   value?: string;
   onChange?: (value: string) => void;
   queryOpts: {
     queryFn: () => Promise<AxiosResponse>;
     queryKey: unknown[];
   };
+  selectProps?: Parameters<
+    typeof Select<string, { label: string; value: string }>
+  >[0];
 }
 
 export const DataSelect = (props: DataSelectProps) => {
@@ -22,11 +25,12 @@ export const DataSelect = (props: DataSelectProps) => {
     return <>Loading...</>;
   }
   if (error) {
-    return <>Load error</>;
+    return <span className="text-red-500">Lỗi</span>;
   }
   if (!Array.isArray(options)) {
     return <>Null</>;
   }
+  // const { ...otherProps } = props.selectProps;
   return (
     <Select<string, { label: string; value: string }>
       showSearch
@@ -46,6 +50,7 @@ export const DataSelect = (props: DataSelectProps) => {
         setValue(value);
         props.onChange?.(value);
       }}
+      // {...otherProps}
     />
   );
 };

@@ -50,6 +50,7 @@ import { useFileUploadBox } from "@/components/Modals/UploadBox";
 import { useSearchParams } from "react-router-dom";
 import { useModalForm } from "@/components/Forms/ModalForm";
 import { IdAndNameWise } from "@/components/Modals/UploadBox/useFileUploadBox";
+import crudStyle from "@/components/CRUD/crud.module.css";
 
 interface CustomSelectProps {
   value?: string;
@@ -62,7 +63,7 @@ const CategorySelect: React.FC<CustomSelectProps> = (props) => {
       <DataSelect
         queryOpts={
           {
-            queryKey: ["get_categories"],
+            queryKey: ["categories"],
             queryFn: () => {
               return axiosClientJson.get<GetManyData<WithId<Category>>>(
                 `/categories`
@@ -74,6 +75,7 @@ const CategorySelect: React.FC<CustomSelectProps> = (props) => {
         }
         value={props.value}
         onChange={props.onChange}
+        selectProps={{ placeholder: "Chọn danh mục" }}
       />
     </>
   );
@@ -85,7 +87,7 @@ const SupplierSelect: React.FC<CustomSelectProps> = (props) => {
       <DataSelect
         queryOpts={
           {
-            queryKey: ["get_suppliers"],
+            queryKey: ["suppliers"],
             queryFn: () => {
               return axiosClientJson.get<GetManyData<WithId<Supplier>>>(
                 `/suppliers`
@@ -116,7 +118,7 @@ const formControls: FormControl[] = [
     rules: [
       {
         required: true,
-        message: "Please enter Category Name",
+        message: "Danh mục là bắt buộc",
       },
     ],
     flex: "basis-[364px] grow-0",
@@ -129,7 +131,7 @@ const formControls: FormControl[] = [
     rules: [
       {
         required: true,
-        message: "Please enter Supplier Name",
+        message: "Nhà cung cấp là bắt buộc",
       },
     ],
     flex: `grow-0`,
@@ -142,10 +144,10 @@ const formControls: FormControl[] = [
     rules: [
       {
         required: true,
-        message: "Please enter Product Name",
+        message: "Tên sản phẩm là bắt buộc",
       },
     ],
-    component: <Input />,
+    component: <Input placeholder="Nhẫn 123" />,
     flex: "grow-0 basis-[100%]",
     defaultValue: "",
   },
@@ -155,17 +157,19 @@ const formControls: FormControl[] = [
     rules: [
       {
         required: true,
-        message: "Please enter Price",
+        message: "Hãy nhập giá sản phẩm",
       },
     ],
     component: (
       <InputNumber<number>
+        placeholder="123.000.000"
         style={{ width: "100%" }}
         min={1}
         formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
         parser={(value) =>
           +(value?.replace(/\s?d|(\.*)/g, "").replace(/\./g, "") || 0)
         }
+        step={1000}
       />
     ),
     flex: `basis-[33%] grow-0`,
@@ -185,7 +189,7 @@ const formControls: FormControl[] = [
         message: "Phần trăm giảm giá phải là số nguyên không âm",
       },
     ],
-    component: <InputNumber max={75} />,
+    component: <InputNumber max={75} placeholder="10" />,
     flex: `basis-[30%] grow-0`,
     defaultValue: "",
   },
@@ -205,7 +209,7 @@ const formControls: FormControl[] = [
     ],
     component: <InputNumber min={1} />,
     flex: `basis-[30%] grow-0`,
-    defaultValue: "",
+    defaultValue: 1,
   },
   {
     label: "Đang hoạt động",
@@ -282,11 +286,13 @@ const formControls: FormControl[] = [
               collection: "products",
               item: record as unknown as IdAndNameWise,
             });
-            const qk: string[][] = [];
-            for (const pair of searchParams?.entries() ?? []) {
-              qk.push(pair);
-            }
-            setUploaderQueryKey?.(qk);
+            // const qk: string[][] = [];
+            // for (const pair of searchParams?.entries() ?? []) {
+            //   qk.push(pair);
+            // }
+            setUploaderQueryKey?.([
+              Object.fromEntries(searchParams?.entries() ?? []),
+            ]);
             setOpenUploadBox(true);
           }}
         />
@@ -306,14 +312,14 @@ const dateFormat = "DD/MM/YYYY";
 export default function ProductCRUD() {
   const queryResult = useMyQuery<GetOneOrMany<Product>>({
     url: "/products",
-    queryKey: ["get_products"],
+    queryKey: ["products"],
   });
 
   const { searchParams, searchItems } = queryResult;
 
   //GET CATEGORIES
   const { data: categoriesData, isLoading: loadingCat } = useQuery({
-    queryKey: ["get_categories"],
+    queryKey: ["categories"],
     queryFn: () => {
       return axiosClientJson.get<GetManyData<WithId<Category>>>(`/categories`);
     },
@@ -323,7 +329,7 @@ export default function ProductCRUD() {
 
   //GET SUPPLIERS
   const { data: suppliersData, isLoading: loadingSup } = useQuery({
-    queryKey: ["get_suppliers"],
+    queryKey: ["suppliers"],
     queryFn: () => {
       return axiosClientJson.get<GetManyData<WithId<Supplier>>>(`/suppliers`);
     },
@@ -372,15 +378,13 @@ export default function ProductCRUD() {
             allowClear
             placeholder="Nhẫn kim cương"
             onSearch={(e) => {
-              searchItems(
-                [
-                  {
-                    type: "productName",
-                    value: e,
-                  },
-                ],
-                { resetSkip: true }
-              );
+              searchItems([
+                {
+                  type: "productName",
+                  value: e,
+                },
+                { type: "skip", value: "0" },
+              ]);
             }}
             defaultValue={searchParams.get("productName") ?? ""}
             style={{ width: 200 }}
@@ -526,6 +530,7 @@ export default function ProductCRUD() {
                 width={80}
                 height={80}
                 fallback="/placeholder-image.jpg"
+                alt={record.name}
               />
             </Image.PreviewGroup>
           </div>
@@ -558,13 +563,13 @@ export default function ProductCRUD() {
             style={{ width: "100%" }}
             placeholder="Chọn danh mục"
             onChange={(e) => {
-              searchItems(
+              searchItems([
                 {
                   type: "categoryId[]",
                   value: e,
                 },
-                { resetSkip: true }
-              );
+                { type: "skip", value: "0" },
+              ]);
             }}
             filterOption={(input, option) => {
               if (typeof option?.label !== "string") {
@@ -616,13 +621,13 @@ export default function ProductCRUD() {
             style={{ width: "125px" }}
             placeholder="Chọn nhà cung cấp"
             onChange={(val: string) => {
-              searchItems(
+              searchItems([
                 {
                   type: "supplierId[]",
                   value: val,
                 },
-                { resetSkip: true }
-              );
+                { type: "skip", value: "0" },
+              ]);
             }}
             showSearch={true}
             filterOption={(input, option) => {
@@ -694,7 +699,7 @@ export default function ProductCRUD() {
                 { type: "fromPrice", value: e.fromPrice },
                 { type: "toPrice", value: e.toPrice },
               ];
-              searchItems(valueSearch, { resetSkip: true });
+              searchItems([...valueSearch, { type: "skip", value: "0" }]);
             }}
           >
             <Space
@@ -748,13 +753,11 @@ export default function ProductCRUD() {
                     <Button
                       type="dashed"
                       onClick={() => {
-                        searchItems(
-                          [
-                            { type: "fromPrice", value: "" },
-                            { type: "toPrice", value: "" },
-                          ],
-                          { resetSkip: true }
-                        );
+                        searchItems([
+                          { type: "fromPrice", value: "" },
+                          { type: "toPrice", value: "" },
+                          { type: "skip", value: "0" },
+                        ]);
                       }}
                       icon={<ClearOutlined />}
                     />
@@ -791,13 +794,11 @@ export default function ProductCRUD() {
           <Form
             name="infoStock"
             onFinish={(e) => {
-              searchItems(
-                [
-                  { type: "fromSold", value: e.fromStock },
-                  { type: "toSold", value: e.toStock },
-                ],
-                { resetSkip: true }
-              );
+              searchItems([
+                { type: "fromSold", value: e.fromStock },
+                { type: "toSold", value: e.toStock },
+                { type: "skip", value: "0" },
+              ]);
             }}
             className=" px-2 py-2 h-12"
           >
@@ -847,13 +848,11 @@ export default function ProductCRUD() {
                     <Button
                       type="dashed"
                       onClick={() => {
-                        searchItems(
-                          [
-                            { type: "fromSold", value: "" },
-                            { type: "toSold", value: "" },
-                          ],
-                          { resetSkip: true }
-                        );
+                        searchItems([
+                          { type: "fromSold", value: "" },
+                          { type: "toSold", value: "" },
+                          { type: "skip", value: "0" },
+                        ]);
                       }}
                       icon={<ClearOutlined />}
                     />
@@ -886,13 +885,11 @@ export default function ProductCRUD() {
           <Form
             name="infoStock"
             onFinish={(e) => {
-              searchItems(
-                [
-                  { type: "fromStock", value: e.fromStock },
-                  { type: "toStock", value: e.toStock },
-                ],
-                { resetSkip: true }
-              );
+              searchItems([
+                { type: "fromStock", value: e.fromStock },
+                { type: "toStock", value: e.toStock },
+                { type: "skip", value: "0" },
+              ]);
             }}
             className=" px-2 py-2 h-12"
           >
@@ -943,13 +940,11 @@ export default function ProductCRUD() {
                     <Button
                       type="dashed"
                       onClick={() => {
-                        searchItems(
-                          [
-                            { type: "fromStock", value: "" },
-                            { type: "toStock", value: "" },
-                          ],
-                          { resetSkip: true }
-                        );
+                        searchItems([
+                          { type: "fromStock", value: "" },
+                          { type: "toStock", value: "" },
+                          { type: "skip", value: "0" },
+                        ]);
                       }}
                       icon={<ClearOutlined />}
                     />
@@ -1022,13 +1017,11 @@ export default function ProductCRUD() {
                     <Button
                       type="dashed"
                       onClick={() => {
-                        searchItems(
-                          [
-                            { type: "fromDiscount", value: "" },
-                            { type: "toDiscount", value: "" },
-                          ],
-                          { resetSkip: true }
-                        );
+                        searchItems([
+                          { type: "fromDiscount", value: "" },
+                          { type: "toDiscount", value: "" },
+                          { type: "skip", value: "0" },
+                        ]);
                       }}
                       icon={<ClearOutlined />}
                     />
@@ -1085,7 +1078,7 @@ export default function ProductCRUD() {
       },
       filterDropdown: () => {
         return (
-          <div style={{ padding: 8 }}>
+          <div className="p-2">
             <DatePicker.RangePicker
               allowClear
               defaultValue={[
@@ -1106,7 +1099,7 @@ export default function ProductCRUD() {
                   };
                   searchValues[1] = { type: "createdDateTo", value: data[1] };
                 }
-                searchItems(searchValues, { resetSkip: true });
+                searchItems([...searchValues, { type: "skip", value: "0" }]);
               }}
             />
           </div>
@@ -1154,7 +1147,7 @@ export default function ProductCRUD() {
       },
       filterDropdown: () => {
         return (
-          <div style={{ padding: 8 }}>
+          <div className="p-2">
             <DatePicker.RangePicker
               allowClear
               defaultValue={[
@@ -1175,7 +1168,7 @@ export default function ProductCRUD() {
                   };
                   searchValues[1] = { type: "updatedDateTo", value: data[1] };
                 }
-                searchItems(searchValues, { resetSkip: true });
+                searchItems([...searchValues, { type: "skip", value: "0" }]);
               }}
             />
           </div>
@@ -1189,37 +1182,6 @@ export default function ProductCRUD() {
   const isDeletedParam = searchParams.get("isDeleted");
   const showingInActive = !activeParam || activeParam == "false";
   const showingDeleted = !isDeletedParam || isDeletedParam == "true";
-  const filterButtons = (
-    <>
-      <Button
-        key={1}
-        style={{ width: "13em" }}
-        onClick={async () => {
-          searchItems([
-            { type: "active", value: showingInActive ? "true" : "" },
-            { type: "skip", value: "0" },
-          ]);
-        }}
-      >
-        {showingInActive ? "Ẩn" : "Hiện"} không hoạt động
-      </Button>
-      <Button
-        key={2}
-        style={{ width: "8em" }}
-        onClick={async () => {
-          searchItems([
-            {
-              type: "isDeleted",
-              value: showingDeleted ? "false" : "",
-            },
-            { type: "skip", value: "0" },
-          ]);
-        }}
-      >
-        {showingDeleted ? "Ẩn" : "Hiện"} đã xóa
-      </Button>
-    </>
-  );
   const crudProps: CRUDProps<Product> = {
     columns: columns,
     collectionName: "products",
@@ -1239,31 +1201,43 @@ export default function ProductCRUD() {
         sizes: IMG_SIZES,
       },
     ],
-    // filterButtons: filterButtons,
+    filterButtons: (
+      <>
+        <Button
+          key={1}
+          style={{ width: "13em" }}
+          className={crudStyle.secondaryAction}
+          onClick={async () => {
+            searchItems([
+              { type: "active", value: showingInActive ? "true" : "" },
+              { type: "skip", value: "0" },
+            ]);
+          }}
+        >
+          {showingInActive ? "Ẩn" : "Hiện"} không hoạt động
+        </Button>
+        <Button
+          key={2}
+          style={{ width: "8em" }}
+          className={crudStyle.secondaryAction}
+          onClick={async () => {
+            searchItems([
+              {
+                type: "isDeleted",
+                value: showingDeleted ? "false" : "",
+              },
+              { type: "skip", value: "0" },
+            ]);
+          }}
+        >
+          {showingDeleted ? "Ẩn" : "Hiện"} đã xóa
+        </Button>
+      </>
+    ),
     // refetch: () => refetch(),
     form: {
       controls: formControls,
       title: "Sản phẩm",
-    },
-    layout: (
-      addBtn,
-      tablePart,
-      formRender,
-      fileUploadPart,
-      selectOperations
-    ) => {
-      return (
-        <div>
-          <Flex className="my-2 mx-4" wrap gap={3}>
-            {addBtn}
-            {filterButtons}
-            {selectOperations}
-          </Flex>
-          {tablePart}
-          {formRender}
-          {fileUploadPart}
-        </div>
-      );
     },
     // loading: loadingProd,
     // fetchError: error,

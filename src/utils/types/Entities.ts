@@ -4,6 +4,8 @@ type WithId<T> = T & { _id: Id };
 
 type WithTimeStamp<T> = T & TimeStamp;
 
+type IdWise = { _id: Id; [k: string]: unknown };
+
 interface Active {
   active?: boolean;
   isDeleted?: boolean;
@@ -15,6 +17,7 @@ interface Category {
   coverImageUrl: string;
   note: string;
   description: string;
+  displayOrder?: number;
   parentCategory?: WithId<Category> | string;
 }
 
@@ -104,6 +107,7 @@ interface Order {
 
 interface Collection {
   name: string;
+  slug?: string;
   image: string;
   coverImage: string;
   products: WithId<Product>[];
@@ -160,4 +164,5 @@ export type {
   GetMany,
   GetOne,
   GetOneOrMany,
+  IdWise,
 };

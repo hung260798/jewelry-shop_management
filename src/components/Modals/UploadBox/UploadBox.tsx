@@ -1,43 +1,20 @@
+import { PreviewLayer } from "@/components/Images/PreviewLayer";
 import usePopupMessage from "@/hooks/usePopupMessage";
 import { axiosClientForm, axiosClientJson } from "@/libraries/axiosClient";
-import { ASSET_URL } from "@/utils/constants/URLS";
 import { devLog } from "@/utils/logger";
-import { appendDomain, createFormData } from "@/utils/stringUtils";
-import { DeleteOutlined, UploadOutlined } from "@ant-design/icons";
+import { createFormData, getBase64 } from "@/utils/stringUtils";
+import { IdWise } from "@/utils/types/Entities";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  Button,
-  Flex,
-  GetProp,
-  message,
-  Modal,
-  Popconfirm,
-  Upload,
-  UploadFile,
-  UploadProps,
-} from "antd";
-import { PreviewLayer } from "@/components/Images/PreviewLayer";
-import { DeletableImage } from "@/components/Images/WithButton";
-import { produce } from "immer";
-import React, { useEffect, useState } from "react";
+import { Modal, UploadFile } from "antd";
+import _ from "lodash";
+import React, { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { FileField } from "utils/types/Form";
+import FilePickerAndList from "./FilePickerAndList";
+import styles from "./UploadBox.module.css";
 import useFileUploadBox from "./useFileUploadBox";
 
-type FileType = Parameters<GetProp<UploadProps, "beforeUpload">>[0];
-
-const getBase64 = (file: FileType): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = (error) => reject(error);
-  });
-
-// const fileWidth=100;
-// const modalWidth=600;
-
-// uploadTo = gcs-upload
+// uploadTo = /upload/gcs-upload
 export default function FileUploadBox({
   fields,
   uploadTo = `/upload`,
@@ -48,35 +25,22 @@ export default function FileUploadBox({
   refetch?: () => void;
   modalTitle?: string | ((record: unknown) => string);
 }) {
+  // console.log("UploadBox render");
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
-  const queryKey =
-    useFileUploadBox((state) => state.queryKey) ??
-    searchParams.toString().split("&");
-  const uploadBoxContent = useFileUploadBox((s) => s.boxContent);
+  const boxContent_ = useFileUploadBox((s) => s.boxContent);
+  const queryKey_ = useFileUploadBox((state) => state.queryKey) ?? [
+    boxContent_?.collection,
+  ];
   const setBoxContent = useFileUploadBox((s) => s.setBoxContent);
   const setQueryKey = useFileUploadBox((s) => s.setQueryKey);
   const open = useFileUploadBox((s) => s.open);
   const setOpen = useFileUploadBox((s) => s.setOpen);
 
-  const {
-    startLoading,
-    loadingSuccess,
-    loadingWarning,
-    loadingError,
-    contextHolder,
-  } = usePopupMessage();
+  const messageApi = usePopupMessage()?.[0];
+  const key = usePopupMessage()?.[2];
 
-  const { collection, item } = uploadBoxContent
-    ? uploadBoxContent
-    : {
-        collection: undefined,
-        item: undefined,
-      };
-  const id = uploadBoxContent?.item?._id;
-  const qKey = [`get_${collection}`, ...queryKey];
-
-  const [fileFields, setFileFields] = useState<
+  const [fileFields_, setFileFields] = useState<
     ({ currentFileList: UploadFile[] } & FileField)[]
   >(() =>
     fields.map((field) => ({
@@ -88,389 +52,365 @@ export default function FileUploadBox({
     }))
   );
 
-  useEffect(() => {
-    if (!uploadBoxContent) {
-      setFileFields(fields.map((field) => ({ ...field, currentFileList: [] })));
-    }
-  }, [uploadBoxContent]);
+  const [markedServerFilesToDelete_, setMarkedServerFilesToDelete] = useState<
+    [FileField, Set<string>][]
+  >([]);
 
-  const title =
-    typeof modalTitle === "function"
-      ? modalTitle(item)
-      : modalTitle ||
-        (item ? item?.name || `${collection || ""} ${item?._id || ""}` : "");
+  function closeModal() {
+    // Cleanup the modal
+    setBoxContent(null);
+    // Làm trống danh sách file đã chọn để upload
+    setFileFields(fields.map((field) => ({ ...field, currentFileList: [] })));
+    // Làm trống danh sách server file đã chọn để xoá
+    setMarkedServerFilesToDelete([]);
+    // Reset query key
+    setQueryKey?.([]);
+    // Đóng modal
+    setOpen(false);
+  }
 
   return (
-    <>
-      {contextHolder}
-      <Modal
-        open={open}
-        onOk={async () => {
-          setOpen(false);
-          if (!collection || !item) {
-            setBoxContent(null);
-            setQueryKey?.([]);
-            return;
-          }
-          startLoading("Đang xử lí");
-          // Previous data for rollback
-          const previousCache = queryClient.getQueryData<{
-            results: { _id: string }[];
-          }>(qKey);
-          // devLog("previousCache", previousCache);
-          const updateBody: Partial<typeof item> = {};
-          try {
-            const fileUploadPromises = fileFields
-              .filter((elem) => elem.currentFileList.length > 0)
-              .map((elem) =>
-                (async function () {
-                  const { maxCount = 1, currentFileList, name, sizes } = elem;
-                  const multiFiles = currentFileList
-                    .map((item) => item.originFileObj)
-                    .slice(0, maxCount);
-                  const formData = createFormData(multiFiles);
-                  if (!formData) {
-                    return null;
-                  }
-                  if (sizes) {
-                    formData.append("sizes", JSON.stringify(sizes));
-                  }
-                  const response = await axiosClientForm.postForm<{
-                    publicUrls: string[];
-                  }>(`${uploadTo}`, formData);
-                  const {
-                    data: { publicUrls },
-                  } = response;
-                  let fieldValue: string | string[] = "";
-                  if (maxCount === 1) {
-                    fieldValue = publicUrls[0];
-                  } else {
-                    const oldArray: string[] = Array.isArray(item[name])
-                      ? (item[name] as string[])
-                      : [];
-                    fieldValue = [...publicUrls, ...oldArray].slice(
-                      0,
-                      maxCount
-                    );
-                  }
-                  updateBody[name] = fieldValue;
-                  return response.data;
-                })()
-              );
-            const settled = await Promise.allSettled(fileUploadPromises);
-            const succeedPromises = settled.filter(
-              (
-                p
-              ): p is {
-                status: "fulfilled";
-                value: { publicUrls: string[] };
-              } => p.status === "fulfilled"
-            );
-            // Cập nhật dữ liệu
-            await axiosClientJson.patch(`/${collection}/${id}`, updateBody);
-            if (succeedPromises.length === fileUploadPromises.length) {
-              loadingSuccess("Cập nhật thành công");
-            } else {
-              loadingWarning(
-                `Tải lên thành công ${succeedPromises.length}/${fileUploadPromises.length} file`
-              );
-            }
+    <Modal
+      open={open}
+      title={
+        typeof modalTitle === "function"
+          ? modalTitle(boxContent_?.item)
+          : modalTitle ||
+            boxContent_?.item.name ||
+            `${boxContent_?.collection || ""} ${boxContent_?.item._id || ""}`
+      }
+      onOk={function onOK() {
+        setOpen(false);
+        if (!boxContent_) {
+          return closeModal();
+        }
 
-            // Optimistic update
-            // await queryClient.cancelQueries({
-            //   queryKey: [`get_${collection}`],
-            // });
-            // queryClient.setQueryData<{ results: { _id: string }[] }>(
-            //   qKey,
-            //   (data) => {
-            //     if (!data) {
-            //       return undefined;
-            //     }
-            //     const { results: oldArray } = data;
-            //     const newArray = oldArray
-            //       ? oldArray.map((elem) =>
-            //           elem?._id === id ? { ...elem, ...updateBody } : elem
-            //         )
-            //       : [];
-            //     // devLog("newArray", newArray);
-            //     return { ...data, results: newArray };
-            //   }
-            // );
-            queryClient.invalidateQueries({ queryKey: [`get_${collection}`] });
-            // await refetch?.();
-          } catch (error) {
-            devLog(error);
-            loadingError("Tải lên thất bại");
-            // Rollback
-            queryClient.setQueryData(qKey, previousCache);
-          } finally {
-            setBoxContent(null);
-            setQueryKey?.([]);
+        // Clone state trước khi đóng modal.
+        const boxContentClone = _.clone(boxContent_);
+        const fileFieldsClone = _.clone(fileFields_);
+        const markedServerFilesToDelete = _.clone(markedServerFilesToDelete_);
+        const queryKeyClone = _.clone(queryKey_);
+        const qKey = [`${boxContentClone?.collection}`, ...queryKeyClone];
+        const itemClone = _.clone(boxContentClone.item);
+        const previousCache = queryClient.getQueryData<{
+          results: IdWise[];
+        }>(qKey);
+        const nonEmptyFields = fileFieldsClone
+          .filter((f) => f.currentFileList.length)
+          .map((f) => {
+            return { ...f, maxCount: f.maxCount || 1 };
+          });
+
+        try {
+          const formDatas = nonEmptyFields
+            .map((field) => {
+              const fd = createFormData(
+                field.currentFileList
+                  .map((item) => item.originFileObj)
+                  .filter((file) => file != null)
+                  .slice(0, field.maxCount),
+                "file"
+              );
+              fd?.append("sizes", JSON.stringify(field.sizes ?? []));
+              return fd;
+            })
+            .filter((fd) => !!fd);
+          if (
+            formDatas.every((fd) => fd == null) &&
+            !markedServerFilesToDelete_.length
+          ) {
+            // Không upload thêm file nào cũng không xoá đi file nào
+            return closeModal();
           }
-        }}
-        onCancel={() => {
-          setBoxContent(null);
-          setOpen(false);
-        }}
-        title={title}
-        cancelText="Hủy"
-        okText="Lưu"
-      >
-        {fields.map((field, i) => {
-          const { name } = field;
-          const nodeKey = `${name}_${i}`;
-          return (
-            <React.Fragment key={nodeKey}>
-              <UploaderWithList
-                field={field}
-                collection={collection}
-                item={item}
-                onChange={(fileList) => {
+
+          if (formDatas.length != nonEmptyFields.length) {
+            messageApi?.open({
+              key,
+              type: "error",
+              content: "Lỗi khác",
+              duration: 1,
+            });
+            return closeModal();
+          }
+
+          closeModal();
+
+          messageApi?.open({
+            key,
+            type: "loading",
+            content: "Đang xử lí",
+            duration: 1,
+          });
+
+          // Object thể hiện các trường và các server file được chọn thủ công để xoá đi
+          const manuallyDelete: {
+            [fieldName: string]: Set<string> | undefined;
+          } = markedServerFilesToDelete
+            .filter(
+              ([fieldInfo]) =>
+                fieldInfo.maxCount != null && fieldInfo.maxCount > 1
+            )
+            .map(([fieldInfo, sources]) => {
+              return { [fieldInfo.name]: sources };
+            })
+            .reduce(
+              (prev, curr) => ({
+                ...prev,
+                ...curr,
+              }),
+              {}
+            );
+
+          const promiseBase64Srcs = fileFieldsClone
+            .map((field) => field.currentFileList)
+            .map((fileList) =>
+              Promise.all(
+                fileList
+                  .map((uploadFile) => uploadFile.originFileObj)
+                  .filter((file) => !!file)
+                  .map(getBase64)
+              )
+            );
+
+          const promiseUploadResponses = formDatas.map((fd, idx) =>
+            axiosClientForm.postForm<{ publicUrls: string[] }>(uploadTo, fd)
+          );
+
+          Promise.all(promiseBase64Srcs)
+            .then((arrArrSource) => {
+              // Object thể hiện các trường và các client file được chọn để upload
+              const uploaded = arrArrSource
+                .map((arrSrc, fieldsIndex) => {
+                  const field = fields[fieldsIndex];
+                  return {
+                    [field.name]: field.maxCount === 1 ? arrSrc[0] : arrSrc,
+                  };
+                })
+                .reduce((p, c) => ({ ...p, ...c }), {});
+
+              // Object này tổng hợp các trường và list file hiện tại
+              const updateBody: Record<string, any> = {};
+              // Tính toán updateBody
+              fileFieldsClone.map((field) => {
+                if (!field.maxCount || field.maxCount === 1) {
+                  updateBody[field.name] = uploaded[field.name];
+                } else {
+                  const uploadedFiles =
+                    (uploaded[field.name] as string[]) || [];
+                  const oldFiles = (itemClone as any)[field.name] as string[];
+                  const newArray = [...uploadedFiles, ...oldFiles]
+                    .filter((src) => !manuallyDelete[field.name]?.has(src))
+                    .slice(0, field.maxCount);
+                  updateBody[field.name] = newArray;
+                }
+              });
+              // Optimistic Update
+              queryClient.setQueryData<{ results: IdWise[] } | undefined>(
+                qKey,
+                (prev) => {
+                  if (!prev) return;
+                  if (!Array.isArray(prev?.results)) return prev;
+                  const copy = prev?.results.slice();
+                  const foundIndex = copy?.findIndex(
+                    (elem) => elem._id === itemClone._id
+                  );
+                  if (foundIndex < 0) return prev;
+                  const found = copy[foundIndex];
+                  copy[foundIndex] = {
+                    ...found,
+                    ...JSON.parse(JSON.stringify(updateBody)),
+                  };
+                  return { ...prev, results: copy };
+                }
+              );
+            })
+            .catch((error) => {
+              messageApi?.open({
+                key,
+                type: "error",
+                content: "Có lỗi khi xoá ảnh",
+              });
+            });
+
+          Promise.all(promiseUploadResponses)
+            .then((responses) =>
+              responses.map((response, idx) => ({
+                [nonEmptyFields[idx].name]:
+                  nonEmptyFields[idx].maxCount == 1
+                    ? response.data.publicUrls[0]
+                    : response.data.publicUrls,
+              }))
+            )
+            .then<{ [x: string]: string | string[] | undefined }>((uploaded) =>
+              JSON.parse(
+                JSON.stringify(uploaded.reduce((p, c) => ({ ...p, ...c }), {}))
+              )
+            )
+            .then((added) => {
+              // Danh sách tên trường có file thay đổi (thêm, bớt)
+
+              const changedFieldsName = new Set([
+                ...Object.getOwnPropertyNames(added),
+                ...markedServerFilesToDelete.map((e) => e[0].name),
+              ]);
+
+              // Entries [k,v] của các trường có file thay đổi
+              const oldItemEntries = Object.entries(itemClone)
+                .filter(([k]) => changedFieldsName.has(k))
+                .sort(([k1], [k2]) => k1.localeCompare(k2)) as [
+                string,
+                string | string[],
+              ][];
+
+              // Entries của item mới tương ứng
+              const newItemEntries: typeof oldItemEntries = oldItemEntries.map(
+                (e) => {
+                  const [fieldName, old] = e;
+                  const field = fileFieldsClone.find(
+                    ({ name }) => name === fieldName
+                  );
+                  if (!field) {
+                    return e;
+                  }
+                  const { maxCount = 1 } = field!;
+                  const addedFiles = added[fieldName];
+                  const newFiles =
+                    maxCount === 1
+                      ? (addedFiles ?? old)
+                      : [...(addedFiles ?? []), ...(old as string[])]
+                          .filter((src) => !manuallyDelete[fieldName]?.has(src))
+                          .slice(0, maxCount);
+                  return [fieldName, newFiles];
+                }
+              );
+
+              // Body của request cập nhật
+              const updateReqBody = Object.fromEntries(newItemEntries);
+
+              // Mảng source của các file cần xoá trên server
+              const filesToDelete = oldItemEntries
+                .map(([k, v], idx) => {
+                  if (!Array.isArray(v)) {
+                    if (v !== newItemEntries[idx][1]) {
+                      return v;
+                    }
+                    return;
+                  }
+                  return _.difference(
+                    [...(added[k] || []), ...v],
+                    updateReqBody[k]
+                  );
+                })
+                .filter((v) => v != null)
+                .flat();
+
+              // Mảng các request sẽ được gửi
+              const promises = [];
+              if (Object.getOwnPropertyNames(updateReqBody).length) {
+                const promiseUpdate = axiosClientJson.patch(
+                  `/${boxContentClone.collection}/${boxContentClone.item._id}`,
+                  updateReqBody
+                );
+                promises.push(promiseUpdate);
+              }
+
+              if (filesToDelete.length) {
+                const promiseDelete = axiosClientJson
+                  .post(`/gcs/bulk-removal`, {
+                    files: filesToDelete,
+                  })
+                  .catch((error) => {
+                    messageApi?.open({
+                      key,
+                      type: "error",
+                      content: "Lỗi khi xoá ảnh",
+                    });
+                  });
+                promises.push(promiseDelete);
+              }
+              return Promise.allSettled(promises);
+            })
+            .then(() => {
+              messageApi?.open({
+                key,
+                type: "success",
+                content: "Cập nhật thành công",
+              });
+            })
+            .catch((error) => {
+              messageApi?.open({
+                key,
+                type: "error",
+                content: "Cập nhật thất bại",
+              });
+              // Rollback optimistic update nếu request fail
+              queryClient.setQueryData(qKey, previousCache);
+            });
+        } catch (error) {
+          messageApi?.open({
+            key,
+            type: "error",
+            content: "Tải lên thất bại",
+          });
+        }
+      }}
+      onCancel={function onCancel() {
+        closeModal();
+      }}
+      width={780}
+      centered
+      cancelText="Hủy"
+      okText="Lưu"
+    >
+      <div className={styles.modalIntro}>
+        <div>
+          <div className={styles.modalIntroTitle}>Quản lý tài nguyên</div>
+          <div className={styles.modalIntroSubtitle}>
+            Thêm hoặc thay đổi file cho mục đang chọn một cách trực quan.
+          </div>
+        </div>
+        <div className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-500">
+          Hỗ trợ nhiều file
+        </div>
+      </div>
+      <div className="space-y-3">
+        {fields.map((field, i) => (
+          <React.Fragment key={`${boxContent_?.item._id}_${field.name}_${i}`}>
+            <FilePickerAndList
+              field={field}
+              collection={boxContent_?.collection}
+              item={boxContent_?.item}
+              onChange={(fileList, type) => {
+                if (type === "local")
                   setFileFields((prev) => {
                     return prev.map((item) => {
-                      if (item.name === name) {
-                        return { ...item, currentFileList: fileList };
+                      if (item.name === field.name) {
+                        return {
+                          ...item,
+                          currentFileList: fileList as UploadFile[],
+                        };
                       }
                       return item;
                     });
                   });
-                }}
-              />
-            </React.Fragment>
-          );
-        })}
-        <PreviewLayer />
-      </Modal>
-    </>
-  );
-}
-
-function UploaderWithList({
-  field,
-  collection,
-  item,
-  onChange,
-  showing,
-}: {
-  field: FileField;
-  collection?: string;
-  item?: { _id: string; [k: string]: unknown };
-  onChange: (fileList: UploadFile[]) => void;
-  showing?: number;
-}) {
-  const {
-    name,
-    label = name,
-    fileType = "unknown",
-    maxCount = 1,
-    sizes,
-  } = field;
-  showing ??= maxCount;
-  const queryClient = useQueryClient();
-  const [fileList, setFileList] = useState<UploadFile[]>([]);
-  // Source của file trên client
-  const [clientFileSources, setClientFileSources] = useState<string[]>([]);
-  const boxContent = useFileUploadBox((s) => s.boxContent);
-  const setBoxContent = useFileUploadBox((s) => s.setBoxContent);
-  const [messageApi, contextHolder] = message.useMessage();
-
-  useEffect(() => {
-    const validFiles = fileList
-      .map((clientFile) => clientFile.originFileObj)
-      .filter((file): file is FileType => !!file);
-
-    Promise.allSettled(validFiles.map(getBase64))
-      .then((results) =>
-        results
-          .filter(
-            (result): result is PromiseFulfilledResult<string> =>
-              result.status === "fulfilled"
-          )
-          .map((result) => result.value)
-      )
-      .then((sources) => setClientFileSources(sources))
-      .catch((error) => {
-        devLog(error);
-        messageApi.error("Lỗi không xác định");
-      });
-  }, [fileList]);
-
-  useEffect(() => {
-    setFileList([]);
-  }, [boxContent]);
-
-  if (!name || !collection) {
-    return null;
-  }
-
-  let serverSources =
-    (item?.[field.name] as string | string[] | undefined) ?? [];
-
-  if (typeof serverSources === "string") {
-    serverSources = [serverSources];
-  }
-
-  const serverListLength = serverSources.length;
-
-  const nMore = Math.min(
-    0,
-    serverListLength + clientFileSources.length - showing
-  );
-
-  const sizeStr = sizes
-    ? ` (${sizes.map((s) => `${s[0]}x${s[1]}`).join(", ")})`
-    : "";
-
-  return (
-    <>
-      <Flex vertical gap={"1rem"} className="mb-2">
-        {label} (Tối đa {maxCount}, {sizeStr}):
-        <Flex align="center">
-          <Upload
-            key={name}
-            maxCount={maxCount}
-            multiple={maxCount > 1}
-            listType={fileType === "image" ? "picture-card" : "text"}
-            showUploadList={false}
-            beforeUpload={() => false}
-            onChange={(info) => {
-              devLog("info", info);
-              setFileList(info.fileList);
-              onChange?.(info.fileList);
-            }}
-            fileList={fileList}
-          >
-            <Button
-              icon={<UploadOutlined style={{ fontSize: 24 }} />}
-              type="dashed"
-              style={{ width: "100px", height: "100px" }}
-            />
-          </Upload>
-          <ul className="flex flex-wrap">
-            {clientFileSources.slice(0, showing).map((src, i, arr) => {
-              const onDelete = () => {
-                if (fileList.length === clientFileSources.length) {
-                  const copyList = fileList.slice();
-                  copyList.splice(i, 1);
-                  setFileList(copyList);
-                  onChange?.(copyList);
-                } else {
-                  messageApi.error("Xóa file không thành công!");
+                else {
+                  setMarkedServerFilesToDelete((prev) => {
+                    const index = prev.findIndex(
+                      ([fieldInfo]) => fieldInfo.name === field.name
+                    );
+                    return [
+                      ...prev.slice(0, index),
+                      [field, fileList as Set<string>],
+                      ...prev.slice(index + 1),
+                    ];
+                  });
                 }
-              };
-              if (fileType === "image") {
-                return (
-                  <li key={`client-${i}`}>
-                    <DeletableImage
-                      width={100}
-                      height={100}
-                      src={appendDomain(src, ASSET_URL)}
-                      onDelete={onDelete}
-                      listSrc={arr}
-                      currentIndex={i}
-                    />
-                  </li>
-                );
-              } else {
-                return (
-                  <li key={`client-${i}`}>
-                    <div className="flex justify-between">
-                      {src}
-                      <Popconfirm title="Xác nhận xóa" onConfirm={onDelete}>
-                        <Button icon={<DeleteOutlined />} type="text" />
-                      </Popconfirm>
-                    </div>
-                  </li>
-                );
-              }
-            })}
-
-            {serverSources
-              .slice(0, Math.max(0, showing - clientFileSources.length))
-              .map((src, i, arr) => {
-                const deleteServerFile = async function () {
-                  try {
-                    if (maxCount <= 1) {
-                      messageApi.error("Không thể xóa file duy nhất", 1);
-                      return;
-                    }
-                    const newArray = arr.slice();
-                    const [deletedItemUrl] = newArray.splice(i, 1);
-                    const deleteUrl = `/gcs/delete/${
-                      new URL(deletedItemUrl).pathname
-                        .split("/")
-                        .filter(Boolean)
-                        .pop() ?? deletedItemUrl
-                    }`;
-                    const res1 = await axiosClientJson.patch<{
-                      result: unknown;
-                    }>(`/${collection}/${item?._id}`, {
-                      [field.name]: newArray,
-                    });
-                    const res2 = await axiosClientJson.delete(deleteUrl);
-                    messageApi.success("Cập nhật thành công", 1);
-                    devLog({
-                      updateDbResponse: res1,
-                      deleteFileResponse: res2,
-                    });
-                    queryClient.invalidateQueries(
-                      {
-                        queryKey: [`get_${collection}`],
-                      },
-                      { cancelRefetch: true }
-                    );
-                    setBoxContent(
-                      produce((old) => {
-                        if (!old?.item || typeof old.item !== "object")
-                          return old;
-                        old.item[field.name] = newArray;
-                      })
-                    );
-                  } catch (error) {
-                    const msg =
-                      error instanceof Error
-                        ? error.message
-                        : "Lỗi không xác định";
-                    messageApi.error(msg);
-                    devLog("Delete file error", error);
-                  }
-                };
-                return (
-                  <li key={`server-${i}`}>
-                    {fileType === "image" ? (
-                      <DeletableImage
-                        width={100}
-                        height={100}
-                        className="object-contain"
-                        src={appendDomain(src, ASSET_URL)}
-                        onDelete={deleteServerFile}
-                        listSrc={arr}
-                        currentIndex={i}
-                      />
-                    ) : (
-                      <div className="flex justify-between">
-                        {src}
-                        <Popconfirm
-                          title="Xác nhận xóa"
-                          onConfirm={deleteServerFile}
-                        >
-                          <Button icon={<DeleteOutlined />} type="text" />
-                        </Popconfirm>
-                      </div>
-                    )}
-                  </li>
-                );
-              })}
-
-            {nMore > 0 && (
-              <div className="w-25 h-25 text-2xl cursor-pointer flex justify-center items-center">
-                +{nMore}
-              </div>
-            )}
-          </ul>
-        </Flex>
-      </Flex>
-      {contextHolder}
-    </>
+              }}
+            />
+          </React.Fragment>
+        ))}
+      </div>
+      <PreviewLayer />
+    </Modal>
   );
 }

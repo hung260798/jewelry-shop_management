@@ -18,8 +18,9 @@ interface CustomDivProps extends React.HTMLAttributes<HTMLDivElement> {
 function FloatButton({ children, className, shape, ...props }: CustomDivProps) {
   return (
     <div
-      className={`absolute w-[40px] h-[40px] select-none ${shape === "circle" ? "rounded-[50%]" : "rounded-none"} ${className}`}
-      {...props}>
+      className={`absolute w-10 h-10 select-none ${shape === "circle" ? "rounded-[50%]" : "rounded-none"} ${className}`}
+      {...props}
+    >
       <Button className="bg-transparent text-white">{children}</Button>
       {/* <div
         className={`w-full h-full cursor-pointer flex justify-center items-center text-white text-xl ${shape === "circle" ? "rounded-[50%]" : "rounded-none"}`}>
@@ -65,7 +66,8 @@ export function PreviewLayer() {
       <div
         className={`fixed inset-0 z-2050 bg-[rgba(0,0,0,.85)] ${
           isShowing ? styles.show : styles.hide
-        } ${styles.mask} ${isShowing ? "block" : "hidden"}`}></div>
+        } ${styles.mask} ${isShowing ? "block" : "hidden"}`}
+      ></div>
       <div
         className={`fixed inset-0 z-2050 flex justify-center items-center ${isShowing ? "block" : "hidden"}`}
         tabIndex={0}
@@ -87,11 +89,12 @@ export function PreviewLayer() {
             });
           }
         }}
-        ref={ref}>
+        ref={ref}
+      >
         <img
           src={appendDomain(currentSrc!, ASSET_URL)}
           alt="image"
-          className="max-h-[500px] transition-all "
+          className="max-h-125 transition-all "
           onClick={(e) => {
             e.stopPropagation();
           }}
@@ -99,14 +102,15 @@ export function PreviewLayer() {
         {/** Close modal button */}
         <FloatButton
           shape="circle"
-          className="top-[50px] right-[50px] bg-[rgba(0,0,0,0.1)]"
+          className="top-12.5 right-12.5 bg-[rgba(0,0,0,0.1)]"
           onClick={() => {
             closeLayer();
-          }}>
+          }}
+        >
           <CloseOutlined />
         </FloatButton>
         <FloatButton
-          className="absolute left-[50px] top-[50%] -translate-y-1/2 bg-[rgba(0,0,0,0.1)] text-white"
+          className="absolute left-12.5 top-[50%] -translate-y-1/2 bg-[rgba(0,0,0,0.1)] text-white"
           onClick={(e) => {
             e.stopPropagation();
             if (isNonEmptyArray) {
@@ -115,11 +119,12 @@ export function PreviewLayer() {
                 return (n - 1 + srcs.length) % srcs.length;
               });
             }
-          }}>
+          }}
+        >
           <ArrowLeftOutlined />
         </FloatButton>
         <FloatButton
-          className="absolute right-[50px] top-[50%] -translate-y-1/2 bg-[rgba(0,0,0,0.1)] text-white"
+          className="absolute right-12.5 top-[50%] -translate-y-1/2 bg-[rgba(0,0,0,0.1)] text-white"
           onClick={(e) => {
             e.stopPropagation();
             if (isNonEmptyArray) {
@@ -128,11 +133,12 @@ export function PreviewLayer() {
                 return (n + 1) % srcs.length;
               });
             }
-          }}>
+          }}
+        >
           <ArrowRightOutlined />
         </FloatButton>
         {typeof currentIndex === "number" && Array.isArray(srcs) && (
-          <span className="fixed z-10 bottom-[100px] left-1/2 -translate-x-1/2 text-white text-lg text-shadow-blue-400">
+          <span className="fixed z-10 bottom-25 left-1/2 -translate-x-1/2 text-white text-lg text-shadow-blue-400">
             Ảnh {currentIndex + 1} / {srcs.length}
           </span>
         )}

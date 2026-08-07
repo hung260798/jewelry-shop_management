@@ -30,7 +30,7 @@ const imageSizes: [number, number][] = [[80, 120]];
 export default function EmployeeCRUD() {
   const queryResult = useGetListQuery<Data>({
     url: "/employees",
-    queryKey: ["get_employees"],
+    queryKey: ["employees"],
   });
 
   const { searchParams, searchItems } = queryResult;
@@ -86,7 +86,10 @@ export default function EmployeeCRUD() {
             optionFilterProp="children"
             showSearch
             onChange={(e) => {
-              searchItems({ type: "Locked", value: e }, { resetSkip: true });
+              searchItems([
+                { type: "Locked", value: e },
+                { type: "skip", value: "0" },
+              ]);
             }}
             filterOption={(input, option) =>
               (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
@@ -110,21 +113,21 @@ export default function EmployeeCRUD() {
     },
     //IMAGE
     {
-      width: "100px",
+      width: 110,
       title: "Ảnh hồ sơ",
       key: "imageUrl",
       dataIndex: "imageUrl",
       render: (text: string, record) => {
         return (
-          <div className="flex flex-1 justify-center items-center h-[140px] w-[100px]">
+          <div className="flex flex-1 justify-center items-center">
             {record.imageUrl && (
               <SmartImage
                 src={appendDomain(record.imageUrl, ASSET_URL)}
                 smallSizes={imageSizes}
                 alt="record.imageUrl"
                 fallback="/placeholder-user.jpg"
-                width={80}
-                height={120}
+                width={100}
+                height={100}
               />
             )}
           </div>
@@ -138,13 +141,13 @@ export default function EmployeeCRUD() {
       key: "firstName",
       filterDropdown: () => {
         return (
-          <div style={{ padding: 8 }}>
+          <div className="p-2">
             <Search
               allowClear
               placeholder="Enter first name"
               onSearch={(e) => {
                 const searchValue = { type: "firstName", value: e };
-                searchItems(searchValue, { resetSkip: true });
+                searchItems([searchValue, { type: "skip", value: "0" }]);
               }}
               style={{ width: 200 }}
             />
@@ -161,12 +164,12 @@ export default function EmployeeCRUD() {
       key: "lastName",
       filterDropdown: () => {
         return (
-          <div style={{ padding: 8 }}>
+          <div className="p-2">
             <Search
               allowClear
               onSearch={(e) => {
                 const searchValue = { type: "lastName", value: e };
-                searchItems(searchValue, { resetSkip: true });
+                searchItems([searchValue, { type: "skip", value: "0" }]);
               }}
               placeholder="Enter last name"
               style={{ width: 200 }}
@@ -184,12 +187,12 @@ export default function EmployeeCRUD() {
       key: "email",
       filterDropdown: () => {
         return (
-          <div style={{ padding: 8 }}>
+          <div className="p-2">
             <Search
               allowClear
               onSearch={(e) => {
                 const searchValue = { type: "email", value: e };
-                searchItems(searchValue, { resetSkip: true });
+                searchItems([searchValue, { type: "skip", value: "0" }]);
               }}
               placeholder="Enter email"
               style={{ width: 200 }}
@@ -207,11 +210,11 @@ export default function EmployeeCRUD() {
       key: "phoneNumber",
       filterDropdown: () => {
         return (
-          <div style={{ padding: 8 }}>
+          <div className="p-2">
             <Search
               onSearch={(e) => {
                 const searchValue = { type: "phoneNumber", value: e };
-                searchItems(searchValue, { resetSkip: true });
+                searchItems([searchValue, { type: "skip", value: "0" }]);
               }}
               allowClear
               placeholder="Nhập số điện thoại"
@@ -230,12 +233,12 @@ export default function EmployeeCRUD() {
       key: "address",
       filterDropdown: () => {
         return (
-          <div style={{ padding: 8 }}>
+          <div className="p-2">
             <Search
               allowClear
               onSearch={(e) => {
                 const searchValue = { type: "address", value: e };
-                searchItems(searchValue, { resetSkip: true });
+                searchItems([searchValue, { type: "skip", value: "0" }]);
               }}
               placeholder="Enter address"
               style={{ width: 200 }}
@@ -275,7 +278,7 @@ export default function EmployeeCRUD() {
         );
 
         return (
-          <div style={{ padding: 8 }}>
+          <div className="p-2">
             <RangePicker
               allowClear
               value={[
@@ -286,13 +289,11 @@ export default function EmployeeCRUD() {
               onChange={async (e) => {
                 const data = e?.map((date) => dayjs(date).format("YYYY/MM/DD"));
                 if (data) {
-                  searchItems(
-                    [
-                      { type: "birthdayFrom", value: data[0] },
-                      { type: "birthdayTo", value: data[1] },
-                    ],
-                    { resetSkip: true }
-                  );
+                  searchItems([
+                    { type: "birthdayFrom", value: data[0] },
+                    { type: "birthdayTo", value: data[1] },
+                    { type: "skip", value: "0" },
+                  ]);
                 }
               }}
             />
@@ -356,7 +357,7 @@ export default function EmployeeCRUD() {
         },
       ]}
       // fetchError={error}
-      convertToFormValues={converRecordToFormValues}
+      createFormValues={converRecordToFormValues}
       uploadModalTitle={(employee) =>
         `${employee?.firstName} ${employee?.lastName}`
       }
@@ -502,11 +503,13 @@ const formControls: FormControl[] = [
               collection: "products",
               item: record as unknown as IdAndNameWise,
             });
-            const qk: string[][] = [];
-            for (const pair of searchParams?.entries() ?? []) {
-              qk.push(pair);
-            }
-            setUploaderQueryKey?.(qk);
+            // const qk: string[][] = [];
+            // for (const pair of searchParams?.entries() ?? []) {
+            //   qk.push(pair);
+            // }
+            setUploaderQueryKey?.([
+              Object.fromEntries(searchParams?.entries() ?? []),
+            ]);
             setOpenUploadBox(true);
           }}
         />

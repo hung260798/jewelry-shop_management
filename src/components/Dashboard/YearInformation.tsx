@@ -4,7 +4,7 @@ import {
   ShoppingCartOutlined,
   UserOutlined,
 } from "@ant-design/icons";
-import { Button, Card, Col, Divider, Row, Space, Statistic } from "antd";
+import { Card, Col, Row, Statistic } from "antd";
 import { valueType } from "antd/es/statistic/utils";
 import axios from "axios";
 import { useEffect, useState } from "react";
@@ -13,8 +13,8 @@ import { API_URL } from "@/utils/constants/URLS";
 import { axiosClientJson } from "@/libraries/axiosClient";
 
 const YearInformation = () => {
-  const formatter = (value: string | number) => (
-    <CountUp end={+value} separator="," />
+  const formatter = (value?: valueType) => (
+    <CountUp end={Number(value) || 0} separator="," />
   );
 
   const [orderTotal, setOrderTotal] = useState<{ total: valueType }>();
@@ -39,110 +39,73 @@ const YearInformation = () => {
       setOrdersCount(res.data.amountResults);
     });
   }, []);
+
+  const metrics = [
+    {
+      title: "Doanh thu năm",
+      value: orderTotal?.total,
+      prefix: "VNĐ",
+      icon: <DollarOutlined />,
+      className: "revenue",
+    },
+    {
+      title: "Tổng đơn hàng",
+      value: ordersCount,
+      icon: <ShoppingCartOutlined />,
+      className: "orders",
+    },
+    {
+      title: "Tổng khách hàng",
+      value: totalUser,
+      icon: <UserOutlined />,
+      className: "customers",
+    },
+    {
+      title: "Sản phẩm đang bán",
+      value: productsActiveCount,
+      icon: <AppstoreOutlined />,
+      className: "products",
+    },
+  ];
+
   return (
-    <div>
-      <Divider orientation="left">Thống kê trong năm</Divider>
+    <div className="dashboard-section">
+      <div className="dashboard-section-header">
+        <h2 className="dashboard-section-title">Thống kê trong năm</h2>
+        <span className="dashboard-section-note">Dữ liệu tổng hợp hiện tại</span>
+      </div>
       <Row
         gutter={[
-          { xs: 8, sm: 16, md: 24, lg: 32 },
-          { xs: 8, sm: 8, lg: 8, xxl: 8 },
+          { xs: 10, sm: 14, md: 18, lg: 20 },
+          { xs: 10, sm: 14, md: 18, lg: 20 },
         ]}
       >
-        <Col xs={24} lg={12} xxl={6}>
-          <Card variant="borderless" style={{ width: "100%" }}>
-            <div className="d-flex justify-content-between">
-              <div className="content">
-                <Space>
-                  <Statistic
-                    prefix={`VNĐ`}
-                    title="Year's Sale"
-                    value={orderTotal?.total}
-                    formatter={formatter}
-                    style={{ fontWeight: "bold", overflow: "hidden" }}
-                  />
-                </Space>
+        {metrics.map((metric) => (
+          <Col xs={24} sm={12} xxl={6} key={metric.title}>
+            <Card
+              className="dashboard-card dashboard-kpi-card"
+              variant="borderless"
+            >
+              <div className="dashboard-kpi-body">
+                <Statistic
+                  prefix={metric.prefix}
+                  title={metric.title}
+                  value={metric.value}
+                  formatter={formatter}
+                  valueStyle={{
+                    color: "#0f172a",
+                    fontSize: 28,
+                    fontWeight: 800,
+                    lineHeight: 1.15,
+                  }}
+                />
+                <div className={`dashboard-kpi-icon ${metric.className}`}>
+                  {metric.icon}
+                </div>
               </div>
-              <Button
-                icon={
-                  <DollarOutlined
-                    style={{ fontSize: "24px", color: "white" }}
-                  />
-                }
-                style={{ height: 60, width: 60, backgroundColor: "#1890ff" }}
-              />
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} lg={12} xxl={6}>
-          <Card bordered={false} style={{ width: "100%" }}>
-            <div className="d-flex justify-content-between">
-              <div className="content">
-                <Space>
-                  <Statistic
-                    title="Order's total"
-                    value={ordersCount}
-                    formatter={formatter}
-                    style={{ fontWeight: "bold" }}
-                  />
-                </Space>
-              </div>
-              <Button
-                icon={
-                  <ShoppingCartOutlined
-                    style={{ fontSize: "24px", color: "white" }}
-                  />
-                }
-                style={{ height: 60, width: 60, backgroundColor: "#1890ff" }}
-              />
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} lg={12} xxl={6}>
-          <Card bordered={false} style={{ width: "100%" }}>
-            <div className="d-flex justify-content-between">
-              <div className="content">
-                <Space>
-                  <Statistic
-                    title="Customer's total"
-                    value={totalUser}
-                    formatter={formatter}
-                    style={{ fontWeight: "bold" }}
-                  />
-                </Space>
-              </div>
-              <Button
-                icon={
-                  <UserOutlined style={{ fontSize: "24px", color: "white" }} />
-                }
-                style={{ height: 60, width: 60, backgroundColor: "#1890ff" }}
-              />
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} lg={12} xxl={6}>
-          <Card bordered={false} style={{ width: "100%" }}>
-            <div className="d-flex justify-content-between">
-              <div className="content">
-                <Space>
-                  <Statistic
-                    title="Product's active"
-                    value={productsActiveCount}
-                    formatter={formatter}
-                    style={{ fontWeight: "bold" }}
-                  />
-                </Space>
-              </div>
-              <Button
-                icon={
-                  <AppstoreOutlined
-                    style={{ fontSize: "24px", color: "white" }}
-                  />
-                }
-                style={{ height: 60, width: 60, backgroundColor: "#1890ff" }}
-              />
-            </div>
-          </Card>
-        </Col>
+            </Card>
+          </Col>
+        ))}
       </Row>
     </div>
   );

@@ -1,4 +1,5 @@
-import { RcFile } from "antd/es/upload";
+import { GetProp } from "antd";
+import { RcFile, UploadProps } from "antd/es/upload";
 import { API_URL } from "utils/constants/URLS";
 
 /**
@@ -71,22 +72,26 @@ export function extractPathname(src: string): string {
  * @returns FormData/null
  */
 export function createFormData(
-  value: File | (File | undefined)[] | undefined,
-  fieldName: string = "file"
+  value: File | File[] | undefined,
+  fieldName: string = "file",
+  prevFormData?: FormData
 ) {
-  const formData = new FormData();
   if (!value) {
     return null;
   }
+  const formData = prevFormData ?? new FormData();
   if (Array.isArray(value)) {
+    if (!value.length) {
+      return null;
+    }
     value.forEach((item) => {
       if (item) {
         formData.append(fieldName, item);
       }
     });
-  } else {
-    formData.append(fieldName, value);
+    return formData;
   }
+  formData.append(fieldName, value);
   return formData;
 }
 
@@ -110,3 +115,13 @@ export function getSortOrder(
   }
   return undefined;
 }
+
+type FileType = Parameters<GetProp<UploadProps, "beforeUpload">>[0];
+
+export const getBase64 = (file: FileType): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (error) => reject(error);
+  });

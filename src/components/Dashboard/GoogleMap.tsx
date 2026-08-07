@@ -58,7 +58,7 @@ const Address = () => {
       <div className="delivery active">
         <Divider>Vị trí khách hàng đã đặt hàng</Divider>
         {positions.length > 0 && (
-          <div style={{ height: "50vh", width: "100%" }}>
+          <div className="h-[50vh] w-full">
             {/* <GoogleMapReact
               bootstrapURLKeys={{
                 key: "AIzaSyDc7PnOq3Hxzq6dxeUVaY8WGLHIePl0swY",

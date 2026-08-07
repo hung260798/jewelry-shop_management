@@ -1,35 +1,38 @@
+import usePopupMessage from "@/hooks/usePopupMessage";
 import { axiosClientJson } from "@/libraries/axiosClient";
 import { Bar, BarConfig, Column, ColumnConfig } from "@ant-design/plots";
-import {
-  Card,
-  Col,
-  DatePicker,
-  DatePickerProps,
-  Divider,
-  message,
-  Row,
-} from "antd";
+import { Card, Col, DatePicker, Empty, Row, Spin } from "antd";
+import dayjs from "dayjs";
 import moment from "moment";
 import { useEffect, useState } from "react";
 import { API_URL } from "utils/constants/URLS";
 
 const MonthlyRevenueInfo = () => {
-  const [yearToGetRevenue, setYearToGetRevenue] = useState(moment().year());
+  const [year, setYear] = useState(moment().year());
+  const [loading, setLoading] = useState(false);
   const [monthlyRevenues, setMonthlyRevenues] =
     useState<{ month: unknown; revenue: number }[]>();
+  const [messageApi, , key] = usePopupMessage() || [];
 
   useEffect(() => {
+    setLoading(true);
     axiosClientJson
       .get(`${API_URL}/questions/23b`, {
-        params: { year: yearToGetRevenue },
+        params: { year: year },
       })
       .then((res) => {
         setMonthlyRevenues(res.data);
       })
       .catch((error) => {
-        message.error(error.message);
+        // messageApi?.error(error.message);
+        if (messageApi && key) {
+          messageApi.open({ content: error.message, key, type: "error" });
+        }
+      })
+      .finally(() => {
+        setLoading(false);
       });
-  }, [API_URL, yearToGetRevenue]);
+  }, [API_URL, year]);
   let monthlyRevenuesData: { month: string; revenue: number }[] = [];
   if (monthlyRevenues && monthlyRevenues.length) {
     monthlyRevenuesData = monthlyRevenues.map((item) => ({
@@ -37,18 +40,12 @@ const MonthlyRevenueInfo = () => {
       revenue: item.revenue,
     }));
   }
-  const handlePickYearRevenue: DatePickerProps["onChange"] = (value) => {
-    if (value) {
-      const year = value.year();
-      setYearToGetRevenue(year);
-    }
-  };
   const monthlyRevenuesConfig: ColumnConfig = {
     data: monthlyRevenuesData,
     xField: "month",
     yField: "revenue",
     seriesField: "month",
-    color: `white`,
+    color: "#2563eb",
     tooltip: {
       customContent: (title, items) => {
         const formattedItems = items.map((item) => {
@@ -70,39 +67,38 @@ const MonthlyRevenueInfo = () => {
       title: {
         text: "Tháng",
         style: {
-          fill: "white",
+          fill: "#475569",
         },
       },
       label: {
         autoHide: true,
         autoRotate: false,
         style: {
-          fill: "white",
+          fill: "#475569",
           line: [4, 4],
         },
       },
       grid: {
         line: {
           style: {
-            stroke: "#ddd",
+            stroke: "#e2e8f0",
             lineDash: [4, 4],
           },
         },
-        alternateColor: "rgba(0,0,0,0.05)",
       },
     },
     yAxis: {
       title: {
         text: "Doanh thu ",
         style: {
-          fill: "white",
+          fill: "#475569",
         },
       },
       label: {
         autoHide: true,
         autoRotate: false,
         style: {
-          fill: "white", // Change the color of yField label to blue
+          fill: "#475569",
         },
         formatter: (value) => {
           const formattedPrice = value
@@ -115,11 +111,10 @@ const MonthlyRevenueInfo = () => {
       grid: {
         line: {
           style: {
-            stroke: "#ddd",
+            stroke: "#e2e8f0",
             lineDash: [4, 4],
           },
         },
-        alternateColor: "rgba(0,0,0,0.05)",
       },
     },
     columnStyle: {
@@ -130,15 +125,30 @@ const MonthlyRevenueInfo = () => {
   return (
     <Col xs={24} xl={10}>
       <Card
+        className="dashboard-card dashboard-chart-card"
         title={"Doanh thu trong năm"}
         variant="borderless"
-        extra={<DatePicker onChange={handlePickYearRevenue} picker="year" />}>
-        <div
-          className=" px-3 py-3 rounded-0"
-          style={{
-            backgroundImage: "linear-gradient(90deg,#00369e,#005cfd,#a18dff)",
-          }}>
-          <Column className="rounded-4" {...monthlyRevenuesConfig} />
+        extra={
+          <DatePicker
+            onChange={(value) => {
+              if (value) {
+                const year = value.year();
+                setYear(year);
+              }
+            }}
+            picker="year"
+            value={year ? dayjs().year(year) : undefined}
+          />
+        }
+      >
+        <div className="dashboard-chart-surface">
+          <Spin spinning={loading}>
+            {monthlyRevenuesData.length ? (
+              <Column {...monthlyRevenuesConfig} />
+            ) : (
+              <Empty description="Chưa có dữ liệu doanh thu" />
+            )}
+          </Spin>
         </div>
       </Card>
     </Col>
@@ -146,8 +156,8 @@ const MonthlyRevenueInfo = () => {
 };
 
 const TopEmployeesInfo = () => {
-  const [yearForSelectingTopEmployee, setYearForSelectingTopEmployee] =
-    useState<number>(moment().year());
+  const [year, setYear] = useState<number>(moment().year());
+  const [loading, setLoading] = useState(false);
   const [topEmployees, setTopEmployees] = useState<
     {
       firstName: string;
@@ -156,23 +166,27 @@ const TopEmployeesInfo = () => {
       month: unknown;
     }[]
   >();
+  const [messageApi, , key] = usePopupMessage() || [];
 
   useEffect(() => {
+    setLoading(true);
     axiosClientJson
       .get(`${API_URL}/questions/27b`, {
-        params: { year: yearForSelectingTopEmployee },
+        params: { year: year },
       })
       .then((res) => {
         setTopEmployees(res.data);
+      })
+      .catch((error) => {
+        // messageApi?.error(error.message);
+        if (messageApi && key) {
+          messageApi.open({ content: error.message, key, type: "error" });
+        }
+      })
+      .finally(() => {
+        setLoading(false);
       });
-  }, [API_URL, yearForSelectingTopEmployee]);
-
-  const handlePickYearTopEmployee: DatePickerProps["onChange"] = (value) => {
-    if (value) {
-      const year = value.year();
-      setYearForSelectingTopEmployee(year);
-    }
-  };
+  }, [API_URL, year]);
 
   let topEmployeesData: { name: string; revenue: unknown; month: unknown }[] =
     [];
@@ -183,24 +197,24 @@ const TopEmployeesInfo = () => {
       month: item.month,
     }));
   }
-  const config2: BarConfig = {
+  const config: BarConfig = {
     data: topEmployeesData,
     xField: "revenue",
     yField: "name",
-    color: "white",
+    color: "#0f766e",
     xAxis: {
       title: {
         text: "Doanh thu",
         style: {
-          fill: "white",
+          fill: "#475569",
         },
       },
       label: {
         autoHide: true,
         autoRotate: false,
         style: {
-          fill: "white", // Change the color of xField label to red
-          line: [4, 4], // This creates a dashed line effect
+          fill: "#475569",
+          line: [4, 4],
         },
         formatter: (value) => {
           const formattedPrice = value
@@ -213,11 +227,10 @@ const TopEmployeesInfo = () => {
       grid: {
         line: {
           style: {
-            stroke: "#ddd",
+            stroke: "#e2e8f0",
             lineDash: [4, 2],
           },
         },
-        alternateColor: "rgba(0,0,0,0.05)",
       },
     },
     tooltip: {
@@ -241,24 +254,23 @@ const TopEmployeesInfo = () => {
       title: {
         text: " Nhân viên",
         style: {
-          fill: "white",
+          fill: "#475569",
         },
       },
       label: {
         autoHide: true,
         autoRotate: false,
         style: {
-          fill: "white", // Change the color of yField label to blue
+          fill: "#475569",
         },
       },
       grid: {
         line: {
           style: {
-            stroke: "#ddd",
+            stroke: "#e2e8f0",
             lineDash: [4, 4],
           },
         },
-        alternateColor: "rgba(0,0,0,0.05)",
       },
     },
     // columnStyle: {
@@ -267,19 +279,32 @@ const TopEmployeesInfo = () => {
   };
   return (
     <Col xs={24} xl={14}>
+      {/* {contextHolder} */}
       <Card
+        className="dashboard-card dashboard-chart-card"
         title={`Top nhân viên bán hàng xuất sắc trong năm`}
         variant="borderless"
-        // style={{ width: "100%" }}
         extra={
-          <DatePicker onChange={handlePickYearTopEmployee} picker="year" />
-        }>
-        <div
-          className="px-3 py-3"
-          style={{
-            backgroundImage: "linear-gradient(90deg,#435a65,#487d4c,#758831)",
-          }}>
-          <Bar {...config2} />
+          <DatePicker
+            onChange={(value) => {
+              if (value) {
+                const year = value.year();
+                setYear(year);
+              }
+            }}
+            picker="year"
+            value={year ? dayjs().year(year) : undefined}
+          />
+        }
+      >
+        <div className="dashboard-chart-surface">
+          <Spin spinning={loading}>
+            {topEmployeesData.length ? (
+              <Bar {...config} />
+            ) : (
+              <Empty description="Chưa có dữ liệu nhân viên" />
+            )}
+          </Spin>
         </div>
       </Card>
     </Col>
@@ -288,9 +313,14 @@ const TopEmployeesInfo = () => {
 
 const GeneralInformation = () => {
   return (
-    <div>
-      <Divider orientation="left">Tổng quát</Divider>
-      <Row gutter={[{ xs: 8, sm: 16, md: 24, lg: 32 }, 8]}>
+    <div className="dashboard-section">
+      <div className="dashboard-section-header">
+        <h2 className="dashboard-section-title">Tổng quát</h2>
+        <span className="dashboard-section-note">
+          Doanh thu và hiệu suất bán hàng
+        </span>
+      </div>
+      <Row gutter={[{ xs: 10, sm: 14, md: 18, lg: 20 }, 20]}>
         <MonthlyRevenueInfo />
         <TopEmployeesInfo />
       </Row>

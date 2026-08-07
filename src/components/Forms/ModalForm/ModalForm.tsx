@@ -1,19 +1,16 @@
-import { axiosClientJson } from "@/libraries/axiosClient";
-import { useModalForm } from "@/components/Forms/ModalForm/useModalForm";
-import {
-  compareSearchParamsArray,
-  defaultQueryObj,
-  urlSearchParamsToArray,
-} from "@/hooks/useMyQuery";
-import { useScreen } from "@/hooks/useWidth";
-import { devLog, getErrorMessage } from "@/utils/logger";
-import { FormProps } from "@/utils/types/Form";
-import { hasKeyOfType, hasShape, isRecord } from "@/utils/typeUtils";
-import { QueryFilters, useQueryClient } from "@tanstack/react-query";
-import { Form, message, Modal, ModalProps } from "antd";
+import { useQueryClient } from "@tanstack/react-query";
+import { Form, Grid, Modal, ModalProps } from "antd";
 import _ from "lodash";
 import { useEffect, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+
+import { axiosClientJson } from "@/libraries/axiosClient";
+import { devLog, getErrorMessage } from "@/utils/logger";
+import { FormProps } from "@/utils/types/Form";
+
+import usePopupMessage from "@/hooks/usePopupMessage";
+import { GetMany, IdWise } from "@/utils/types/Entities";
+import style from "./style.module.css";
+import { useModalForm } from "./useModalForm";
 
 export type ModalFormProps = Omit<FormProps, "formValues"> & {
   modalProps?: ModalProps;
@@ -22,17 +19,18 @@ export type ModalFormProps = Omit<FormProps, "formValues"> & {
 export const ModalForm = ({
   submitFn,
   formControls,
-  modalTitle: title = "Form",
+  modalTitle,
   modalProps = {},
   collectionName,
   // fileFields,
 }: ModalFormProps) => {
   const [form] = Form.useForm();
-  const breakpoint = 768;
-  const isSmallScreen = useScreen(breakpoint);
-  const [messageApi, contextHolder] = message.useMessage();
-  const { formValues, open, closeModal, formKey } = useModalForm((s) => s);
-  const [searchParams] = useSearchParams();
+  const screens = Grid.useBreakpoint();
+  const [messageApi] = usePopupMessage() ?? [];
+  const { formValues, open, closeModal, formKey, queryKey } = useModalForm(
+    (state) => state
+  );
+  // const [searchParams] = useSearchParams();
   const httpMethod = formValues ? "patch" : "post";
 
   const queryClient = useQueryClient();
@@ -79,23 +77,28 @@ export const ModalForm = ({
     if (Object.keys(fieldsChanged.current).length === 0) {
       return closeModalAndCleanUp();
     }
-    if (typeof values !== "object" || values == null) {
-      return messageApi.error("Dữ liệu không hợp lệ");
+    if (typeof values !== "object" || values == null || !collectionName) {
+      closeModalAndCleanUp();
+      return messageApi?.error("Dữ liệu không hợp lệ");
     }
-    if (!collectionName) {
-      return messageApi.error("Dữ liệu không hợp lệ");
-    }
-    messageApi.open({
+    const lodash = await import("lodash");
+    const formValuesClone = _.clone(formValues);
+    const openClone = open;
+    const formKeyClone = formKey;
+    const queryKeyClone = _.clone(queryKey);
+    const data = lodash.clone(values);
+    const fieldsChangedClone = _.clone(fieldsChanged);
+
+    messageApi?.open({
       key: "submit",
       content: "Đang cập nhật",
       type: "loading",
     });
-    const lodash = await import("lodash");
-    const data = lodash.clone(values);
     if (submitFn) {
+      closeModalAndCleanUp();
       try {
         await submitFn(data);
-        messageApi.open({
+        messageApi?.open({
           key: "submit",
           content: "Cập nhật thành công",
           type: "success",
@@ -103,161 +106,81 @@ export const ModalForm = ({
         });
       } catch (error) {
         devLog(error);
-        messageApi.open({
+        messageApi?.open({
           key: "submit",
           content: `Cập nhật thất bại, ${getErrorMessage(error)}`,
           type: "error",
           duration: 1,
         });
       }
-      return closeModalAndCleanUp();
+      return;
     }
-    const method = formValues ? "patch" : "post";
-    type IdWise = {
-      _id: string;
-      [key: string]: unknown;
-    };
+    closeModalAndCleanUp();
+    const method = formValuesClone ? "patch" : "post";
+    const previousCache = queryClient.getQueryData(queryKeyClone);
     try {
+      // **** Optimistic Update for patch request ****
+      if (method === "patch") {
+        queryClient.setQueryData(
+          queryKeyClone,
+          (oldData: GetMany<IdWise> | undefined) => {
+            if (oldData == null) {
+              return;
+            }
+            const shallowClone = oldData.results.map((e) => {
+              if (e._id !== (data as IdWise)._id) return e;
+              return { ...e, ...(data as IdWise) };
+            });
+
+            return { ...oldData, results: shallowClone };
+          }
+        );
+      }
       const json = _.omit(data, "files") as IdWise;
-      const submitUrl = `/${collectionName}${formValues ? `/${json._id}` : ""}`;
+      const submitUrl = `/${collectionName}${formValuesClone ? `/${json._id}` : ""}`;
       const response = await axiosClientJson<{
         result: IdWise;
       }>({
         method: method,
         url: submitUrl,
-        data: method === "post" ? json : fieldsChanged.current,
+        data: method === "post" ? json : fieldsChangedClone.current,
       });
 
-      // Upload files if any
-      // if (isRecord(files) && Object.keys(files).length > 0) {
-      //   const safeFiles = files as Record<
-      //     string,
-      //     { file: File; fileList: UploadFile[] }
-      //   >;
-      //   const itemId = json._id ?? response.data.result._id;
-      //   const fileURLs = await upload({
-      //     files: safeFiles,
-      //     fields: fileFields,
-      //     uploadTo: "/upload/gcs-upload",
-      //   });
-      //   if (fileURLs) {
-      //     const body = fileURLs
-      //       .map((item) => {
-      //         if (Array.isArray(item.url)) {
-      //           item.url = item.url.map((u) => excludeDomain(u));
-      //         } else {
-      //           item.url = excludeDomain(item.url);
-      //         }
-      //         return item;
-      //       })
-      //       .reduce((prev, curr) => {
-      //         return {
-      //           ...prev,
-      //           [curr.key]: curr.url,
-      //         };
-      //       }, {});
-      //     await axiosClientJson.patch(`/${collectionName}/${itemId}`, body);
-      //   }
-      // }
-      messageApi.open({
+      messageApi?.open({
         key: "submit",
         content: "Cập nhật thành công",
         type: "success",
         duration: 1,
       });
-      // queryClient.invalidateQueries({
-      //   queryKey: [`get_${collectionName}`],
-      // });
-      const keyPredicate: QueryFilters["predicate"] = ({ queryKey }) => {
-        if (queryKey.length <= 1) return false;
-        if (queryKey[0] !== `get_${collectionName}`) return false;
-        const paramsArray = urlSearchParamsToArray(searchParams);
-        if (paramsArray.length === 0) {
-          return compareSearchParamsArray(
-            (queryKey as [string, string | string[]][]).slice(1),
-            urlSearchParamsToArray(new URLSearchParams(defaultQueryObj))
-          );
-        }
-        return compareSearchParamsArray(
-          (queryKey as [string, string | string[]][]).slice(1),
-          paramsArray
-        );
-      };
-      await queryClient.cancelQueries({
-        queryKey: [`get_${collectionName}`],
-        predicate: keyPredicate,
-      });
-      queryClient.setQueriesData(
-        {
-          queryKey: [`get_${collectionName}`],
-          predicate: keyPredicate,
-        },
-        (oldData: unknown) => {
-          if (!isRecord(oldData)) {
-            return oldData;
-          }
-          const responseData = response.data?.result;
-          if (!responseData) {
-            devLog("No response data");
-            return oldData;
-          }
-          if (
-            hasShape<{ results: IdWise[]; amountResults: number }>(oldData, {
-              results: (v): v is IdWise[] => Array.isArray(v),
-              amountResults: (v): v is number => typeof v === "number",
-            })
-          ) {
-            const results = oldData.results;
-            const amountResults = oldData.amountResults;
-            if (method === "post") {
-              return {
-                ...oldData,
-                results: [responseData, ...results],
-                amountResults: amountResults + 1,
-              };
-            } else {
-              return {
-                ...oldData,
-                results: results.map((item) =>
-                  item._id === responseData._id ? responseData : item
-                ),
-              };
-            }
-          } else if (
-            hasKeyOfType(oldData, "result", (v): v is IdWise =>
-              hasKeyOfType(
-                v,
-                "_id",
-                (id): id is string => typeof id === "string"
-              )
-            )
-          ) {
-            if (oldData.result._id === responseData._id) {
-              return {
-                ...oldData,
-                result: responseData,
-              };
-            }
-          } else {
-            return oldData;
-          }
-        }
-      );
+      if (method === "post") {
+        queryClient.invalidateQueries({
+          queryKey: [`${collectionName}`],
+        });
+      }
     } catch (error) {
       devLog(error);
-      messageApi.open({
+      messageApi?.open({
         key: "submit",
         content: `Cập nhật thất bại, ${getErrorMessage(error)}`,
         type: "error",
         duration: 1,
       });
+      queryClient.setQueryData(queryKeyClone, previousCache);
     } finally {
-      queryClient.invalidateQueries({ queryKey: [`get_${collectionName}`] });
+      // queryClient.invalidateQueries({ queryKey: [`${collectionName}`] });
     }
-    closeModalAndCleanUp();
   };
 
-  const { width, ...restModalProps } = modalProps;
+  const {
+    width,
+    rootClassName,
+    okButtonProps,
+    cancelButtonProps,
+    ...restModalProps
+  } = modalProps;
+  const rootClassNames = [style.modalFormModal, rootClassName]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <Modal
@@ -270,11 +193,28 @@ export const ModalForm = ({
       okText="Lưu"
       cancelText="Hủy"
       open={open && formKey === collectionName}
-      title={title}
-      width={isSmallScreen ? "100%" : (width ?? 800)}
+      title={
+        <div className={style.modalTitle}>
+          <span>
+            {typeof modalTitle === "function"
+              ? modalTitle(formValues)
+              : modalTitle}
+          </span>
+          <span className={style.modeBadge}>
+            {formValues ? "Cập nhật" : "Tạo mới"}
+          </span>
+        </div>
+      }
+      width={screens.md ? (width ?? 840) : "calc(100vw - 24px)"}
+      centered
+      rootClassName={rootClassNames}
+      okButtonProps={{ size: "large", ...okButtonProps }}
+      cancelButtonProps={{ size: "large", ...cancelButtonProps }}
       modalRender={(dom) => (
         <Form
           form={form}
+          layout={screens.md ? "horizontal" : "vertical"}
+          requiredMark={false}
           onValuesChange={(changedValues) => {
             fieldsChanged.current = {
               ...fieldsChanged.current,
@@ -283,7 +223,7 @@ export const ModalForm = ({
           }}
           onFinish={handleSubmit}
           onFinishFailed={(err) => {
-            messageApi.error("Lỗi submit");
+            messageApi?.error("Lỗi submit");
             devLog(err);
           }}
         >
@@ -292,15 +232,14 @@ export const ModalForm = ({
       )}
       {...restModalProps}
     >
-      {contextHolder}
-      <div className="px-6 pt-2 pb-4">
+      <div className={style.formBody}>
         {formControls.map((item, index) => {
           const {
             component,
             valuePropName = "value",
             name,
             label,
-            className,
+            className = "",
             getValueProps,
             getValueFromEvent,
             normalize,
@@ -316,21 +255,19 @@ export const ModalForm = ({
           } else if (!Array.isArray(item.rules)) {
             item.rules = formValues ? item.rules.update : item.rules.add;
           }
-          const css = isSmallScreen ? { marginBottom: ".35rem" } : {};
           return (
             <Form.Item
               key={index}
               valuePropName={valuePropName}
               name={name}
               label={label}
-              labelCol={{ span: 6 }}
-              wrapperCol={{ span: 18 }}
-              className={className || ""}
+              labelCol={{ span: screens.md ? 7 : 24 }}
+              wrapperCol={{ span: screens.md ? 17 : 24 }}
+              className={className + " " + style.formItem}
               getValueProps={getValueProps}
               getValueFromEvent={getValueFromEvent}
               normalize={normalize}
               rules={item.rules}
-              style={css}
             >
               {typeof component === "function" ? (
                 (() => {

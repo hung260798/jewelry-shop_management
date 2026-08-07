@@ -75,7 +75,7 @@ export default function MyCkeditorFormInput({
                   name: file.name,
                   status: "done",
                   originFileObj: file,
-                } as UploadFile)
+                }) as UploadFile
             ),
             file: images[0].file,
           },
@@ -117,9 +117,7 @@ export default function MyCkeditorFormInput({
         <Button onClick={openModal} className="max-w-full overflow-hidden">
           {value ? buttonLabel.edit : buttonLabel.empty}
         </Button>
-        {value ? (
-          <span style={{ marginLeft: 4, opacity: 0.7 }}>{previewText}</span>
-        ) : null}
+        {value ? <span className="ml-1 opacity-70">{previewText}</span> : null}
       </span>
 
       <Modal
@@ -132,7 +130,7 @@ export default function MyCkeditorFormInput({
         cancelText="Hủy"
         {...modalProps}
       >
-        <div style={{ minHeight: 360 }}>
+        <div className="min-h-90">
           <CKEditor
             editor={ClassicEditor}
             config={{

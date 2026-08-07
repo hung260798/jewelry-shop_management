@@ -1,2 +1,2 @@
-export { default } from "./Searchbox";
+export { default, type SearchBoxOptions } from "./Searchbox";
 export { useSearchProducts } from "./useSearchProducts";

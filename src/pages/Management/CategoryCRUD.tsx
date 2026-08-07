@@ -71,7 +71,7 @@ const getControls = (categoryOptions: CategoryOption[]): FormControl[] => [
       <Select
         allowClear
         showSearch
-        placeholder="Select parent category"
+        placeholder="Chọn danh mục cha"
         optionFilterProp="label"
         filterOption={(input, option) =>
           (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
@@ -83,14 +83,14 @@ const getControls = (categoryOptions: CategoryOption[]): FormControl[] => [
     defaultValue: "",
   },
   {
-    label: "Promotion",
+    label: "Quảng bá",
     name: "promotionPosition",
     component: (
       <Select
         mode="multiple"
         allowClear
         showSearch
-        placeholder="Select promotion"
+        placeholder="Chọn mục quảng bá"
         optionFilterProp="children"
         filterOption={(input, option) =>
           (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
@@ -98,11 +98,11 @@ const getControls = (categoryOptions: CategoryOption[]): FormControl[] => [
         options={[
           {
             value: "TOP-MONTH",
-            label: "TOP-MONTH",
+            label: "Top bán chạy trong tháng",
           },
           {
             value: "DEAL",
-            label: "DEAL",
+            label: "Ưu đãi",
           },
         ]}
       />
@@ -112,7 +112,7 @@ const getControls = (categoryOptions: CategoryOption[]): FormControl[] => [
   },
   {
     label: "Vị trí sắp xếp",
-    name: "sortOrder",
+    name: "displayOrder",
     component: <InputNumber min={1} />,
     className: "basis-1/3",
     defaultValue: "",
@@ -140,7 +140,7 @@ const getControls = (categoryOptions: CategoryOption[]): FormControl[] => [
     defaultValue: "",
   },
   {
-    label: "Image",
+    label: "Ảnh",
     name: ["files", "imageUrl"],
     component: (
       <UploadInput maxCount={1}>
@@ -150,7 +150,7 @@ const getControls = (categoryOptions: CategoryOption[]): FormControl[] => [
     valuePropName: "value",
   },
   {
-    label: "Cover Image",
+    label: "Nền",
     name: ["files", "coverImageUrl"],
     component: (
       <UploadInput maxCount={1}>
@@ -165,8 +165,19 @@ function CategoryCRUD() {
   const [categoryOptions, setCategoryOptions] = useState<CategoryOption[]>([]);
 
   const queryResults = useGetListQuery<Entity>({
-    queryKey: ["get_categories"],
     url: "/categories",
+    queryKey: ["categories"],
+    // initParams: [
+    //   ["fields[]", "name"],
+    //   ["fields[]", "parentCategoryDoc"],
+    //   ["fields[]", "active"],
+    //   ["fields[]", "isDeleted"],
+    //   ["fields[]", "description"],
+    //   ["fields[]", "displayOrder"],
+    //   ["fields[]", "imageUrl"],
+    //   ["fields[]", "coverImageUrl"],
+    //   ["fields[]", "updatedDate"],
+    // ],
   });
 
   // Build category options for the parent category select
@@ -251,36 +262,31 @@ function CategoryCRUD() {
               onChange={(value) => {
                 switch (value) {
                   case "active":
-                    searchItems(
-                      [
-                        { type: "active", value: "true" },
-                        { type: "isDeleted", value: undefined },
-                      ],
-                      { resetSkip: true }
-                    );
+                    searchItems([
+                      { type: "active", value: "true" },
+                      { type: "isDeleted", value: undefined },
+                      { type: "skip", value: "0" },
+                    ]);
                     break;
                   case "inActive":
-                    searchItems(
-                      [
-                        { type: "active", value: "false" },
-                        { type: "isDeleted", value: undefined },
-                      ],
-                      { resetSkip: true }
-                    );
+                    searchItems([
+                      { type: "active", value: "false" },
+                      { type: "isDeleted", value: undefined },
+                      { type: "skip", value: "0" },
+                    ]);
                     break;
                   case "isDeleted":
-                    searchItems(
-                      [
-                        { type: "isDeleted", value: "true" },
-                        { type: "active", value: undefined },
-                      ],
-                      { resetSkip: true }
-                    );
+                    searchItems([
+                      { type: "isDeleted", value: "true" },
+                      { type: "active", value: undefined },
+                      { type: "skip", value: "0" },
+                    ]);
                     break;
                   default:
                     searchItems([
                       { type: "active", value: undefined },
                       { type: "isDeleted", value: undefined },
+                      { type: "skip", value: "0" },
                     ]);
                 }
               }}
@@ -329,7 +335,10 @@ function CategoryCRUD() {
                 allowClear
                 placeholder="Enter name"
                 onSearch={(e) => {
-                  searchItems({ type: "name", value: e }, { resetSkip: true });
+                  searchItems([
+                    { type: "name", value: e },
+                    { type: "skip", value: "0" },
+                  ]);
                 }}
                 style={{ width: 200 }}
               />
@@ -355,8 +364,8 @@ function CategoryCRUD() {
                   smallSizes={imageSizes as [number, number][]}
                   alt="record.imageUrl"
                   className="object-fill"
-                  width={150}
-                  height={150}
+                  width={120}
+                  height={120}
                   fallback="/placeholder-image.jpg"
                 />
               )}
@@ -379,7 +388,9 @@ function CategoryCRUD() {
                   // style={{ width: "100px" }}
                   smallSizes={coverImageSizes as [number, number][]}
                   alt="coverImage"
-                  className="object-fill"
+                  className="object-cover"
+                  width={120}
+                  height={120}
                   fallback="/placeholder-image.jpg"
                 />
               )}
@@ -407,10 +418,10 @@ function CategoryCRUD() {
                 allowClear
                 placeholder="Enter description"
                 onSearch={(value) => {
-                  searchItems(
+                  searchItems([
                     { type: "description", value: value },
-                    { resetSkip: true }
-                  );
+                    { type: "skip", value: "0" },
+                  ]);
                 }}
                 style={{ width: 200 }}
               />
@@ -421,10 +432,10 @@ function CategoryCRUD() {
       // Thứ tự xuất hiện
       {
         title: () => <div>Thứ tự xuất hiện</div>,
-        dataIndex: "sortOrder",
-        key: "sortOrder",
+        dataIndex: "displayOrder",
+        key: "displayOrder",
         sorter: true,
-        sortOrder: getSortOrder(searchParams.toString(), "sortOrder"),
+        sortOrder: getSortOrder(searchParams.toString(), "displayOrder"),
       },
       // Parent Category
       {
@@ -472,8 +483,14 @@ function CategoryCRUD() {
   }, [searchItems, searchParams]);
 
   const converRecordToFormValues = (record: Entity) => {
+    const parentCategory =
+      typeof record.parentCategory === "object"
+        ? record.parentCategory?._id
+        : record.parentCategory;
+
     return {
       ...record,
+      parentCategory,
       files: {
         imageUrl: { fileList: [] },
         coverImageUrl: { fileList: [] },
@@ -508,7 +525,7 @@ function CategoryCRUD() {
           sizes: coverImageSizes as [number, number][],
         },
       ]}
-      convertToFormValues={converRecordToFormValues}
+      createFormValues={converRecordToFormValues}
     />
   );
 }

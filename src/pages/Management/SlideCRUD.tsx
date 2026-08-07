@@ -72,7 +72,7 @@ const formFields: FormControl[] = [
 
 function SlidesCRUD() {
   const queryResult = useMyQuery<GetMany<Slide2>>({
-    queryKey: ["get_slides"],
+    queryKey: ["slides"],
     url: "/slides",
   });
 
@@ -142,7 +142,7 @@ function SlidesCRUD() {
                     searchValue.type = "isDeleted";
                     searchValue.value = "true";
                   }
-                  searchItems(searchValue, { resetSkip: true });
+                  searchItems([searchValue, { type: "skip", value: "0" }]);
                 }}
                 filterOption={(input, option) =>
                   (option?.label ?? "")
@@ -221,7 +221,7 @@ function SlidesCRUD() {
               allowClear
               onSearch={(e) => {
                 const valueSearch = { type: "title", value: e };
-                searchItems(valueSearch, { resetSkip: true });
+                searchItems([valueSearch, { type: "skip", value: "0" }]);
               }}
               placeholder="input search text"
               style={{ width: 200 }}
@@ -253,7 +253,7 @@ function SlidesCRUD() {
               placeholder="input search text"
               onSearch={(e) => {
                 const valueSearch = { type: "summary", value: e };
-                searchItems(valueSearch, { resetSkip: true });
+                searchItems([valueSearch, { type: "skip", value: "0" }]);
               }}
               style={{ width: 200 }}
             />

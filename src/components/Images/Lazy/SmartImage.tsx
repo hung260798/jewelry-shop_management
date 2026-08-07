@@ -1,5 +1,12 @@
 import { Image, ImageProps } from "antd";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  CSSProperties,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import cssStyles from "./style.module.css";
 
 interface SmartImageProps extends Omit<ImageProps, "sizes"> {
@@ -7,8 +14,17 @@ interface SmartImageProps extends Omit<ImageProps, "sizes"> {
   smallSizes?: [number, number][];
   alt?: string;
   className?: string;
-  style?: React.CSSProperties;
+  style?: CSSProperties;
 }
+
+const getSizedSrc = (src: string, size?: [number, number]) => {
+  if (!size) return src;
+
+  const dotIndex = src.lastIndexOf(".");
+  if (dotIndex === -1) return `${src}_${size[0]}x${size[1]}`;
+
+  return `${src.slice(0, dotIndex)}_${size[0]}x${size[1]}${src.slice(dotIndex)}`;
+};
 
 const SmartImage: React.FC<SmartImageProps> = ({
   src,
@@ -19,16 +35,16 @@ const SmartImage: React.FC<SmartImageProps> = ({
   ...props
 }: SmartImageProps) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const failedSet = useRef<Set<string>>(new Set());
+
   const [containerWidth, setContainerWidth] = useState<number>(0);
   const [currentSrc, setCurrentSrc] = useState<string>(src);
-  const [attemptIndex, setAttemptIndex] = useState<number>(0);
-  const failedSet = useRef<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(false);
-  const [sortedSizes, setSortedSizes] = useState<[number, number][]>([]);
 
-  useEffect(() => {
-    setSortedSizes([...(smallSizes || [])].sort((a, b) => a[0] - b[0]));
-  }, [smallSizes]);
+  const sortedSizes = useMemo(
+    () => [...(smallSizes || [])].sort((a, b) => a[0] - b[0]),
+    [smallSizes]
+  );
 
   useEffect(() => {
     const parent = containerRef.current?.parentElement;
@@ -52,51 +68,36 @@ const SmartImage: React.FC<SmartImageProps> = ({
   }, []);
 
   useEffect(() => {
-    if (!containerWidth || sortedSizes.length === 0) {
-      setCurrentSrc(src);
-      return;
-    }
+    failedSet.current.clear();
 
-    const chosen = sortedSizes.find(([w]) => w >= containerWidth);
-
-    if (!chosen) {
-      setCurrentSrc(src);
-      return;
-    }
-
-    const base = src.replace(/(\.[^.]+)$/i, "");
-    const ext = src.match(/\.[^.]+$/i)?.[0] || "";
-    const smallerUrl = `${base}_${chosen[0]}x${chosen[1]}${ext}`;
-
-    setCurrentSrc(smallerUrl);
-    setAttemptIndex(sortedSizes.findIndex((s) => s === chosen));
+    const chosenSize = sortedSizes.find(([width]) => width >= containerWidth);
+    setCurrentSrc(getSizedSrc(src, chosenSize));
   }, [containerWidth, sortedSizes, src]);
 
-  const handleError = useCallback(() => {
-    if (
-      !smallSizes ||
-      !smallSizes.length ||
-      failedSet.current.has(currentSrc)
-    ) {
-      if (src) {
+  const handleError = useCallback(
+    (e: unknown) => {
+      // Không có smallSizes hoặc đã hết size
+      if (!smallSizes?.length || failedSet.current.has(currentSrc)) {
+        setCurrentSrc(src);
+        return;
+      }
+
+      failedSet.current.add(currentSrc);
+      const currentIndex = sortedSizes.findIndex(
+        (size) => getSizedSrc(src, size) === currentSrc
+      );
+      const nextSize = sortedSizes
+        .slice(currentIndex + 1)
+        .find((size) => !failedSet.current.has(getSizedSrc(src, size)));
+
+      if (nextSize) {
+        setCurrentSrc(getSizedSrc(src, nextSize));
+      } else {
         setCurrentSrc(src);
       }
-      return;
-    }
-
-    failedSet.current.add(currentSrc);
-    const nextSize = sortedSizes[attemptIndex + 1];
-
-    if (nextSize) {
-      const base = src.replace(/(\.[^.]+)$/i, "");
-      const ext = src.match(/\.[^.]+$/i)?.[0] || "";
-      const nextUrl = `${base}_${nextSize[0]}x${nextSize[1]}${ext}`;
-      setCurrentSrc(nextUrl);
-      setAttemptIndex(attemptIndex + 1);
-    } else if (currentSrc !== src) {
-      setCurrentSrc(src);
-    }
-  }, [smallSizes, attemptIndex, currentSrc, src]);
+    },
+    [smallSizes, currentSrc, src]
+  );
 
   return (
     <div ref={containerRef} className={className} style={style}>
@@ -113,7 +114,9 @@ const SmartImage: React.FC<SmartImageProps> = ({
           cssStyles.fallbackTransition
         } ${className} object-cover h-full`}
         onError={handleError}
-        onLoad={() => setLoaded(true)}
+        onLoad={() => {
+          setLoaded(true);
+        }}
         {...props}
       />
     </div>

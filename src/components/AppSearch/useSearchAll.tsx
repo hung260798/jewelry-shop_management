@@ -1,10 +1,9 @@
+import { SearchBoxOptions } from "@/components/Inputs/Searchbox";
+import { axiosClientJson } from "@/libraries/axiosClient";
 import { GetMany, WithId } from "@/utils/types/Entities";
 import { hasKeyOfType } from "@/utils/typeUtils";
 import { AxiosResponse } from "axios";
-import { axiosClientJson } from "@/libraries/axiosClient";
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
-import { SearchBoxOptions } from "@/components/Inputs/Searchbox";
+import { useCallback, useState } from "react";
 
 type SearchAllData<TData extends WithId<object>> = {
   collection: string;
@@ -41,148 +40,163 @@ const useSearchAll: SearchBoxOptions<
   }
 >["searchHook"] = () => {
   const [searchParams, setSearchParams] = useState<Record<string, string>>({
-    name: "####",
+    name: "",
     skip: "0",
     limit: "10",
   });
-  const {
-    data: response = [],
-    error,
-    isLoading,
-    refetch,
-  } = useQuery({
-    queryFn: async () => {
-      const trimmedName = searchParams.name.trim();
-      if (trimmedName !== "") {
-        const promises: SearchAllData<WithId<object>>[] = [
-          {
-            key: "Sản phẩm",
-            promise: axiosClientJson.get("/products", {
-              params: { ...searchParams, productName: trimmedName },
-            }),
-            toString: (obj) => printObj(obj, "name"),
-            collection: "products",
-          },
-          {
-            key: "Danh mục",
-            promise: axiosClientJson.get("/categories", {
-              params: { ...searchParams, name: trimmedName },
-            }),
-            toString: (obj) => printObj(obj, "name"),
-            collection: "categories",
-          },
-          {
-            key: "Bộ sưu tập",
-            promise: axiosClientJson.get("/collections", {
-              params: { ...searchParams, name: trimmedName },
-            }),
-            toString: (obj) => printObj(obj, "name"),
-            collection: "collections",
-          },
-          {
-            key: "Nhà cung cấp",
-            promise: axiosClientJson.get("/suppliers", {
-              params: { ...searchParams, name: trimmedName },
-            }),
-            toString: (obj) => printObj(obj, "name"),
-            collection: "suppliers",
-          },
-          {
-            key: "Khách hàng (tên)",
-            promise: axiosClientJson.get("/customers", {
-              params: { ...searchParams, firstName: trimmedName },
-            }),
-            toString: (obj) => printObj(obj, "firstName", "lastName", "email"),
-            collection: "customers",
-          },
-          {
-            key: "Khách hàng (tên)",
-            promise: axiosClientJson.get("/customers", {
-              params: { ...searchParams, lastName: trimmedName },
-            }),
-            toString: (obj) => printObj(obj, "firstName", "lastName"),
-            collection: "customers",
-          },
-          {
-            key: "Khách hàng (email)",
-            promise: axiosClientJson.get("/customers", {
-              params: { ...searchParams, email: trimmedName },
-            }),
-            toString: (entity) =>
-              printObj(entity, "firstName", "lastName", "email"),
-            collection: "customers",
-          },
-          {
-            key: "Nhân viên (tên)",
-            promise: axiosClientJson.get("/employees", {
-              params: { ...searchParams, firstName: trimmedName },
-            }),
-            toString: (obj) => printObj(obj, "firstName", "lastName", "email"),
-            collection: "employees",
-          },
-          {
-            key: "Nhân viên (tên)",
-            promise: axiosClientJson.get("/employees", {
-              params: { ...searchParams, lastName: trimmedName },
-            }),
-            toString: (obj) => printObj(obj, "firstName", "lastName"),
-            collection: "employees",
-          },
-          {
-            key: "Nhân viên (email)",
-            promise: axiosClientJson.get("/employees", {
-              params: { ...searchParams, email: trimmedName },
-            }),
-            toString: (entity) =>
-              printObj(entity, "firstName", "lastName", "email"),
-            collection: "employees",
-          },
-        ];
 
-        const arr = await Promise.allSettled(
-          promises.map((elem) => elem.promise)
-        ).then((data) => {
-          return data.map((item, index) => ({
-            key: promises[index].key,
-            value: item.status === "fulfilled" ? item.value.data.results : [],
-            toString: promises[index].toString,
-            error: item.status === "rejected" ? item.reason : undefined,
-            collection: promises[index].collection,
-          }));
-        });
+  const [error, setError] = useState<unknown>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [response, setData] = useState<
+    (Omit<SearchAllData<WithId<object>>, "promise"> & {
+      value: WithId<Entity>[];
+      error?: unknown;
+      collection: string;
+    })[]
+  >([]);
 
-        const merged = [
-          ...arr
-            .reduce((map, obj) => {
-              if (!map.has(obj.key)) {
-                map.set(obj.key, obj);
-              } else {
-                map.get(obj.key).value.push(...obj.value);
-              }
-              return map;
-            }, new Map())
-            .values(),
-        ];
-
-        return merged;
-      } else {
-        return [];
+  const search = useCallback(async (searchParams: Record<string, string>) => {
+    setIsLoading(true);
+    try {
+      const name = searchParams.name.trim();
+      if (!name) {
+        return setData([]);
       }
-    },
-    queryKey: ["getGeneral", searchParams],
-  });
+      const promises: SearchAllData<WithId<object>>[] = [
+        {
+          key: "Sản phẩm",
+          promise: axiosClientJson.get("/products", {
+            params: { ...searchParams, productName: name },
+          }),
+          toString: (obj) => printObj(obj, "name"),
+          collection: "products",
+        },
+        {
+          key: "Danh mục",
+          promise: axiosClientJson.get("/categories", {
+            params: { ...searchParams, name: name },
+          }),
+          toString: (obj) => printObj(obj, "name"),
+          collection: "categories",
+        },
+        {
+          key: "Bộ sưu tập",
+          promise: axiosClientJson.get("/collections", {
+            params: { ...searchParams, name: name },
+          }),
+          toString: (obj) => printObj(obj, "name"),
+          collection: "collections",
+        },
+        {
+          key: "Nhà cung cấp",
+          promise: axiosClientJson.get("/suppliers", {
+            params: { ...searchParams, name: name },
+          }),
+          toString: (obj) => printObj(obj, "name"),
+          collection: "suppliers",
+        },
+        {
+          key: "Khách hàng (tên)",
+          promise: axiosClientJson.get("/customers", {
+            params: { ...searchParams, firstName: name },
+          }),
+          toString: (obj) => printObj(obj, "firstName", "lastName", "email"),
+          collection: "customers",
+        },
+        {
+          key: "Khách hàng (tên)",
+          promise: axiosClientJson.get("/customers", {
+            params: { ...searchParams, lastName: name },
+          }),
+          toString: (obj) => printObj(obj, "firstName", "lastName"),
+          collection: "customers",
+        },
+        {
+          key: "Khách hàng (email)",
+          promise: axiosClientJson.get("/customers", {
+            params: { ...searchParams, email: name },
+          }),
+          toString: (entity) =>
+            printObj(entity, "firstName", "lastName", "email"),
+          collection: "customers",
+        },
+        {
+          key: "Nhân viên (tên)",
+          promise: axiosClientJson.get("/employees", {
+            params: { ...searchParams, firstName: name },
+          }),
+          toString: (obj) => printObj(obj, "firstName", "lastName", "email"),
+          collection: "employees",
+        },
+        {
+          key: "Nhân viên (tên)",
+          promise: axiosClientJson.get("/employees", {
+            params: { ...searchParams, lastName: name },
+          }),
+          toString: (obj) => printObj(obj, "firstName", "lastName"),
+          collection: "employees",
+        },
+        {
+          key: "Nhân viên (email)",
+          promise: axiosClientJson.get("/employees", {
+            params: { ...searchParams, email: name },
+          }),
+          toString: (entity) =>
+            printObj(entity, "firstName", "lastName", "email"),
+          collection: "employees",
+        },
+      ];
+
+      const arr = await Promise.allSettled(
+        promises.map((elem) => elem.promise)
+      ).then((data) => {
+        return data.map((item, index) => ({
+          key: promises[index].key,
+          value: item.status === "fulfilled" ? item.value.data.results : [],
+          toString: promises[index].toString,
+          error: item.status === "rejected" ? item.reason : undefined,
+          collection: promises[index].collection,
+        }));
+      });
+
+      const merged = [
+        ...arr
+          .reduce((map, obj) => {
+            if (!map.has(obj.key)) {
+              map.set(obj.key, obj);
+            } else {
+              map.get(obj.key).value.push(...obj.value);
+            }
+            return map;
+          }, new Map())
+          .values(),
+      ];
+
+      setData(merged);
+      setError(null);
+    } catch (e) {
+      setError(e);
+      setData([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const onSearch = async (name: string) => {
     if (name.trim() !== "") {
-      setSearchParams((prev) => ({ ...prev, name: name }));
-      await refetch();
+      const newSearchParams = { ...searchParams, name };
+      setSearchParams(newSearchParams);
+      await search(newSearchParams);
     }
   };
+
   const loadMore = async () => {
-    setSearchParams((prev) => ({
-      ...prev,
-      limit: +prev.limit + 10 + "",
-    }));
-    await refetch();
+    const newSearchParams = {
+      ...searchParams,
+      limit: +searchParams.limit + 10 + "",
+    };
+    setSearchParams(newSearchParams);
+    await search(newSearchParams);
   };
   return {
     data: response,

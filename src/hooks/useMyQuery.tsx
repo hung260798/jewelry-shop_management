@@ -10,14 +10,18 @@ import { Dispatch, SetStateAction, useState } from "react";
 import { SetURLSearchParams, useSearchParams } from "react-router-dom";
 import { GetMany, GetOne } from "utils/types/Entities";
 
+type ObjectOrArray = Record<string, string> | [string, string][];
+
 interface UseMyQueryProps {
   url: string;
   queryKey?: (string | number)[];
-  initParams?: Record<string, string>;
+  initParams?: ObjectOrArray;
   usePrivateParams?: boolean;
 }
 
-export function urlSearchParamsToRecord(
+export type GetOneOrMany<T> = GetMany<T> | GetOne<T>;
+
+export function convertURLParamsToObject(
   params: URLSearchParams
 ): Record<string, string | string[]> {
   const result: Record<string, string | string[]> = {};
@@ -25,7 +29,9 @@ export function urlSearchParamsToRecord(
   params.forEach((value, key) => {
     if (result[key]) {
       if (Array.isArray(result[key])) {
-        (result[key] as string[]).push(value);
+        const arr = result[key] as string[];
+        arr.push(value);
+        arr.sort();
       } else {
         result[key] = [result[key] as string, value];
       }
@@ -37,7 +43,7 @@ export function urlSearchParamsToRecord(
   return result;
 }
 
-export function urlSearchParamsToArray(
+export function convertURLParamsToArray(
   params: URLSearchParams
 ): [string, string | string[]][] {
   const result: Record<string, string | string[]> = {};
@@ -62,20 +68,36 @@ export function compareSearchParamsArray(
   arr2: [string, string | string[]][]
 ): boolean {
   if (arr1.length !== arr2.length) return false;
-  for (let i = 0; i < arr1.length; i++) {
-    const [key1, value1] = arr1[i];
-    const [key2, value2] = arr2[i];
-    if (key1 !== key2) return false;
-    if (Array.isArray(value1) && Array.isArray(value2)) {
-      if (value1.length !== value2.length) return false;
-      for (let j = 0; j < value1.length; j++) {
-        if (value1[j] !== value2[j]) return false;
-      }
-    } else if (value1 !== value2) {
-      return false;
-    }
-  }
-  return true;
+  const compareValue: (
+    a: string | string[],
+    b: string | string[]
+  ) => boolean = (a, b) => {
+    if (typeof a !== typeof b) return false;
+    if (typeof a === "string") return a === b;
+    return (
+      a.length === b.length &&
+      a
+        .map((elem, idx) => elem === b[idx])
+        .reduce((prev, cur) => prev && cur, true)
+    );
+  };
+  return arr1
+    .map(([k, v], idx) => k === arr2[idx][0] && compareValue(v, arr2[idx][1]))
+    .reduce((p, c) => p && c, true);
+  // for (let i = 0; i < arr1.length; i++) {
+  //   const [key1, value1] = arr1[i];
+  //   const [key2, value2] = arr2[i];
+  //   if (key1 !== key2) return false;
+  //   if (Array.isArray(value1) && Array.isArray(value2)) {
+  //     if (value1.length !== value2.length) return false;
+  //     for (let j = 0; j < value1.length; j++) {
+  //       if (value1[j] !== value2[j]) return false;
+  //     }
+  //   } else if (value1 !== value2) {
+  //     return false;
+  //   }
+  // }
+  // return true;
 }
 
 export interface MyQueryReturnType<T> {
@@ -88,39 +110,51 @@ export interface MyQueryReturnType<T> {
       | URLSearchParams,
     options?: {
       replace?: boolean;
+      /** @deprecated do not use */
       resetSkip?: boolean;
     }
   ) => Promise<void>;
   query: UseQueryResult<T, unknown>;
   setPrivateParams?: Dispatch<SetStateAction<URLSearchParams>>;
+  queryKey: unknown[];
 }
-
-const REFETCH_INTERVAL_MINUTE = 5;
 
 const ONE_MINUTE = 60 * 1000;
 
-const REFETCH_INTERVAL = ONE_MINUTE * REFETCH_INTERVAL_MINUTE;
+const REFETCH_INTERVAL = ONE_MINUTE * 5;
 
-export const skipAndLimit = {
+export const defaultQueryObj: Record<string, string> = {
   skip: "0",
   limit: "10",
-};
-
-export const sortById = {
   sortBy: "_id",
   sortOrder: "1",
 };
 
-export const defaultQueryObj: Record<string, string> = {
-  ...skipAndLimit,
-  ...sortById,
+/**
+ * Merges multiple objects or arrays of key-value pairs into a single array of key-value pairs.
+ */
+const mergeParams = (...args: ObjectOrArray[]) => {
+  const merged: [string, string][] = [];
+
+  for (const arg of args) {
+    if (Array.isArray(arg)) {
+      for (const [key, value] of arg) {
+        merged.push([key, value]);
+      }
+    } else {
+      for (const key in arg) {
+        merged.push([key, arg[key]]);
+      }
+    }
+  }
+
+  return merged;
 };
 
-function addParam(
+function changeParam(
   params: URLSearchParams,
-  param: { type: string; value?: string }
+  { type, value }: { type: string; value?: string }
 ) {
-  const { type, value } = param;
   if (!value) {
     params.delete(type);
   } else {
@@ -138,22 +172,21 @@ export default function useMyQuery<T extends object>(
     usePrivateParams = false,
   } = props;
 
-  const [searchParams, setSearchParams] = useSearchParams({
-    ...defaultQueryObj,
-    ...initParams,
-  });
-
-  const [privateParams, setPrivateParams] = useState<URLSearchParams>(
-    new URLSearchParams({ ...defaultQueryObj, ...initParams })
+  const [searchParams, setSearchParams] = useSearchParams(
+    mergeParams(defaultQueryObj, initParams)
   );
 
-  const setPrivateParamsWrapper: SetURLSearchParams = (newParams) => {
+  const [privateParams, _setPrivateParams] = useState<URLSearchParams>(
+    new URLSearchParams(mergeParams(defaultQueryObj, initParams))
+  );
+
+  const setPrivateParams: SetURLSearchParams = (newParams) => {
     if (newParams == null) {
-      setPrivateParams(new URLSearchParams());
+      _setPrivateParams(new URLSearchParams());
       return;
     }
     if (typeof newParams === "function") {
-      setPrivateParams((prev) => {
+      _setPrivateParams((prev) => {
         const result = newParams(prev);
         if (result == null) {
           return new URLSearchParams();
@@ -163,7 +196,7 @@ export default function useMyQuery<T extends object>(
       });
     }
     if (newParams instanceof URLSearchParams) {
-      setPrivateParams(newParams);
+      _setPrivateParams(newParams);
       return;
     }
     if (Array.isArray(newParams)) {
@@ -171,7 +204,7 @@ export default function useMyQuery<T extends object>(
       for (const [key, value] of newParams) {
         params.append(key, value);
       }
-      setPrivateParams(params);
+      _setPrivateParams(params);
       return;
     }
     if (typeof newParams === "object") {
@@ -186,27 +219,21 @@ export default function useMyQuery<T extends object>(
           params.set(key, value);
         }
       }
-      setPrivateParams(params);
+      _setPrivateParams(params);
       return;
     }
   };
 
   const usedParams = usePrivateParams ? privateParams : searchParams;
-  const setParams = usePrivateParams
-    ? setPrivateParamsWrapper
-    : setSearchParams;
+  const setParams = usePrivateParams ? setPrivateParams : setSearchParams;
+  const finalQueryKey = [...queryKey, convertURLParamsToObject(usedParams)];
   const query = useQuery({
-    queryKey: [...queryKey, ...urlSearchParamsToArray(usedParams)],
+    queryKey: finalQueryKey,
     queryFn: async () => {
       const idNames = ["_id", "id", "searchId"];
-      let idValue;
-      for (const name of idNames) {
-        if (!idValue) {
-          idValue = usedParams.get(name);
-        } else {
-          break;
-        }
-      }
+      let idValue = usedParams
+        .entries()
+        .find(([k]) => idNames.includes(k))?.[1];
       const axiosResponse = await axiosClientJson.get<T>(
         idValue ? `${url}/${idValue}` : `${url}?${usedParams.toString()}`
       );
@@ -227,14 +254,14 @@ export default function useMyQuery<T extends object>(
       );
       if (queries instanceof URLSearchParams) {
         for (const [type, value] of queries.entries()) {
-          addParam(newParams, { type, value });
+          changeParam(newParams, { type, value });
         }
       } else {
         if (!Array.isArray(queries)) {
           queries = [queries];
         }
         for (const query of queries) {
-          addParam(newParams, query);
+          changeParam(newParams, query);
         }
       }
       if (resetSkip) {
@@ -256,55 +283,15 @@ export default function useMyQuery<T extends object>(
     }
   };
 
-  // const searchForItems: ReturnType<T>["searchItems"] = async (
-  //   queries,
-  //   { replace, resetSkip } = { replace: false, resetSkip: false }
-  // ) => {
-  //   try {
-  //     const paramClone: URLSearchParams = new URLSearchParams(
-  //       replace ? {} : usedParams
-  //     );
-  //     if (queries instanceof URLSearchParams) {
-  //       for (const [type, value] of queries.entries()) {
-  //         addParam(paramClone, { type, value });
-  //       }
-  //     } else {
-  //       if (!Array.isArray(queries)) {
-  //         queries = [queries];
-  //       }
-  //       for (const query of queries) {
-  //         addParam(paramClone, query);
-  //       }
-  //     }
-  //     if (resetSkip) {
-  //       paramClone.set("skip", "0");
-  //     }
-  //     setParams(paramClone);
-  //   } catch (error: unknown) {
-  //     if (!(error instanceof Error)) {
-  //       message.error("An unexpected error occurred.");
-  //       return;
-  //     }
-  //     if (!("response" in error)) {
-  //       message.error(error.message);
-  //       return;
-  //     }
-  //     message.error(
-  //       (error.response as { data?: { message?: string } })?.data?.message
-  //     );
-  //   }
-  // };
-
   return {
     searchParams: usedParams,
     setSearchParams: setParams,
     searchItems: searchForItems,
     query: query,
-    setPrivateParams: setPrivateParams,
+    queryKey: finalQueryKey,
+    setPrivateParams: _setPrivateParams,
   };
 }
-
-export type GetOneOrMany<T> = GetMany<T> | GetOne<T>;
 
 export function useGetListQuery<T>(props: UseMyQueryProps) {
   const queryReturn = useMyQuery<GetOneOrMany<T>>(props);
@@ -350,15 +337,12 @@ export function useMyPrefetch() {
     Promise.allSettled(
       collections.map((collectionName) => {
         return queryClient.prefetchQuery({
-          queryKey: [
-            `get_${collectionName}`,
-            ...Object.entries(defaultQueryObj),
-          ],
+          queryKey: [`${collectionName}`, ...Object.entries(defaultQueryObj)],
           queryFn: () =>
             axiosClientJson
               .get<GetMany<unknown>>(`/${collectionName}`)
               .then((response) => response.data),
-          staleTime: 3 * 60 * 1000,
+          staleTime: 3 * ONE_MINUTE,
           retry: 2,
         });
       })

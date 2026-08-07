@@ -75,7 +75,7 @@ type Supplier = Types.WithId<Types.Supplier> & Types.Active;
 
 function SupplierCRUD() {
   const queryResult = useGetListQuery<Supplier>({
-    queryKey: ["get_suppliers"],
+    queryKey: ["suppliers"],
     url: "/suppliers",
   });
 
@@ -149,7 +149,7 @@ function SupplierCRUD() {
                     searchValue.type = "isDeleted";
                     searchValue.value = "true";
                   }
-                  searchItems(searchValue, { resetSkip: true });
+                  searchItems([searchValue, { type: "skip", value: "0" }]);
                 }}
                 filterOption={(input, option) =>
                   (option?.label ?? "")
@@ -199,7 +199,7 @@ function SupplierCRUD() {
             placeholder="Nhập tên"
             onSearch={(e) => {
               const valueSearch = { type: "name", value: e };
-              searchItems(valueSearch, { resetSkip: true });
+              searchItems([valueSearch, { type: "skip", value: "0" }]);
             }}
           />
         );
@@ -235,7 +235,7 @@ function SupplierCRUD() {
               placeholder="Nhập email nhà cung cấp"
               onSearch={(e) => {
                 const valueSearch = { type: "email", value: e };
-                searchItems(valueSearch, { resetSkip: true });
+                searchItems([valueSearch, { type: "skip", value: "0" }]);
               }}
               style={{ width: 200 }}
             />
@@ -267,7 +267,7 @@ function SupplierCRUD() {
               placeholder="Nhập số điện thoại"
               onSearch={(e) => {
                 const valueSearch = { type: "phoneNumber", value: e };
-                searchItems(valueSearch, { resetSkip: true });
+                searchItems([valueSearch, { type: "skip", value: "0" }]);
               }}
             />
           </div>
@@ -297,7 +297,7 @@ function SupplierCRUD() {
               placeholder="Nhập địa chỉ"
               onSearch={(e) => {
                 const valueSearch = { type: "address", value: e };
-                searchItems(valueSearch, { resetSkip: true });
+                searchItems([valueSearch, { type: "skip", value: "0" }]);
               }}
               style={{ width: 200 }}
             />

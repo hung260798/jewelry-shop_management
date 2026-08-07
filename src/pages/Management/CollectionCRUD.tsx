@@ -1,3 +1,4 @@
+import CRUD from "@/components/CRUD";
 import {
   getCardControlsFromRecord,
   ModalCard,
@@ -7,7 +8,6 @@ import SmartImage from "@/components/Images/Lazy/SmartImage";
 import { UploadInput } from "@/components/Inputs/FileUpload";
 import { useGetListQuery } from "@/hooks/useMyQuery";
 import { axiosClientJson } from "@/libraries/axiosClient";
-import CRUD from "@/components/CRUD";
 import { ASSET_URL } from "@/utils/constants/URLS";
 import { devLog } from "@/utils/logger";
 import { appendDomain, getSortOrder } from "@/utils/stringUtils";
@@ -41,7 +41,7 @@ const imageSmallSizes: [number, number][] = [[200, 200]];
 export default function CollectionCRUD() {
   const queryResult = useGetListQuery<DataRecord>({
     url: "/collections",
-    queryKey: ["get_collections"],
+    queryKey: ["collections"],
   });
 
   const { searchParams, searchItems } = queryResult;
@@ -69,20 +69,25 @@ export default function CollectionCRUD() {
             allowClear
             placeholder="bst 123 ..."
             onSearch={(e) => {
-              searchItems(
-                [
-                  {
-                    type: "name",
-                    value: e,
-                  },
-                ],
-                { resetSkip: true }
-              );
+              searchItems([
+                {
+                  type: "name",
+                  value: e,
+                },
+                { type: "skip", value: "0" },
+              ]);
             }}
             defaultValue={searchParams.get("name") ?? ""}
             style={{ width: 200 }}
           />
         );
+      },
+    },
+    {
+      title: "Đường dẫn",
+      dataIndex: "slug",
+      render(slug: string | undefined) {
+        return slug ?? "";
       },
     },
     {
@@ -104,15 +109,13 @@ export default function CollectionCRUD() {
             allowClear
             placeholder="input search text"
             onSearch={(e) => {
-              searchItems(
-                [
-                  {
-                    type: "description",
-                    value: e,
-                  },
-                ],
-                { resetSkip: true }
-              );
+              searchItems([
+                {
+                  type: "description",
+                  value: e,
+                },
+                { type: "skip", value: "0" },
+              ]);
             }}
             defaultValue={searchParams.get("description") ?? ""}
             style={{ width: 200 }}
@@ -166,22 +169,21 @@ export default function CollectionCRUD() {
       // sorter: true,
     },
     {
-      title: "Ảnh  BST",
+      title: "Ảnh BST",
       dataIndex: "image",
       render(src: string) {
         if (typeof src !== "string") return null;
         return (
           <SmartImage
             src={appendDomain(src, ASSET_URL)}
-            width={200}
-            height={200}
+            width={100}
+            height={100}
             smallSizes={imageSmallSizes}
             fallback="/placeholder-image.jpg"
-            // preview={true}
           />
         );
       },
-      width: 240,
+      width: 120,
     },
     {
       title: "Ảnh bìa BST",
@@ -191,15 +193,14 @@ export default function CollectionCRUD() {
         return (
           <SmartImage
             src={appendDomain(src, ASSET_URL)}
-            width={350}
+            width={100}
             height={100}
             smallSizes={[[350, 100]]}
-            style={{ width: "350px", height: "100px" }}
             fallback="/placeholder-image.jpg"
           />
         );
       },
-      width: 240,
+      width: 120,
     },
   ];
   const [showProductList, setShowProductList] = useState<DataRecord | null>(
@@ -245,6 +246,7 @@ export default function CollectionCRUD() {
             (record) => (
               <Button
                 key={1}
+                // className={crudStyle.secondaryAction}
                 icon={<PlusOutlined />}
                 onClick={() => {
                   setShowProductList(record);
@@ -253,7 +255,7 @@ export default function CollectionCRUD() {
             ),
           ],
         }}
-        convertToFormValues={converRecordToFormValues}
+        createFormValues={converRecordToFormValues}
         query={queryResult}
       />
       <AddProductBox
@@ -336,7 +338,7 @@ function AddProductBox({
             products: added,
           });
           queryClient.setQueryData<AxiosResponse<GetOne<DataRecord>>>(
-            ["get_collections", { _id: collectionId }],
+            ["collections", { _id: collectionId }],
             (prev) => {
               const response = prev;
               if (response)
@@ -370,7 +372,7 @@ function AddProductBox({
           )
         : null;
     },
-    queryKey: ["get_collections", { _id: collectionId }],
+    queryKey: ["collections", { _id: collectionId }],
   });
 
   useEffect(() => {

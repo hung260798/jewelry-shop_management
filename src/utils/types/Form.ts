@@ -7,7 +7,7 @@ export type FormProps = {
   formValues: unknown;
   submitFn?: (values: unknown) => Promise<void>;
   formControls: FormControl[];
-  modalTitle: string;
+  modalTitle: string | ((formValues: unknown) => string);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   refetch?: () => any | Promise<any>;
   collectionName?: string;

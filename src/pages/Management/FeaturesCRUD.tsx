@@ -78,7 +78,7 @@ const imageUrlSizes: [number, number][] = [[80, 80]];
 
 function FeaturesCRUD() {
   const queryResult = useMyQuery<GetManyData<Feature>>({
-    queryKey: ["get_features"],
+    queryKey: ["features"],
     url: "/features",
   });
 
@@ -182,7 +182,7 @@ function FeaturesCRUD() {
       dataIndex: "imageUrl",
       render: (text: string, record) => {
         return (
-          <div className="w-[100px] h-[100px]">
+          <div className="w-25 h-25">
             {record.imageUrl && (
               <SmartImage
                 src={appendDomain(record.imageUrl, ASSET_URL)}
@@ -213,7 +213,7 @@ function FeaturesCRUD() {
       key: "title",
       filterDropdown: () => {
         return (
-          <div style={{ padding: 8 }}>
+          <div className="p-2">
             <Search
               allowClear
               onSearch={(e) => {
@@ -244,7 +244,7 @@ function FeaturesCRUD() {
       key: "summary",
       filterDropdown: () => {
         return (
-          <div style={{ padding: 8 }}>
+          <div className="p-2">
             <Search
               allowClear
               placeholder="input search text"

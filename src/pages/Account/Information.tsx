@@ -1,13 +1,20 @@
 import LazyFadeImage from "@/components/Images/Lazy";
-import useWindowWidth from "@/hooks/useWidth";
 import { ASSET_URL } from "@/utils/constants/URLS";
 import { devLog } from "@/utils/logger";
 import { appendDomain, createFormData } from "@/utils/stringUtils";
 import { User } from "@/utils/types/Entities";
+import {
+  CameraOutlined,
+  LockOutlined,
+  ReloadOutlined,
+  SaveOutlined,
+  UserOutlined,
+} from "@ant-design/icons";
 import { useQuery } from "@tanstack/react-query";
-import type { GetProp, UploadProps } from "antd";
+import { GetProp, Grid, UploadProps } from "antd";
 import {
   Button,
+  Card,
   DatePicker,
   Flex,
   Form,
@@ -22,6 +29,7 @@ import dayjs, { Dayjs } from "dayjs";
 import { useEffect, useState } from "react";
 import { WithId } from "utils/types/Entities";
 import { axiosClientForm, axiosClientJson } from "../../libraries/axiosClient";
+import style from "./Information.module.css";
 
 const useUserProfile = () => {
   const token = window.localStorage.getItem("token");
@@ -30,7 +38,7 @@ const useUserProfile = () => {
     error,
     isLoading,
   } = useQuery({
-    queryKey: ["get_self_employee", token],
+    queryKey: ["self_employee", { token }],
     queryFn: () => {
       return axiosClientJson.get(`/employees/personal`);
     },
@@ -40,8 +48,6 @@ const useUserProfile = () => {
 };
 
 const Information = () => {
-  const width = useWindowWidth();
-  const isLargeScreen = width > 896;
   const [form] = Form.useForm();
   const { user } = useUserProfile();
   const userId = user?._id ?? "";
@@ -75,42 +81,67 @@ const Information = () => {
   }
   useEffect(() => {
     if (user && form) {
-      const validUser: Omit<WithId<User>, "birthday"> & { birthday: Dayjs } = {
+      const validUser: Omit<WithId<User>, "birthday"> & {
+        birthday?: Dayjs;
+      } = {
         ...user,
-        birthday: dayjs(user?.birthday),
+        birthday: user?.birthday ? dayjs(user.birthday) : undefined,
       };
       form.setFieldsValue(validUser);
     }
   }, [user, form]);
+
+  const screens = Grid.useBreakpoint();
+  const formLabelCol = screens.md ? { span: 7 } : { span: 24 };
+  const formWrapperCol = screens.md ? { span: 17 } : { span: 24 };
+  const avatarUrl = avatarSrc ?? appendDomain(user?.imageUrl || "", ASSET_URL);
+
   return (
-    <Flex className="bg-white gap-5 h-[80vh]" justify="center">
-      <div className="pt-10 w-full px-32">
-        <Flex
-          align="start"
-          className="pt-[100px]"
-          gap={80}
-          justify="space-between"
-        >
-          <div className="basis-2/3">
-            <h4 className="text-2xl font-bold bg-amber-200">
-              Thông tin tài khoản
-            </h4>
-            <Flex gap={20}>
-              <Space
-                direction="vertical"
-                className={`flex flex-col items-center`}
-              >
+    <main className={style.root}>
+      <div className={style.pageHeader}>
+        <div>
+          <span className={style.eyebrow}>Tài khoản</span>
+          <h1>Thông tin cá nhân</h1>
+        </div>
+        <div className={style.headerBadge}>
+          <UserOutlined />
+          <span>{user?.email || "Đang tải hồ sơ"}</span>
+        </div>
+      </div>
+
+      <div className={style.contentGrid}>
+        <Card className={style.profileCard} bordered={false}>
+          <div className={style.sectionTitle}>
+            <div>
+              <h2>Hồ sơ nhân viên</h2>
+              <p>Cập nhật thông tin liên hệ và ảnh đại diện.</p>
+            </div>
+          </div>
+
+          <div className={style.profileLayout}>
+            <aside className={style.avatarPanel}>
+              <div className={style.avatarFrame}>
                 <LazyFadeImage
-                  src={
-                    avatarSrc ?? appendDomain(user?.imageUrl || "", ASSET_URL)
-                  }
+                  src={avatarUrl}
                   style={{ objectFit: "cover" }}
                   loading="lazy"
-                  width={200}
-                  height={250}
+                  width="100%"
+                  height="100%"
                   fallback="/placeholder-user.jpg"
                   preview
                 />
+              </div>
+              <Space
+                direction="vertical"
+                size={10}
+                className={style.avatarMeta}
+              >
+                <strong>
+                  {[user?.lastName, user?.firstName]
+                    .filter(Boolean)
+                    .join(" ") || "Nhân viên"}
+                </strong>
+                <span>{user?.phoneNumber || "Chưa có số điện thoại"}</span>
                 <Upload
                   beforeUpload={() => false}
                   onChange={(info) => {
@@ -123,173 +154,222 @@ const Information = () => {
                   showUploadList={false}
                   maxCount={1}
                 >
-                  <Button>Thay ảnh đại diện</Button>
+                  <Button icon={<CameraOutlined />}>Thay ảnh đại diện</Button>
                 </Upload>
               </Space>
-              <Flex gap={20} vertical={true} className="grow">
-                <Space
-                  direction="vertical"
-                  style={{ minWidth: isLargeScreen ? "30rem" : "5rem" }}
+            </aside>
+
+            <Form
+              form={form}
+              labelWrap
+              labelCol={formLabelCol}
+              labelAlign="left"
+              wrapperCol={formWrapperCol}
+              className={style.form}
+              variant="outlined"
+              onFinish={async (values: User) => {
+                const text = values;
+                try {
+                  const publicUrl = await uploadAvatarGCS();
+                  const updateJsonData = {
+                    ...text,
+                    birthday: text.birthday?.toISOString(),
+                    ...(publicUrl ? { imageUrl: publicUrl } : {}),
+                  };
+                  await axiosClientJson.patch(
+                    `/employees/${userId}`,
+                    updateJsonData
+                  );
+                  setAvatarFile(undefined);
+                  message.success("Cập nhật thông tin thành công", 1.5);
+                } catch {
+                  message.error("Cập nhật thông tin thất bại", 1.5);
+                }
+              }}
+              onFinishFailed={function (error: unknown) {
+                devLog("finish failed:", error);
+                message.error("Submit thất bại", 1.5);
+              }}
+              colon={false}
+            >
+              <div className={style.fieldGrid}>
+                <Form.Item
+                  label="Tên"
+                  name="firstName"
+                  rules={[{ required: true, message: "Nhập tên của bạn" }]}
                 >
-                  <Form
-                    form={form}
-                    labelWrap
-                    labelCol={{ xs: 6 }}
-                    labelAlign="left"
-                    wrapperCol={{ xs: 18 }}
-                    style={{ width: "100%" }}
-                    className="bg-white rounded-md max-w-5xl p-6 mx-auto"
-                    variant="outlined"
-                    onFinish={async (values: User) => {
-                      // values.birthday = values.birthday.toISOString();
-                      const text = values;
-                      try {
-                        const publicUrl = await uploadAvatarGCS();
-                        const updateJsonData = {
-                          ...text,
-                          birthday: text.birthday?.toISOString(),
-                          imageUrl: publicUrl,
-                        };
-                        await axiosClientJson.patch(
-                          `/employees/${userId}`,
-                          updateJsonData
-                        );
-                        message.success("Cập nhật thông tin thành công", 1.5);
-                      } catch {
-                        message.error("Cập nhật thông tin thất bại", 1.5);
-                      }
-                    }}
-                    onFinishFailed={function (error: unknown) {
-                      devLog("finish failed:", error);
-                      message.error("Submit thất bại", 1.5);
-                    }}
-                    colon={false}
-                  >
-                    <Form.Item
-                      label="Tên"
-                      name="firstName"
-                      rules={[{ required: true, message: "Nhap ten cua ban" }]}
-                    >
-                      <Input size="large" />
-                    </Form.Item>
-                    <Form.Item
-                      label="Họ"
-                      name="lastName"
-                      rules={[{ required: true, message: "Nhap ho cua ban" }]}
-                    >
-                      <Input size="large" />
-                    </Form.Item>
-                    <Form.Item
-                      label="Email"
-                      name="email"
-                      rules={[
-                        { required: true, message: "Nhap dia chi email" },
-                      ]}
-                    >
-                      <Input size="large" />
-                    </Form.Item>
-                    <Form.Item
-                      label="Số điện thoại"
-                      name="phoneNumber"
-                      rules={[
-                        { required: true, message: "Nhap so dien thoai" },
-                      ]}
-                    >
-                      <Input size="large" />
-                    </Form.Item>
-                    <Form.Item
-                      label="Địa chỉ"
-                      name="address"
-                      rules={[{ required: true, message: "Nhap dia chi nha" }]}
-                    >
-                      <Input size="large" />
-                    </Form.Item>
-                    <Form.Item
-                      label="Ngày sinh"
-                      name="birthday"
-                      rules={[{ required: true, message: "Nhap ngay sinh" }]}
-                    >
-                      <DatePicker size="large" />
-                    </Form.Item>
-                    <Form.Item label="Giới tính" name="gender">
-                      <Select
-                        size="large"
-                        options={[
-                          { label: "Nam", value: "male" },
-                          { label: "Nu", value: "female" },
-                          { label: "Khac", value: "other" },
-                        ]}
-                      />
-                    </Form.Item>
-                    <Flex gap={"middle"} justify="end" align="center">
-                      <Button
-                        size="large"
-                        onClick={() => {
-                          if (user) {
-                            form.setFieldsValue({
-                              ...user,
-                              birthday: user?.birthday
-                                ? dayjs(user.birthday)
-                                : undefined,
-                            });
-                          }
-                        }}
-                      >
-                        Khôi phục
-                      </Button>
-                      <Button type="primary" htmlType="submit" size="large">
-                        Cập nhật
-                      </Button>
-                    </Flex>
-                  </Form>
-                </Space>
+                  <Input size="large" placeholder="Tên" />
+                </Form.Item>
+                <Form.Item
+                  label="Họ"
+                  name="lastName"
+                  rules={[{ required: true, message: "Nhập họ của bạn" }]}
+                >
+                  <Input size="large" placeholder="Họ" />
+                </Form.Item>
+                <Form.Item
+                  label="Email"
+                  name="email"
+                  rules={[
+                    { required: true, message: "Nhập địa chỉ email" },
+                    { type: "email", message: "Email không hợp lệ" },
+                  ]}
+                >
+                  <Input size="large" placeholder="email@company.com" />
+                </Form.Item>
+                <Form.Item
+                  label="Số điện thoại"
+                  name="phoneNumber"
+                  rules={[{ required: true, message: "Nhập số điện thoại" }]}
+                >
+                  <Input size="large" placeholder="Số điện thoại" />
+                </Form.Item>
+                <Form.Item
+                  label="Địa chỉ"
+                  name="address"
+                  className={style.fullWidth}
+                  rules={[{ required: true, message: "Nhập địa chỉ nhà" }]}
+                >
+                  <Input size="large" placeholder="Địa chỉ liên hệ" />
+                </Form.Item>
+                <Form.Item
+                  label="Ngày sinh"
+                  name="birthday"
+                  rules={[{ required: true, message: "Nhập ngày sinh" }]}
+                >
+                  <DatePicker size="large" className={style.fullControl} />
+                </Form.Item>
+                <Form.Item label="Giới tính" name="gender">
+                  <Select
+                    size="large"
+                    placeholder="Chọn giới tính"
+                    options={[
+                      { label: "Nam", value: "male" },
+                      { label: "Nữ", value: "female" },
+                      { label: "Khác", value: "other" },
+                    ]}
+                  />
+                </Form.Item>
+              </div>
+
+              <Flex gap={"middle"} justify="end" align="center" wrap>
+                <Button
+                  icon={<ReloadOutlined />}
+                  size="large"
+                  onClick={() => {
+                    if (user) {
+                      form.setFieldsValue({
+                        ...user,
+                        birthday: user?.birthday
+                          ? dayjs(user.birthday)
+                          : undefined,
+                      });
+                      setAvatarSrc(undefined);
+                      setAvatarFile(undefined);
+                    }
+                  }}
+                >
+                  Khôi phục
+                </Button>
+                <Button
+                  icon={<SaveOutlined />}
+                  type="primary"
+                  htmlType="submit"
+                  size="large"
+                >
+                  Cập nhật
+                </Button>
               </Flex>
-            </Flex>
+            </Form>
           </div>
-          {/** Password Update Form */}
-          <div className="basis-1/3">
-            <h4 className="text-2xl font-bold bg-amber-200">Đổi mật khẩu</h4>
-            <Flex justify={"start"}>
-              <Form
-                // className="max-w-6xl"
-                labelCol={{ xs: 8 }}
-                labelAlign="left"
-                colon={false}
-                wrapperCol={{ xs: 16 }}
-                style={{ height: "100%", width: "100%" }}
-                labelWrap
-                onFinish={async function (values: object) {
-                  try {
-                    await axiosClientJson.patch(`/employees/${userId}`, values);
-                    message.success("Update information successfully", 1.5);
-                  } catch {
-                    message.error("Update information failed", 1.5);
-                  }
-                }}
-                onFinishFailed={function (error: unknown) {
-                  devLog("finish failed:", error);
-                }}
+        </Card>
+
+        <Card className={style.securityCard} bordered={false}>
+          <div className={style.sectionTitle}>
+            <div className={style.iconTitle}>
+              <span className={style.titleIcon}>
+                <LockOutlined />
+              </span>
+              <div>
+                <h2>Đổi mật khẩu</h2>
+                <p>Đặt mật khẩu mới cho tài khoản quản trị.</p>
+              </div>
+            </div>
+          </div>
+
+          <Form
+            labelCol={formLabelCol}
+            labelAlign="left"
+            colon={false}
+            wrapperCol={formWrapperCol}
+            className={style.form}
+            labelWrap
+            onFinish={async function (values: object) {
+              try {
+                await axiosClientJson.patch(`/employees/${userId}`, values);
+                message.success("Cập nhật mật khẩu thành công", 1.5);
+              } catch {
+                message.error("Cập nhật mật khẩu thất bại", 1.5);
+              }
+            }}
+            onFinishFailed={function (error: unknown) {
+              devLog("finish failed:", error);
+            }}
+          >
+            <Form.Item
+              label="Mật khẩu cũ"
+              name="oldPassword"
+              rules={[{ required: true, message: "Nhập mật khẩu cũ" }]}
+            >
+              <Input.Password size="large" placeholder="Mật khẩu hiện tại" />
+            </Form.Item>
+            <Form.Item
+              label="Mật khẩu mới"
+              name="password"
+              rules={[
+                { required: true, message: "Nhập mật khẩu mới" },
+                { min: 6, message: "Mật khẩu cần tối thiểu 6 ký tự" },
+              ]}
+            >
+              <Input.Password size="large" placeholder="Mật khẩu mới" />
+            </Form.Item>
+            <Form.Item
+              label="Xác nhận"
+              name="confirmPassword"
+              dependencies={["password"]}
+              rules={[
+                { required: true, message: "Xác nhận mật khẩu mới" },
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    if (!value || getFieldValue("password") === value) {
+                      return Promise.resolve();
+                    }
+                    return Promise.reject(
+                      new Error("Mật khẩu xác nhận không khớp")
+                    );
+                  },
+                }),
+              ]}
+            >
+              <Input.Password
+                size="large"
+                placeholder="Nhập lại mật khẩu mới"
+              />
+            </Form.Item>
+            <Flex justify="end">
+              <Button
+                icon={<SaveOutlined />}
+                type="primary"
+                htmlType="submit"
+                size="large"
               >
-                <Form.Item label="Mật khẩu cũ" name="oldPassword">
-                  <Input.Password size="large" />
-                </Form.Item>
-                <Form.Item label="Mật khẩu mới" name="password">
-                  <Input.Password size="large" />
-                </Form.Item>
-                <Form.Item label="Xác nhận mật khẩu mới" name="confirmPassword">
-                  <Input.Password size="large" />
-                </Form.Item>
-                <Flex justify="end">
-                  <Button type="primary" htmlType="submit" size="large">
-                    Cập nhật dữ liệu
-                  </Button>
-                </Flex>
-              </Form>
+                Cập nhật mật khẩu
+              </Button>
             </Flex>
-          </div>
-        </Flex>
+          </Form>
+        </Card>
       </div>
-    </Flex>
+    </main>
   );
 };
 
