@@ -27,6 +27,7 @@ import CollectionCRUD from "./pages/Management/CollectionCRUD";
 import CustomerCRUD from "./pages/Management/CustomerCRUD";
 import EmployeesCRUD from "./pages/Management/EmployeesCRUD";
 import FeaturesCRUD from "./pages/Management/FeaturesCRUD";
+import FileManagerCRUD from "./pages/Management/FileManagerCRUD";
 import ProductCRUD from "./pages/Management/ProductsCRUD";
 import SlidesCRUD from "./pages/Management/SlideCRUD";
 import SuppliersCRUD from "./pages/Management/SuppliersCRUD";
@@ -227,6 +228,7 @@ const InnerApp = () => {
                 <Route path="/management/products" element={<ProductCRUD />} />
                 <Route path="/function/slides" element={<SlidesCRUD />} />
                 <Route path="/function/features" element={<FeaturesCRUD />} />
+                <Route path="/function/files" element={<FileManagerCRUD />} />
                 <Route
                   path="/management/suppliers"
                   element={<SuppliersCRUD />}

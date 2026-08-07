@@ -2,6 +2,7 @@ import { axiosClientJson } from "@/libraries/axiosClient";
 import {
   EllipsisOutlined,
   ExportOutlined,
+  FileOutlined,
   HomeOutlined,
   OrderedListOutlined,
   SettingOutlined,
@@ -87,6 +88,11 @@ const MainMenu = ({ user }: { user: AuthUser }) => {
         {
           key: "function/features",
           label: "Tính năng",
+        },
+        {
+          key: "function/files",
+          label: "Quản lý tệp",
+          icon: <FileOutlined />,
         },
       ],
     },
